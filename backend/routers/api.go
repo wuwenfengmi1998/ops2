@@ -27,11 +27,8 @@ func init() {
 
 func ApiRoot(r *gin.RouterGroup) {
 
-	// r.GET("/", func(ctx *gin.Context) {
-	// 	//ReturnJson(ctx, "apiOK", nil)
-	// })
 	r.GET("/", func(ctx *gin.Context) {
-
+		ReturnJson(ctx, "apiOK", nil)
 	})
 
 }

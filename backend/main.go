@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"ops/models"
+	"ops/routers"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-yaml"
@@ -65,10 +68,24 @@ func main() {
 	models.ConfigAllInit()
 
 	//启动gin服务
-
 	r := gin.Default()
-	//r.Static("/assets", "./dist/assets")
-	//r.GET("/", func(ctx *gin.Context) {})
+
+	// 静态文件服务
+	fs := http.FileServer(http.Dir("./dist"))
+	// 中间件处理路由
+	r.Use(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.Next() // 继续处理API请求
+			return
+		}
+
+		// 处理静态文件
+		fs.ServeHTTP(c.Writer, c.Request)
+		c.Abort()
+	})
+
+	// API路由
+	routers.ApiRoot(r.Group("/api/"))
 
 	var http_port = models.ConfigsWed.Host + ":" + models.ConfigsWed.Port
 	var gin_port = "0.0.0.0" + ":" + models.ConfigsWed.Port
