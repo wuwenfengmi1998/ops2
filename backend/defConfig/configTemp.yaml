@@ -1,0 +1,59 @@
+version: "0.3.0"
+
+web:
+  host: "127.0.0.1"
+  port: "8080"
+  tls: false
+  certPrivatePath: ""
+  certPublicPath: ""
+
+database:
+  type: "sqlite" # mysql or sqlite
+  path: "data/database.db"      # sqlite path
+  host: ""      # mysql host 
+  port: ""
+  name: ""
+  user: ""
+  pass: ""
+
+user:
+  cookieTimeout: 604800
+  passHashType: "md5" #密码哈希类型 text md5 
+  avatarSavePath: "/data/avatar/" #头像保存的真实位置
+  avatarGinrouterPath: "/avatar/" #gin 路由的路径
+  avatarPath: "/static/avatars/def.png"
+
+file:
+  maxSize: 52428800
+  pahts:
+    avatar: "./data/avatar/"
+    image:  "./data/upload/image/"
+    video:  "./data/upload/video/"
+    music:  "./data/upload/music/"
+    pdf:    "./data/upload/pdf/"
+    other:  "./data/upload/other/"
+
+  allowImageMime:
+    image/jpeg: ".jpeg"
+    image/png: ".png"
+    image/gif: ".gif"
+    image/bmp: ".bmp"
+
+  allowVideoMime:
+    video/mp4: ".mp4"
+    video/x-msvideo: ".avi"
+    video/quicktime: ".mov"
+    video/x-flv: ".flv"
+    video/mpeg: ".mpeg"
+
+  allowMusicMime:
+    audio/mpeg: ".mpeg"
+    audio/aac: ".aac"
+    audio/wav: ".wav"
+    audio/flac: ".flac"
+
+  allowPdfMime:
+    application/pdf: ".pdf"
+
+
+configed: false
