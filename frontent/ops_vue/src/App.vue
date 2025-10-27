@@ -12,8 +12,6 @@ onload = () => {
   console.log("Page loaded");
 }
 
-
-
 </script>
 
 <template>
