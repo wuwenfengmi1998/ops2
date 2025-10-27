@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import {mytablercon} from '../mytablercon.ts';
 
 // 使用 vue-i18n 的 Composition API
 const { t } = useI18n()
@@ -44,7 +45,7 @@ const { t } = useI18n()
 
             <div class="d-none d-md-flex">
               <div class="nav-item">
-                <a class="nav-link px-0 hide-theme-dark" title="Enable dark mode">
+                <a @click="mytablercon.set_bs_theme('dark')" class="nav-link px-0 hide-theme-dark" title="Enable dark mode">
                   <!-- Download SVG icon from http://tabler.io/icons/icon/moon -->
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
