@@ -1,0 +1,13 @@
+{
+  "appname": {
+    "home": "Home"
+  },
+  "message": {
+    "hello": "Hello",
+    "welcome": "Welcome"
+  },
+  "button": {
+    "submit": "Submit",
+    "cancel": "Cancel"
+  }
+}
