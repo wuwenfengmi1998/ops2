@@ -60,7 +60,7 @@ onMounted(() => {
           <!-- END NAVBAR LOGO -->
           <div class="navbar-nav flex-row order-md-last">
 
-            <div class="d-none d-md-flex">
+
               <div class="nav-item">
                 <a @click="set_them('dark')" class="nav-link px-0" :class="{'d-none':theTeme==='dark'}" title="Enable dark mode">
                   <!-- Download SVG icon from http://tabler.io/icons/icon/moon -->
@@ -98,7 +98,7 @@ onMounted(() => {
                   </svg>
                 </a>
               </div>
-            </div>
+
             <div class="nav-item dropdown">
               <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
                 <span class="avatar avatar-sm" style="background-image: url(./static/avatars/000m.jpg)"> </span>
@@ -124,7 +124,7 @@ onMounted(() => {
           <div class="navbar">
             <div class="container-xl">
               <div class="row flex-column flex-md-row flex-fill align-items-center">
-                <div class="col">
+                <div class="col d-flex">
                   <!-- BEGIN NAVBAR MENU -->
                   <ul class="navbar-nav">
                     <li class="nav-item active">
@@ -150,11 +150,16 @@ onMounted(() => {
                       </a>
                     </li>
 
-
-
-
                   </ul>
-                  <!-- END NAVBAR MENU -->
+
+                  <div class="ms-auto">
+                    <select class="form-select">
+                    <option value="STATUS_CODE" selected="">English</option>
+                    <option value="JSON_BODY">中文</option>
+                  </select>
+                  </div>
+
+
                 </div>
 
               </div>
