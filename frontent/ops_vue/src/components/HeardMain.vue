@@ -7,9 +7,10 @@ import { onMounted,ref} from 'vue';
 
 
 // 使用 vue-i18n 的 Composition API
-const { t } = useI18n()
+const { t ,locale} = useI18n()
 
 const theTeme=ref('light');
+const lang_sele = ref(null);
 
 function set_them(temp:string)
 {
@@ -17,10 +18,27 @@ function set_them(temp:string)
   myfuncs.setTheme(temp,true);
 }
 
+function changeLanguage(lang: Event) {
+  // 切换语言
+  const selectElement = lang.target as HTMLSelectElement;
+  const selectedLang = selectElement.value;
+  locale.value = selectedLang;
+  myfuncs.save('userLanguage', selectedLang);
+  //console.log("selectedLang:",selectedLang);
+}
+
 onMounted(() => {
   const savedTheme = myfuncs.getThemefromStorge();
   theTeme.value=savedTheme;
   myfuncs.setTheme(savedTheme, false);
+  const userLang = myfuncs.load('userLanguage');
+  if (userLang) {
+    locale.value = userLang;
+    if (lang_sele.value) {
+      (lang_sele.value as HTMLSelectElement).value = userLang;
+    }
+
+  }
 });
 
 </script>
@@ -153,9 +171,9 @@ onMounted(() => {
                   </ul>
 
                   <div class="ms-auto">
-                    <select class="form-select">
-                    <option value="STATUS_CODE" selected="">English</option>
-                    <option value="JSON_BODY">中文</option>
+                    <select class="form-select" @change="changeLanguage" ref="lang_sele">
+                    <option value="en">English</option>
+                    <option value="zh-CN">中文</option>
                   </select>
                   </div>
 
