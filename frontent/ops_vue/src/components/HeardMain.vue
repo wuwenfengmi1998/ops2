@@ -1,10 +1,27 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import {mytablercon} from '../mytablercon.ts';
+
+import { myfuncs } from '@/myfunc.ts';
+import { onMounted,ref} from 'vue';
+
+
 
 // 使用 vue-i18n 的 Composition API
 const { t } = useI18n()
 
+const theTeme=ref('light');
+
+function set_them(temp:string)
+{
+  theTeme.value=temp;
+  myfuncs.setTheme(temp,true);
+}
+
+onMounted(() => {
+  const savedTheme = myfuncs.getThemefromStorge();
+  theTeme.value=savedTheme;
+  myfuncs.setTheme(savedTheme, false);
+});
 
 </script>
 
@@ -45,7 +62,7 @@ const { t } = useI18n()
 
             <div class="d-none d-md-flex">
               <div class="nav-item">
-                <a @click="mytablercon.set_bs_theme('dark')" class="nav-link px-0 hide-theme-dark" title="Enable dark mode">
+                <a @click="set_them('dark')" class="nav-link px-0" :class="{'d-none':theTeme==='dark'}" title="Enable dark mode">
                   <!-- Download SVG icon from http://tabler.io/icons/icon/moon -->
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -62,7 +79,7 @@ const { t } = useI18n()
                     <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
                   </svg>
                 </a>
-                <a href="?theme=light" class="nav-link px-0 hide-theme-light" title="Enable light mode">
+                <a @click="set_them('light')" class="nav-link px-0" :class="{'d-none':theTeme==='light'}" title="Enable light mode">
                   <!-- Download SVG icon from http://tabler.io/icons/icon/sun -->
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
