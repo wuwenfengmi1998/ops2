@@ -20,6 +20,7 @@
   "dependencies": {
     "@tabler/core": "^1.4.0",
     "@tabler/icons-vue": "^3.35.0",
+    "bootstrap": "^5.3.8",
     "pinia": "^3.0.3",
     "vue": "^3.5.22",
     "vue-i18n": "^9.14.5",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@playwright/test": "^1.55.1",
     "@tsconfig/node22": "^22.0.2",
+    "@types/bootstrap": "^5.2.10",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^22.18.6",
     "@vitejs/plugin-vue": "^6.0.1",

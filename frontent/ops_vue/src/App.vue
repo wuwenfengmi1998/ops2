@@ -16,9 +16,7 @@ import FooterMain from './components/FooterMain.vue';
 
   <RouterView />
 
-
   <FooterMain />
-
 
   </div>
 
