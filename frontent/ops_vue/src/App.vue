@@ -1,24 +1,29 @@
 <script setup lang="ts">
 
-import {myfuncs} from './myfunc.js';
-
 import HeardMain from './components/HeardMain.vue';
+import FooterMain from './components/FooterMain.vue';
 
 
 
-myfuncs.test();
 
-onload = () => {
-  console.log("Page loaded");
-}
 
 </script>
 
 <template>
 
+  <div class="page">
   <HeardMain />
 
   <RouterView />
+
+
+  <FooterMain />
+
+
+  </div>
+
+
+
 </template>
 
 <style scoped></style>

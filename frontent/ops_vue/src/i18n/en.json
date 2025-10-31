@@ -4,10 +4,18 @@
   },
   "message": {
     "hello": "Hello",
-    "welcome": "Welcome"
+    "welcome": "Welcome",
+    "dark_mode":"Enable dark mode",
+    "light_mode":"Enable light mode"
   },
   "button": {
     "submit": "Submit",
     "cancel": "Cancel"
+  },
+  "footer":{
+    "doc":"Documentation",
+    "license":"License",
+    "source_code":"Source Code",
+    "copy":"Copyright © 2025 Operations. All rights reserved."
   }
 }

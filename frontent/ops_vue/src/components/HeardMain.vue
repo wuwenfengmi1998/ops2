@@ -80,7 +80,7 @@ onMounted(() => {
 
 
               <div class="nav-item">
-                <a @click="set_them('dark')" class="nav-link px-0" :class="{'d-none':theTeme==='dark'}" title="Enable dark mode">
+                <a @click="set_them('dark')" class="nav-link px-0" :class="{'d-none':theTeme==='dark'}" :title="t('message.dark_mode')">
                   <!-- Download SVG icon from http://tabler.io/icons/icon/moon -->
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -97,7 +97,7 @@ onMounted(() => {
                     <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
                   </svg>
                 </a>
-                <a @click="set_them('light')" class="nav-link px-0" :class="{'d-none':theTeme==='light'}" title="Enable light mode">
+                <a @click="set_them('light')" class="nav-link px-0" :class="{'d-none':theTeme==='light'}" :title="t('message.light_mode')">
                   <!-- Download SVG icon from http://tabler.io/icons/icon/sun -->
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -116,7 +116,7 @@ onMounted(() => {
                   </svg>
                 </a>
               </div>
-
+              <!-- 这里判断是否已经登陆 是则显示用户信息 否则显示登陆按钮 -->
             <div class="nav-item dropdown">
               <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
                 <span class="avatar avatar-sm" style="background-image: url(./static/avatars/000m.jpg)"> </span>
@@ -134,6 +134,7 @@ onMounted(() => {
                 <a href="./sign-in.html" class="dropdown-item">Logout</a>
               </div>
             </div>
+
           </div>
         </div>
       </header>
