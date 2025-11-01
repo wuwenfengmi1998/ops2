@@ -14,8 +14,8 @@
   },
     "footer":{
     "doc":"文档",
-    "license":"许可证",
-    "source_code":"源代码",
+    "license":"协议",
+    "source_code":"源码",
     "copy":"版权 © 2025 Operations. 保留所有权利。"
   }
 }

@@ -5,9 +5,12 @@
 
   onMounted(() => {
     // 可以在这里调用mos.value的方法
-    console.log('HomeView mounted', mos);
+    //console.log('HomeView mounted', mos);
   });
 
+  function c(){
+    mos.value?.showAlert("success","111");
+  }
 
 </script>
 
@@ -15,7 +18,7 @@
 
 <div>
   <MyOffcanvas ref="mos"/>
-  <button >ttt</button>
+  <button @click="c">ttt</button>
   111
 </div>
 

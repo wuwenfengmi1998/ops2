@@ -6,28 +6,44 @@ const offcanvasTop = ref(null)
 let ov: Offcanvas
 const alertType=ref() // 可选值：'success', 'warning', 'danger', 'info'
 const alertText=ref()
+let autoCloseTimeout:number
 onMounted(() => {
   // 确保在组件挂载后初始化
   if (offcanvasTop.value) {
-    ov = new Offcanvas(offcanvasTop.value)
+    ov = new Offcanvas(offcanvasTop.value,{
+      backdrop: false,
+    })
     //ov.show();
     //console.log('Offcanvas initialized:', ov)
   }
 })
 
-// function showOffcanvas() {
-//   if (ov) {
-//     ov.show()
-//   }
-// }
 
 function showAlert(type: string, text: string) {
-  alertType.value = type;
   alertText.value = text;
+
+  alertType.value = type;
+  //console.log(ov);
   if (ov) {
-    ov.show()
+    ov.hide();
+    ov.show();
+    if(autoCloseTimeout)
+    {
+      clearTimeout(autoCloseTimeout);
+    }
+    autoCloseTimeout=setTimeout(() => {
+        //console.log("timeout");
+        ov.hide();
+      }, 5000);
+
+
   }
 }
+
+defineExpose({
+  showAlert
+});
+
 
 </script>
 
@@ -147,10 +163,10 @@ function showAlert(type: string, text: string) {
     <a class="btn-close" data-bs-dismiss="offcanvas" aria-label="close"></a>
   </div>
 
-  <div>
+  <!-- <div>
     <button @click="showAlert('success','success')">success</button>
     <button @click="showAlert('warning','warning')">warning</button>
     <button @click="showAlert('danger','danger')">danger</button>
     <button @click="showAlert('info','info')">info</button>
-  </div>
+  </div> -->
 </template>
