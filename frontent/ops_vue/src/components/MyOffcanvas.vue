@@ -19,7 +19,7 @@ onMounted(() => {
 })
 
 
-function showAlert(type: string, text: string) {
+function showAlert(type: string, text: string,timeout:number=5000) {
   alertText.value = text;
 
   alertType.value = type;
@@ -34,7 +34,7 @@ function showAlert(type: string, text: string) {
     autoCloseTimeout=setTimeout(() => {
         //console.log("timeout");
         ov.hide();
-      }, 5000);
+      }, timeout);
 
 
   }

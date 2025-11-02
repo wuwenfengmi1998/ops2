@@ -9,7 +9,7 @@
   });
 
   function c(){
-    mos.value?.showAlert("success","111");
+    mos.value?.showAlert("success","111",1000);
   }
 
 </script>
