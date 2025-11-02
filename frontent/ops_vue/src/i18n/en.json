@@ -6,7 +6,8 @@
     "hello": "Hello",
     "welcome": "Welcome",
     "dark_mode":"Enable dark mode",
-    "light_mode":"Enable light mode"
+    "light_mode":"Enable light mode",
+    "login_or_register":"Login/Register"
   },
   "button": {
     "submit": "Submit",

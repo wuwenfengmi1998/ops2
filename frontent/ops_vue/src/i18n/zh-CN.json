@@ -6,7 +6,8 @@
     "hello": "你好",
     "welcome": "欢迎",
     "dark_mode":"深色模式",
-    "light_mode":"亮色模式"
+    "light_mode":"亮色模式",
+    "login_or_register":"登录/注册"
   },
   "button": {
     "submit": "提交",
