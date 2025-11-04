@@ -6,6 +6,7 @@
   onMounted(() => {
     // 可以在这里调用mos.value的方法
     //console.log('HomeView mounted', mos);
+    document.title = 'Operations.';
   });
 
   function c(){
