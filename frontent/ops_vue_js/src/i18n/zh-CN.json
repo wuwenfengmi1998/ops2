@@ -1,0 +1,48 @@
+{
+  "appname": {
+    "home": "主页",
+    "login": "登录",
+    "forgot_password": "忘记密码",
+    "register": "注册"
+  },
+  "message": {
+    "hello": "你好",
+    "welcome": "欢迎",
+    "dark_mode": "深色模式",
+    "light_mode": "亮色模式",
+    "login_or_register": "登录/注册",
+    "login_to_your_account": "登录到您的账户",
+    "your_email_address": "您的邮箱地址",
+    "email_address": "邮箱地址",
+    "user_name": "用户名",
+    "your_user_name": "您的用户名",
+    "password": "密码",
+    "your_password": "您的密码",
+    "i_forgot_password": "我忘记了密码",
+    "remember_me_on_this_device": "记住我在这台设备上",
+    "dont_have_account_yet": "还没有账户？",
+    "register_now": "立即注册",
+    "show_password": "显示密码",
+    "hidden_Password": "隐藏密码",
+    "please_enter_username_and_password": "请输入用户名和密码",
+    "forgot_password": "忘记密码",
+    "enter_your_email_to_reset_password": "输入您的邮箱地址，您的密码将被重置并通过邮件发送给您。",
+    "back_to_login": "返回登录",
+    "please_enter_your_email": "请输入您的邮箱",
+    "this_not_email": "这不是一个有效的邮箱地址。",
+    "create_new_account":"创建新账户",
+    "already_have_an_account":"已经有账户了？"
+  },
+  "button": {
+    "submit": "提交",
+    "cancel": "取消",
+    "sign_in": "登录",
+    "send_me_new_password": "发送新密码"
+  },
+  "footer": {
+    "doc": "文档",
+    "license": "协议",
+    "source_code": "源码",
+    "copy": "版权 © 2025 Operations. 保留所有权利。"
+  }
+}

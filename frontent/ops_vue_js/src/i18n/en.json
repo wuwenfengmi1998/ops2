@@ -1,0 +1,48 @@
+{
+  "appname": {
+    "home": "Home",
+    "login": "Login",
+    "forgot_password":"Forgot Password",
+    "register":"Register"
+  },
+  "message": {
+    "hello": "Hello",
+    "welcome": "Welcome",
+    "dark_mode":"Enable dark mode",
+    "light_mode":"Enable light mode",
+    "login_or_register":"Login/Register",
+    "login_to_your_account":"Login to your account",
+    "your_email_address":"Your email address",
+    "email_address":"Email address",
+    "user_name":"User name",
+    "your_user_name":"Your user name",
+    "password":"Password",
+    "your_password":"Your password",
+    "i_forgot_password":"I forgot my password",
+    "remember_me_on_this_device":"Remember me on this device",
+    "dont_have_account_yet":"Don't have an account yet?",
+    "register_now":"Register now",
+    "show_password":"Show password",
+    "hidden_Password":"Hidden Password",
+    "please_enter_username_and_password":"Please enter username and password",
+    "forgot_password":"Forgot Password",
+    "enter_your_email_to_reset_password":"Enter your email address and your password will be reset and emailed to you.",
+    "back_to_login":"Back to login",
+    "please_enter_your_email":"Please enter your email",
+    "this_not_email":"This is not an email address.",
+    "create_new_account":"Create new account",
+    "already_have_an_account":"Already have an account?"
+  },
+  "button": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "sign_in":"Sign In",
+    "send_me_new_password":"Send me new password"
+  },
+  "footer":{
+    "doc":"Documentation",
+    "license":"License",
+    "source_code":"Source Code",
+    "copy":"Copyright © 2025 Operations. All rights reserved."
+  }
+}
