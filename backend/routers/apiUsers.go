@@ -91,11 +91,11 @@ func ApiUser(r *gin.RouterGroup) {
 						//fmt.Println("用户不存在")
 						models.DB.Create(&newUser) // 传入指针
 
-						//创建info
-						var user_info models.TabUserInfo_
-						user_info.AvatarPath = models.ConfigsUser.AvatarPath
-						user_info.UserID = newUser.ID
-						models.DB.Create(&user_info) // 传入指针
+						// //创建info
+						// var user_info models.TabUserInfo_
+						// user_info.AvatarPath = models.ConfigsUser.AvatarPath
+						// user_info.UserID = newUser.ID
+						// models.DB.Create(&user_info) // 传入指针
 
 						ReturnJson(ctx, "apiOK", nil)
 					}
