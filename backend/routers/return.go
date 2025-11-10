@@ -19,4 +19,6 @@ func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 
 	ctx.JSON(200, &returnData)
 
+	ctx.Abort()
+
 }

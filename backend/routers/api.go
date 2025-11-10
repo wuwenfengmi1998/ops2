@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
 )
 
 var ErrorCode map[string]interface{}
@@ -26,6 +27,29 @@ func init() {
 }
 
 func ApiRoot(r *gin.RouterGroup) {
+
+	r.Use(func(ctx *gin.Context) {
+		//转换传进来的数据
+		var jsonData map[string]interface{}
+		if err := ctx.ShouldBindJSON(&jsonData); err == nil {
+			//分离数据
+
+			if jsonData["cookie"] != "" && jsonData["cookie"] != nil {
+				ctx.Set("cookie_value", jsonData["cookie"])
+			}
+
+			if jsonData["data"] != nil {
+				//fmt.Println(jsonData["data"])
+				var data_t map[string]interface{}
+				if err = mapstructure.Decode(jsonData["data"], &data_t); err == nil {
+					ctx.Set("data", &data_t)
+				}
+			}
+
+		}
+	})
+
+	ApiUser(r.Group("/users"))
 
 	r.GET("/", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)

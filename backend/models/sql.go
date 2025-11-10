@@ -29,7 +29,23 @@ type TabUser_ struct {
 	Name  string    `gorm:"size:100;uniqueIndex"`                    // 唯一约束索引
 	Email string    `gorm:"size:255;index"`                          // 字符串长度限制100 索引
 	Pass  string    `gorm:"size:128"`                                // 建议存储哈希后的密码
+	Type  string    `gorm:"size:64;default:user"`                    //
 	Date  time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
+}
+
+type TabUserGroups_ struct {
+	ID    uint      `gorm:"primaryKey;autoIncrement"`                // 自增主键
+	Name  string    `gorm:"size:100;uniqueIndex"`                    // 唯一约束索引
+	Email string    `gorm:"size:255;index"`                          // 字符串长度限制100 索引
+	Type  string    `gorm:"size:64;default:usergroup"`               //
+	Date  time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
+}
+
+type TabUserGroupBinds_ struct {
+	ID      uint      `gorm:"primaryKey;autoIncrement"` // 自增主键
+	UserID  uint      `gorm:"index"`
+	GroupID uint      `gorm:"index"`
+	Date    time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
 }
 
 type TabUserInfo_ struct {
@@ -88,6 +104,10 @@ func DatabaseInit() error {
 
 	// 自动创建表结构
 	DB.AutoMigrate(&TabUser_{})
+
+	DB.AutoMigrate(&TabUserGroups_{})
+
+	DB.AutoMigrate(&TabUserGroupBinds_{})
 
 	DB.AutoMigrate(&TabUserInfo_{})
 

@@ -1,5 +1,8 @@
 {
     "apiOK":0,
-    "apiErr":-1
+    "apiErr":-1,
+    "postErr":-2,
+    "jsonErr":-3,
+    "userNameDup":-4
 
 }

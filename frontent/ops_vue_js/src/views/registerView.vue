@@ -1,71 +1,82 @@
 <script setup>
-import { onMounted, watch, ref } from 'vue'
-import MyOffcanvas from '@/components/MyOffcanvas.vue'
-import { myfuncs } from '@/myfunc.js'
-import { useI18n } from 'vue-i18n'
+import { onMounted, watch, ref } from "vue";
+import MyOffcanvas from "@/components/MyOffcanvas.vue";
+import { myfuncs } from "@/myfunc.js";
+import { my_network_func } from "@/my_network_func";
+import { useI18n } from "vue-i18n";
 // 使用 vue-i18n 的 Composition API
-const { t, locale } = useI18n()
-const mos = ref()
-const isShowPassword = ref(false)
-const username = ref()
-const useremail = ref()
-const userpassword = ref()
-
+const { t, locale } = useI18n();
+const mos = ref();
+const isShowPassword = ref(false);
+const username = ref();
+const useremail = ref();
+const userpassword = ref();
 
 function functionupdataTitle() {
-  document.title = 'Operations.' + t('appname.register')
+  document.title = "Operations." + t("appname.register");
 }
 function togglePasswordVisibility() {
-  isShowPassword.value = !isShowPassword.value
+  isShowPassword.value = !isShowPassword.value;
 }
 function createAccount() {
   // 在这里处理创建新账户的逻辑
-  const user = username.value?.value
-  const email = useremail.value?.value
-  const pass = userpassword.value?.value
+  const user = username.value?.value;
+  const email = useremail.value?.value;
+  const pass = userpassword.value?.value;
 
-  username.value?.classList.remove('is-invalid');
-  useremail.value?.classList.remove('is-invalid');
-  userpassword.value?.classList.remove('is-invalid');
+  username.value?.classList.remove("is-invalid");
+  useremail.value?.classList.remove("is-invalid");
+  userpassword.value?.classList.remove("is-invalid");
 
-  if (
-    !user ||
-    !email ||
-    !pass
-  ) {
-
-    if(!user){
-      username.value?.classList.add('is-invalid');
+  if (!user || !email || !pass) {
+    if (!user) {
+      username.value?.classList.add("is-invalid");
     }
-    if(!email){
-      useremail.value?.classList.add('is-invalid');
+    if (!email) {
+      useremail.value?.classList.add("is-invalid");
     }
-    if(!pass){
-      userpassword.value?.classList.add('is-invalid');
+    if (!pass) {
+      userpassword.value?.classList.add("is-invalid");
     }
 
-    mos.value?.showAlert('info', t('message.please_enter_username_and_password'), 5000)
-    return
+    mos.value?.showAlert(
+      "info",
+      t("message.please_enter_username_and_password"),
+      5000
+    );
+    return;
   }
   if (!myfuncs.isValidEmail(email)) {
-    useremail.value?.classList.add('is-invalid');
-    mos.value?.showAlert('warning', t('message.this_not_email'), 5000)
-    return
+    useremail.value?.classList.add("is-invalid");
+    mos.value?.showAlert("warning", t("message.this_not_email"), 5000);
+    return;
   }
-console.log('创建新账户信息:', {
-    user: username.value?.value,
-    email: useremail.value?.value,
-    pass: userpassword.value?.value,
-  })
+  // console.log("创建新账户信息:", {
+  //   user: username.value?.value,
+  //   email: useremail.value?.value,
+  //   pass: userpassword.value?.value,
+  // });
+
+  my_network_func.postJson(
+    "/users/register",
+    {
+      username: username.value?.value,
+      useremail: useremail.value?.value,
+      userpass: userpassword.value?.value,
+    },
+    (r)=>{
+      console.log(r)
+    }
+  );
 }
 
 onMounted(() => {
-  functionupdataTitle()
-})
+  functionupdataTitle();
+});
 // 监听语言变化，更新标题
 watch(locale, () => {
-  functionupdataTitle()
-})
+  functionupdataTitle();
+});
 </script>
 
 <template>
@@ -73,7 +84,7 @@ watch(locale, () => {
     <div class="container container-tight py-4">
       <div class="text-center mb-4">
         <router-link to="/" class="navbar-brand navbar-brand-autodark">
-            <img
+          <img
             src="/static/logo.svg"
             width="110"
             height="32"
@@ -81,13 +92,14 @@ watch(locale, () => {
             class="navbar-brand-image"
           />
         </router-link>
-       
       </div>
       <div class="card card-md">
         <div class="card-body">
-          <h2 class="card-title text-center mb-4">{{ t('message.create_new_account') }}</h2>
+          <h2 class="card-title text-center mb-4">
+            {{ t("message.create_new_account") }}
+          </h2>
           <div class="mb-3">
-            <label class="form-label">{{ t('message.user_name') }}</label>
+            <label class="form-label">{{ t("message.user_name") }}</label>
             <input
               ref="username"
               type="text"
@@ -96,7 +108,7 @@ watch(locale, () => {
             />
           </div>
           <div class="mb-3">
-            <label class="form-label">{{ t('message.email_address') }}</label>
+            <label class="form-label">{{ t("message.email_address") }}</label>
             <input
               ref="useremail"
               type="email"
@@ -105,7 +117,7 @@ watch(locale, () => {
             />
           </div>
           <div class="mb-3">
-            <label class="form-label">{{ t('message.password') }}</label>
+            <label class="form-label">{{ t("message.password") }}</label>
             <div class="input-group input-group-flat">
               <input
                 ref="userpassword"
@@ -115,7 +127,11 @@ watch(locale, () => {
                 autocomplete="off"
               />
               <span class="input-group-text">
-                <div class="link-secondary" title="Show password" data-bs-toggle="tooltip">
+                <div
+                  class="link-secondary"
+                  title="Show password"
+                  data-bs-toggle="tooltip"
+                >
                   <!-- Download SVG icon from http://tabler-icons.io/i/eye -->
                   <svg
                     v-if="!isShowPassword"
@@ -170,14 +186,14 @@ watch(locale, () => {
             </div> -->
           <div class="form-footer">
             <button @click="createAccount" class="btn btn-primary w-100">
-              {{ t('message.create_new_account') }}
+              {{ t("message.create_new_account") }}
             </button>
           </div>
         </div>
       </div>
       <div class="text-center text-secondary mt-3">
-        {{ t('message.already_have_an_account') }}
-        <router-link to="/login">{{ t('message.back_to_login') }}</router-link>
+        {{ t("message.already_have_an_account") }}
+        <router-link to="/login">{{ t("message.back_to_login") }}</router-link>
       </div>
     </div>
   </div>

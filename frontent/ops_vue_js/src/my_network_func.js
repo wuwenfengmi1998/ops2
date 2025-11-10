@@ -1,9 +1,25 @@
 import axios from "axios";
 import { myfuncs } from "./myfunc";
+var head_path = "/api";
 
 export const my_network_func = {
-  post_json(path, json, callback) {
-    var head_path = "/api/v1";
+  getJson(path, callback) {
+    //get 方法一般不需要权限，不插入cookie
+    var re_data = {};
+    axios
+      .get(head_path + path)
+      .then((r) => {
+        re_data["statusCode"] = r.status;
+        re_data["data"] = r.data;
+        callback(re_data);
+      })
+      .catch((error) => {
+        re_data["statusCode"] = -1;
+        re_data["error"] = error;
+        callback(re_data);
+      });
+  },
+  postJson(path, json, callback) {
     //把cookie插入json
     var data = {};
     data["data"] = json;

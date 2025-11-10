@@ -66,6 +66,7 @@ func main() {
 
 	//统一初始化
 	models.ConfigAllInit()
+	routers.ApiInit()
 
 	//启动gin服务
 	r := gin.Default()
@@ -74,7 +75,7 @@ func main() {
 	fs := http.FileServer(http.Dir("./dist"))
 	// 中间件处理路由
 	r.Use(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+		if strings.HasPrefix(c.Request.URL.Path, "/api") {
 			c.Next() // 继续处理API请求
 			return
 		}
@@ -85,7 +86,7 @@ func main() {
 	})
 
 	// API路由
-	routers.ApiRoot(r.Group("/api/"))
+	routers.ApiRoot(r.Group("/api"))
 
 	var http_port = models.ConfigsWed.Host + ":" + models.ConfigsWed.Port
 	var gin_port = "0.0.0.0" + ":" + models.ConfigsWed.Port
