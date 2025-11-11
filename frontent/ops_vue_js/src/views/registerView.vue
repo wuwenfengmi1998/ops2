@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, watch, ref } from "vue";
+import { useRouter } from "vue-router";
 import MyOffcanvas from "@/components/MyOffcanvas.vue";
 import { myfuncs } from "@/myfunc.js";
 import { my_network_func } from "@/my_network_func";
@@ -11,6 +12,7 @@ const isShowPassword = ref(false);
 const username = ref();
 const useremail = ref();
 const userpassword = ref();
+const router = useRouter();
 
 function functionupdataTitle() {
   document.title = "Operations." + t("appname.register");
@@ -28,17 +30,22 @@ function createAccount() {
   useremail.value?.classList.remove("is-invalid");
   userpassword.value?.classList.remove("is-invalid");
 
-  if (!user || !email || !pass) {
-    if (!user) {
-      username.value?.classList.add("is-invalid");
-    }
-    if (!email) {
-      useremail.value?.classList.add("is-invalid");
-    }
-    if (!pass) {
-      userpassword.value?.classList.add("is-invalid");
-    }
+  let isDataErr = false;
 
+  if (!user) {
+    isDataErr = true;
+    username.value?.classList.add("is-invalid");
+  }
+  if (!email) {
+    isDataErr = true;
+    useremail.value?.classList.add("is-invalid");
+  }
+  if (!pass) {
+    isDataErr = true;
+    userpassword.value?.classList.add("is-invalid");
+  }
+
+  if (isDataErr) {
     mos.value?.showAlert(
       "info",
       t("message.please_enter_username_and_password"),
@@ -46,6 +53,9 @@ function createAccount() {
     );
     return;
   }
+
+  //判断长度
+
   if (!myfuncs.isValidEmail(email)) {
     useremail.value?.classList.add("is-invalid");
     mos.value?.showAlert("warning", t("message.this_not_email"), 5000);
@@ -64,8 +74,31 @@ function createAccount() {
       useremail: useremail.value?.value,
       userpass: userpassword.value?.value,
     },
-    (r)=>{
-      console.log(r)
+    (r) => {
+      console.log(r);
+      switch (r.statusCode) {
+        case 200:
+          switch (r.data.err_code) {
+            case -4:
+              username.value?.classList.add("is-invalid");
+              mos.value?.showAlert("warning", t("message.username_dup"), 5000);
+              break;
+            case 0:
+              mos.value?.showAlert(
+                "success",
+                t("message.registration_successful"),
+                1000,
+                () => {
+                  router.push("/login");
+                }
+              );
+              break;
+          }
+          break;
+        default:
+          mos.value?.showAlert("danger", t("message.network_err"), 5000);
+          break;
+      }
     }
   );
 }
@@ -103,6 +136,7 @@ watch(locale, () => {
             <input
               ref="username"
               type="text"
+              maxlength="64"
               class="form-control"
               :placeholder="t('message.your_user_name')"
             />
@@ -112,6 +146,7 @@ watch(locale, () => {
             <input
               ref="useremail"
               type="email"
+              maxlength="250"
               class="form-control"
               :placeholder="t('message.your_email_address')"
             />

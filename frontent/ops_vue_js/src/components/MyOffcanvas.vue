@@ -1,25 +1,24 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { Offcanvas } from 'bootstrap'
+import { onMounted, ref } from "vue";
+import { Offcanvas } from "bootstrap";
 
-const offcanvasTop = ref(null)
-let ov
-const alertType=ref() // 可选值：'success', 'warning', 'danger', 'info'
-const alertText=ref()
-let autoCloseTimeout
+const offcanvasTop = ref(null);
+let ov;
+const alertType = ref(); // 可选值：'success', 'warning', 'danger', 'info'
+const alertText = ref();
+let autoCloseTimeout;
 onMounted(() => {
   // 确保在组件挂载后初始化
   if (offcanvasTop.value) {
-    ov = new Offcanvas(offcanvasTop.value,{
+    ov = new Offcanvas(offcanvasTop.value, {
       backdrop: false,
-    })
+    });
     //ov.show();
     //console.log('Offcanvas initialized:', ov)
   }
-})
+});
 
-
-function showAlert(type, text,timeout=5000) {
+function showAlert(type, text, timeout = 5000, callback) {
   alertText.value = text;
 
   alertType.value = type;
@@ -27,24 +26,22 @@ function showAlert(type, text,timeout=5000) {
   if (ov) {
     ov.hide();
     ov.show();
-    if(autoCloseTimeout)
-    {
+    if (autoCloseTimeout) {
       clearTimeout(autoCloseTimeout);
     }
-    autoCloseTimeout=setTimeout(() => {
-        //console.log("timeout");
-        ov.hide();
-      }, timeout);
-
-
+    autoCloseTimeout = setTimeout(() => {
+      //console.log("timeout");
+      ov.hide();
+      if (typeof callback === "function") {
+        callback();
+      }
+    }, timeout);
   }
 }
 
 defineExpose({
-  showAlert
+  showAlert,
 });
-
-
 </script>
 
 <style scoped>

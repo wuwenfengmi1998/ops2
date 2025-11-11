@@ -74,6 +74,7 @@ watch(locale, () => {
                   <input
                     ref="username"
                     type="text"
+                    maxlength="64"
                     class="form-control"
                     :placeholder="t('message.your_user_name')"
                     autocomplete="off"

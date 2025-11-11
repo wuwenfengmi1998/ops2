@@ -27,11 +27,16 @@
     "please_enter_username_and_password": "请输入用户名和密码",
     "forgot_password": "忘记密码",
     "enter_your_email_to_reset_password": "输入您的邮箱地址，您的密码将被重置并通过邮件发送给您。",
+    "enter_your_username_to_reset_password": "输入您的用户名，您的密码将被重置并通过邮件发送给您。",
     "back_to_login": "返回登录",
     "please_enter_your_email": "请输入您的邮箱",
+    "please_enter_your_username": "请输入您的用户名",
     "this_not_email": "这不是一个有效的邮箱地址。",
     "create_new_account":"创建新账户",
-    "already_have_an_account":"已经有账户了？"
+    "already_have_an_account":"已经有账户了？",
+    "network_err":"网络错误",
+    "username_dup":"用户名重复",
+    "registration_successful":"注册成功！"
   },
   "button": {
     "submit": "提交",

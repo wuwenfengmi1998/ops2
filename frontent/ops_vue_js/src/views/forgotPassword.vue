@@ -12,15 +12,15 @@ function resetPassword() {
   // 在这里处理重置密码逻辑
   const emailValue = email.value?.value
   if (emailValue === undefined || emailValue.trim() === '') {
-    mos.value?.showAlert('info', t('message.please_enter_your_email'), 5000)
+    mos.value?.showAlert('info', t('message.please_enter_your_username'), 5000)
     return
   }
 
-  if (!myfuncs.isValidEmail(emailValue)) {
-    mos.value?.showAlert('warning', t('message.this_not_email'), 5000)
-    return
-  }
-
+  // if (!myfuncs.isValidEmail(emailValue)) {
+  //   mos.value?.showAlert('warning', t('message.this_not_email'), 5000)
+  //   return
+  // }
+  mos.value?.showAlert('warning', "功能未开发", 5000)
   console.log('sending password reset to:', emailValue)
 }
 
@@ -52,15 +52,15 @@ watch(locale, () => {
       <div class="card-body">
         <h2 class="card-title text-center mb-4">{{ t('message.forgot_password') }}</h2>
         <p class="text-secondary mb-4">
-          {{ t('message.enter_your_email_to_reset_password') }}
+          {{ t('message.enter_your_username_to_reset_password') }}
         </p>
         <div class="mb-3">
-          <label class="form-label">{{ t('message.email_address') }}</label>
+          <label class="form-label">{{ t('message.user_name') }}</label>
           <input
             ref="email"
-            type="email"
+            type="text"
             class="form-control"
-            :placeholder="t('message.your_email_address')"
+            :placeholder="t('message.your_user_name')"
           />
         </div>
         <div class="form-footer">

@@ -1,5 +1,9 @@
 <script setup>
 import { my_network_func } from '@/my_network_func';
+import { useUserStore } from '@/stores/user'
+
+const user = useUserStore()
+
 
   function t(){
     console.log("test")
@@ -14,7 +18,8 @@ import { my_network_func } from '@/my_network_func';
 
 <template>
   <main>
-    111
+    1112
     <button @click="t">222</button>
+    {{ user.isLoggedIn }}
   </main>
 </template>
