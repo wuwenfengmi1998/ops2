@@ -10,7 +10,7 @@ const { t } = useI18n()
           <ul class="list-inline list-inline-dots mb-0">
             <li class="list-inline-item">
               <a
-                href="https://git.lmve.net/kevin/ops2/-/blob/main/readme.md?ref_type=heads"
+                href="https://github.com/wuwenfengmi1998/ops2/blob/main/readme.md"
                 target="_blank"
                 class="link-secondary"
                 rel="noopener"
@@ -19,7 +19,7 @@ const { t } = useI18n()
             </li>
             <li class="list-inline-item">
               <a
-                href="https://git.lmve.net/kevin/ops2/-/blob/main/LICENSE?ref_type=heads"
+                href="https://github.com/wuwenfengmi1998/ops2/blob/main/LICENSE"
                 target="_blank"
                 class="link-secondary"
                 >{{t('footer.license')}}</a
@@ -27,7 +27,7 @@ const { t } = useI18n()
             </li>
             <li class="list-inline-item">
               <a
-                href="https://git.lmve.net/kevin/ops2"
+                href="https://github.com/wuwenfengmi1998/ops2"
                 target="_blank"
                 class="link-secondary"
                 rel="noopener"
