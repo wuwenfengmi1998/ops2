@@ -1,6 +1,7 @@
 // stores/user.js
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { myfuncs } from '@/myfunc.js'
 
 // 组合式 API 写法 (推荐)
 export const useUserStore = defineStore("user", () => {
@@ -12,8 +13,11 @@ export const useUserStore = defineStore("user", () => {
   const logout = () => {
     isLoggedIn.value = false;
   };
-  const login = () => {
-    isLoggedIn.value = true;
+  const loginFromStoreCookie = () => {
+    //从store获取cookie
+    var cookie=myfuncs.loadJson("userCookie")
+    console.log(cookie)
+    //isLoggedIn.value = true;
   };
   const loginUpdata = (cookie) => {
     console.log(cookie)
@@ -25,7 +29,7 @@ export const useUserStore = defineStore("user", () => {
     cookieValue,
     isLoggedIn,
     logout,
-    login,
+    loginFromStoreCookie,
     loginUpdata,
   };
 });

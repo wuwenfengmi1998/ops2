@@ -2,7 +2,6 @@ import axios from "axios";
 import { myfuncs } from "./myfunc";
 import { useUserStore } from "@/stores/user";
 
-const userStore = useUserStore();
 
 var head_path = "/api";
 
@@ -28,9 +27,10 @@ export const my_network_func = {
     var data = {};
     data["data"] = json;
    
-    if (userStore.cookieValue!="") {
-      data["cookie"] = userStore.cookieValue;
-    }
+    // if (useUserStore.cookieValue!="") {
+    //   data["cookie"] = useUserStore.cookieValue;
+    // }
+
     var re_data = {};
 
     axios

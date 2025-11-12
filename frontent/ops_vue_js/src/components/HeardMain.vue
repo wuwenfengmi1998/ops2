@@ -8,6 +8,8 @@ import { useI18n } from "vue-i18n";
 import { myfuncs } from "@/myfunc.js";
 import { onMounted, ref } from "vue";
 
+
+
 // 使用 vue-i18n 的 Composition API
 const { t, locale } = useI18n();
 const userStore = useUserStore();
@@ -39,6 +41,11 @@ onMounted(() => {
       lang_sele.value.value = userLang;
     }
   }
+
+
+  //userlogin
+  userStore.loginFromStoreCookie()
+
 });
 </script>
 
