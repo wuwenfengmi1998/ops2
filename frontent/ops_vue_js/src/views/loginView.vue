@@ -90,8 +90,9 @@ function login() {
                 myfuncs.saveJson("userCookie",r.data.return.cookie)
               }
 
-              //userStore.isLoggedIn=true
               //更新用户信息
+              userStore.loginUpdata(r.data.return.cookie)
+              
 
               mos.value?.showAlert(
                 "success",

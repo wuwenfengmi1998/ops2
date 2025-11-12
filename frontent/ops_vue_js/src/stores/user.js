@@ -6,7 +6,7 @@ import { ref, computed } from "vue";
 export const useUserStore = defineStore("user", () => {
   // 状态 (State)
   const userInfo = ref(null);
-  const token = ref("");
+  const cookieValue = ref("");
   const isLoggedIn = ref(false);
 
   const logout = () => {
@@ -15,13 +15,14 @@ export const useUserStore = defineStore("user", () => {
   const login = () => {
     isLoggedIn.value = true;
   };
-  const loginUpdata = () => {
-    isLoggedIn.value = true;
+  const loginUpdata = (cookie) => {
+    console.log(cookie)
+    cookieValue.value=cookie.value
   };
 
   return {
     userInfo,
-    token,
+    cookieValue,
     isLoggedIn,
     logout,
     login,

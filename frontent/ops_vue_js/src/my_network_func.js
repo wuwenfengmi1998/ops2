@@ -1,5 +1,9 @@
 import axios from "axios";
 import { myfuncs } from "./myfunc";
+import { useUserStore } from "@/stores/user";
+
+const userStore = useUserStore();
+
 var head_path = "/api";
 
 export const my_network_func = {
@@ -23,9 +27,9 @@ export const my_network_func = {
     //把cookie插入json
     var data = {};
     data["data"] = json;
-    var cookie = myfuncs.loadJson("cookie");
-    if (cookie) {
-      data["cookie"] = cookie.Value;
+   
+    if (userStore.cookieValue!="") {
+      data["cookie"] = userStore.cookieValue;
     }
     var re_data = {};
 
@@ -42,13 +46,13 @@ export const my_network_func = {
         if (response.data) {
           re_data["data"] = response.data;
           //自动保存服务器发送的cookie
-          if (response.data.cookie) {
-            if (response.data.cookie.Value == "") {
-              myfuncs.dele("cookie");
-            } else {
-              myfuncs.saveJson("cookie", response.data.cookie);
-            }
-          }
+          // if (response.data.cookie) {
+          //   if (response.data.cookie.Value == "") {
+          //     myfuncs.dele("cookie");
+          //   } else {
+          //     myfuncs.saveJson("cookie", response.data.cookie);
+          //   }
+          // }
         }
 
         callback(re_data);
