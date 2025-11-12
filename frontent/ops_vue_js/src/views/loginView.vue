@@ -1,15 +1,23 @@
 <script setup>
 import { onMounted, watch, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useUserStore } from "@/stores/user";
+
+import { my_network_func } from "@/my_network_func";
+import { myfuncs } from "@/myfunc.js";
 import MyOffcanvas from "@/components/MyOffcanvas.vue";
 import { useI18n } from "vue-i18n";
 // 使用 vue-i18n 的 Composition API
 const { t, locale } = useI18n();
+const router = useRouter();
+const userStore = useUserStore();
 
 const mos = ref();
 
 const username = ref();
 const password = ref();
 const isRemember = ref();
+
 
 const isShowPassword = ref(false);
 function togglePasswordVisibility() {
@@ -42,7 +50,69 @@ function login() {
     return;
   }
 
-  console.log("登录信息:", { user, pass, remember });
+  //console.log("登录信息:", { user, pass, remember });
+
+  my_network_func.postJson(
+    "/users/login",
+    {
+      username: user,
+      userpass: pass,
+      remember: remember,
+    },
+    (r) => {
+      console.log(r)
+      switch (r.statusCode) {
+        case 200:
+          switch (r.data.err_code) {
+            case -41:
+              username.value?.classList.add("is-invalid");
+              mos.value?.showAlert(
+                "warning",
+                t("message.user_not_found"),
+                5000
+              );
+              break;
+            case -42:
+              username.value?.classList.add("is-invalid");
+              password.value?.classList.add("is-invalid");
+              mos.value?.showAlert(
+                "warning",
+                t("message.username_or_password_incorrect"),
+                5000
+              );
+              break;
+            case 0:
+              //登录成功，载入cookie
+              //临时保存cookie
+              myfuncs.saveJsonT("userCookie",r.data.return.cookie)
+              if(remember){
+                //长期保存cookie
+                myfuncs.saveJson("userCookie",r.data.return.cookie)
+              }
+
+              //userStore.isLoggedIn=true
+              //更新用户信息
+
+              mos.value?.showAlert(
+                "success",
+                t("message.login_successful"),
+                1000,
+                () => {
+                  router.back()
+                }
+              );
+              break;
+            default:
+              mos.value?.showAlert("danger", t("message.server_error"), 5000);
+              break;
+          }
+          break;
+        default:
+          mos.value?.showAlert("danger", t("message.network_err"), 5000);
+          break;
+      }
+    }
+  );
 }
 
 function functionupdataTitle() {

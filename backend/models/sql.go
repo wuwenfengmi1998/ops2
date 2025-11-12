@@ -25,11 +25,12 @@ type TabFileInfo_ struct {
 }
 
 type TabUser_ struct {
-	ID    uint      `gorm:"primaryKey;autoIncrement"`                // 自增主键
-	Name  string    `gorm:"size:100;uniqueIndex"`                    // 唯一约束索引
-	Email string    `gorm:"size:255;index"`                          // 字符串长度限制100 索引
-	Pass  string    `gorm:"size:128"`                                // 建议存储哈希后的密码
-	Type  string    `gorm:"size:64;default:user"`                    //
+	ID    uint      `gorm:"primaryKey;autoIncrement"` // 自增主键
+	Name  string    `gorm:"size:100;uniqueIndex"`     // 唯一约束索引
+	Email string    `gorm:"size:255;index"`           // 字符串长度限制100 索引
+	Pass  string    `gorm:"size:128"`                 // 建议存储哈希后的密码
+	Type  string    `gorm:"size:64;default:user"`     //
+	Salt  string    `gorm:"size:64;"`
 	Date  time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
 }
 
@@ -67,19 +68,24 @@ type TabUserInfo_ struct {
 // }
 
 type TabCookie_ struct {
-	ID           uint      `gorm:"primaryKey;autoIncrement"`
-	UserID       uint      `gorm:"size:16;not null"`
-	Name         string    `gorm:"size:255;not null;index"`
-	Value        string    `gorm:"size:255;not null;index"`
-	Domain       string    `gorm:"size:255;not null"`
-	Path         string    `gorm:"size:255;not null;default:/"`
-	ExpiresAt    time.Time `gorm:"type:datetime;index"`
-	CreatedAt    time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
-	UpdatedAt    time.Time `gorm:"type:datetime;index;not null;default:CURRENT_TIMESTAMP"`
-	SecureFlag   bool      `gorm:"not null;default:false"`
-	HttpOnly     bool      `gorm:"not null;default:false"`
-	SameSite     string    `gorm:"size:10;not null;default:'Lax'"`
-	PartitionKey string    `gorm:"size:50"`
+	ID        uint      `gorm:"primaryKey;autoIncrement"`
+	UserID    uint      `gorm:"size:16;not null"`
+	Name      string    `gorm:"size:255;not null;index"`
+	Value     string    `gorm:"size:255;not null;index"`
+	ExpiresAt time.Time `gorm:"type:datetime;index"`
+	CreatedAt time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"type:datetime;index;not null;default:CURRENT_TIMESTAMP"`
+	Remember  bool      `gorm:"default:false"`
+}
+
+type APIRequestLog_ struct {
+	ID         int64     `gorm:"primaryKey;column:id" json:"id"`
+	IPAddress  string    `gorm:"column:ip_address;size:45;not null" json:"ip_address"`
+	Path       string    `gorm:"column:path;size:500;not null" json:"path"`
+	Method     string    `gorm:"column:method;size:10;not null" json:"method"`
+	StatusCode int       `gorm:"column:status_code;index" json:"status_code"`
+	Message    string    `gorm:"column:error_message;type:text" json:"error_message"`
+	CreatedAt  time.Time `gorm:"column:created_at;type:datetime;default:CURRENT_TIMESTAMP" json:"created_at"`
 }
 
 func DatabaseInit() error {
@@ -114,6 +120,8 @@ func DatabaseInit() error {
 	DB.AutoMigrate(&TabCookie_{})
 
 	DB.AutoMigrate(&TabFileInfo_{})
+
+	DB.AutoMigrate(&APIRequestLog_{})
 
 	return nil
 }

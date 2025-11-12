@@ -23,7 +23,7 @@ export const my_network_func = {
     //把cookie插入json
     var data = {};
     data["data"] = json;
-    var cookie = myfuncs.load_json("cookie");
+    var cookie = myfuncs.loadJson("cookie");
     if (cookie) {
       data["cookie"] = cookie.Value;
     }
@@ -46,7 +46,7 @@ export const my_network_func = {
             if (response.data.cookie.Value == "") {
               myfuncs.dele("cookie");
             } else {
-              myfuncs.save_json("cookie", response.data.cookie);
+              myfuncs.saveJson("cookie", response.data.cookie);
             }
           }
         }

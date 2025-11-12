@@ -18,10 +18,8 @@ database:
 
 user:
   cookieTimeout: 604800
-  passHashType: "md5" #密码哈希类型 text md5 
-  avatarSavePath: "/data/avatar/" #头像保存的真实位置
-  avatarGinrouterPath: "/avatar/" #gin 路由的路径
-  avatarPath: "/static/avatars/def.png"
+  passHashType: "md5" #密码哈希类型 text md5 md5salt
+
 
 file:
   maxSize: 52428800

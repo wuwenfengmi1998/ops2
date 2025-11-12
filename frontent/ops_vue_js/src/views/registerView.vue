@@ -75,7 +75,7 @@ function createAccount() {
       userpass: userpassword.value?.value,
     },
     (r) => {
-      console.log(r);
+      //console.log(r);
       switch (r.statusCode) {
         case 200:
           switch (r.data.err_code) {

@@ -37,7 +37,10 @@
     "network_err":"Network error",
     "username_dup":"Duplicate username",
     "registration_successful":"Registration successful!",
-    "server_error":"Server Error"
+    "server_error":"Server Error",
+    "user_not_found":"User not found",
+    "username_or_password_incorrect":"Username or password incorrect.",
+    "login_successful":"Login successful"
   },
   "button": {
     "submit": "Submit",

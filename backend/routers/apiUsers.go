@@ -3,6 +3,7 @@ package routers
 import (
 	"fmt"
 	"ops/models"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,8 +21,12 @@ func ApiInit() {
 	if models.DB.Where(&user).First(&user).Error == nil {
 
 	} else {
-		fmt.Println("用户不存在")
-		user.Pass = models.HashUserPass("adminpassword")
+		//fmt.Println("用户不存在")
+
+		//对密码加盐
+		user.Salt = models.RandStr32()
+		user.Pass = "adminpassword"
+		models.HashUserPass(&user)
 		models.DB.Create(&user) // 传入指针
 	}
 
@@ -54,6 +59,12 @@ type From_user_add struct {
 	Userpass  string `json:"userpass"`
 }
 
+type From_user_login struct {
+	Username string `json:"username"`
+	Userpass string `json:"userpass"`
+	Remember bool   `json:"remember"`
+}
+
 func ApiUser(r *gin.RouterGroup) {
 
 	r.GET("/test", func(ctx *gin.Context) {
@@ -62,6 +73,67 @@ func ApiUser(r *gin.RouterGroup) {
 	r.POST("/test", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
+	//用户登陆
+	r.POST("/login", func(ctx *gin.Context) {
+		var loginuser From_user_login
+		data, _ := SeparateData(ctx)
+		if data != nil {
+			if err := mapstructure.Decode(data, &loginuser); err == nil {
+				if loginuser.Username != "" && loginuser.Userpass != "" {
+					//传入的数据都ok，获取用户信息
+
+					getuser := models.TabUser_{
+						Name: loginuser.Username,
+					}
+
+					if models.DB.Where(&getuser).First(&getuser).Error == nil {
+						//倒入数据
+						user := models.TabUser_{
+							Pass: loginuser.Userpass, //密码明文
+							Salt: getuser.Salt,       //保存的盐制
+						}
+						//哈希密
+						models.HashUserPass(&user)
+						if user.Pass == getuser.Pass {
+							//用户密码正确,生成cookie
+							cookie := models.TabCookie_{
+								UserID:    getuser.ID,
+								Name:      "login",
+								Value:     models.RandStr32(),
+								CreatedAt: time.Now(),
+								UpdatedAt: time.Now(),
+								ExpiresAt: time.Now().Add(time.Duration(models.ConfigsUser.CookieTimeout) * time.Second), //计算过期时间,
+								Remember:  loginuser.Remember,
+							}
+							models.DB.Create(&cookie) // 传入指针
+
+							redata := map[string]interface{}{
+								"cookie": cookie,
+							}
+
+							ReturnJson(ctx, "apiOK", redata)
+						} else {
+							ReturnJson(ctx, "userPassIncorrect", nil)
+						}
+
+					} else {
+						//用户不存在
+						ReturnJson(ctx, "userNameNoFund", nil)
+					}
+
+				} else {
+					ReturnJson(ctx, "jsonErr", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+
+		} else {
+			ReturnJson(ctx, "postErr", nil)
+		}
+	})
+
+	//用户注册
 	r.POST("/register", func(ctx *gin.Context) {
 		//转换传进来的数据
 		var jsonData From_user_add
@@ -79,8 +151,7 @@ func ApiUser(r *gin.RouterGroup) {
 					// Date 字段无需赋值，数据库会自动填充默认值
 				}
 				if newUser.Name != "" && newUser.Pass != "" && newUser.Email != "" {
-					//对用户的密码进行哈希替换
-					newUser.Pass = models.HashUserPass(newUser.Pass)
+
 					//用户名是唯一的，先读取是否有这个用户名
 					var user models.TabUser_
 					user.Name = newUser.Name
@@ -90,13 +161,18 @@ func ApiUser(r *gin.RouterGroup) {
 						ReturnJson(ctx, "userNameDup", nil)
 					} else {
 						//fmt.Println("用户不存在")
+
+						//对密码加盐
+						newUser.Salt = models.RandStr32()
+
+						//对用户的密码进行哈希替换
+						models.HashUserPass(&newUser)
+
 						models.DB.Create(&newUser) // 传入指针
 
-						// //创建info
-						// var user_info models.TabUserInfo_
-						// user_info.AvatarPath = models.ConfigsUser.AvatarPath
-						// user_info.UserID = newUser.ID
-						// models.DB.Create(&user_info) // 传入指针
+						//创建用户后写一个log
+
+						models.LogAdd(ctx, "New user id:"+strconv.Itoa(int(newUser.ID)))
 
 						ReturnJson(ctx, "apiOK", nil)
 					}

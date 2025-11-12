@@ -8,6 +8,31 @@ export const myfuncs = {
     console.log("myfuncs test ok");
   },
 
+  	//临时保存的数据，浏览器专属
+  	saveT(key,data){
+		sessionStorage.setItem(key, data)
+	},
+	loadT(key){
+		return sessionStorage.getItem(key)
+	},
+	deleT(key){
+		sessionStorage.removeItem(key)
+	},
+	saveJsonT(key,data){
+		this.saveT(key,JSON.stringify(data))
+	},
+
+	loadJsonT(key){
+		const js_data=this.loadT(key)
+		if(js_data){
+			return JSON.parse(js_data)
+		}else{
+			return null
+		}
+
+	},
+
+
 	save(key,data){
 		localStorage.setItem(key, data)
 	},
@@ -18,11 +43,11 @@ export const myfuncs = {
 		localStorage.removeItem(key)
 	},
 
-	save_json(key,data){
+	saveJson(key,data){
 		this.save(key,JSON.stringify(data))
 	},
 
-	load_json(key){
+	loadJson(key){
 		const js_data=this.load(key)
 		if(js_data){
 			return JSON.parse(js_data)

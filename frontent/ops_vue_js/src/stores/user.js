@@ -15,6 +15,9 @@ export const useUserStore = defineStore("user", () => {
   const login = () => {
     isLoggedIn.value = true;
   };
+  const loginUpdata = () => {
+    isLoggedIn.value = true;
+  };
 
   return {
     userInfo,
@@ -22,5 +25,6 @@ export const useUserStore = defineStore("user", () => {
     isLoggedIn,
     logout,
     login,
+    loginUpdata,
   };
 });

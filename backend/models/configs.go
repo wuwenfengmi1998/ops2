@@ -15,11 +15,8 @@ type ConfigsWeb_ struct {
 }
 
 type ConfigsUser_ struct {
-	CookieTimeout       int    `mapstructure:"cookieTimeout"`
-	PassHashType        string `mapstructure:"passHashType"`
-	AvatarSavePath      string `mapstructure:"avatarSavePath"`
-	AvatarGinrouterPath string `mapstructure:"avatarGinrouterPath"`
-	AvatarPath          string `mapstructure:"avatarPath"`
+	CookieTimeout int    `mapstructure:"cookieTimeout"`
+	PassHashType  string `mapstructure:"passHashType"`
 }
 
 type ConfigsFile_ struct {

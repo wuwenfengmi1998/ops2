@@ -1,46 +1,45 @@
 <script setup>
+import { useUserStore } from "@/stores/user";
 
-import { RouterLink} from 'vue-router'
+import { RouterLink } from "vue-router";
 
-import { useI18n } from 'vue-i18n'
+import { useI18n } from "vue-i18n";
 
-import { myfuncs } from '@/myfunc.js'
-import { onMounted, ref } from 'vue'
+import { myfuncs } from "@/myfunc.js";
+import { onMounted, ref } from "vue";
 
 // 使用 vue-i18n 的 Composition API
-const { t, locale } = useI18n()
-
-const theTeme = ref('light')
-const lang_sele = ref(null)
-
-const isLogin = false
+const { t, locale } = useI18n();
+const userStore = useUserStore();
+const theTeme = ref("light");
+const lang_sele = ref(null);
 
 function set_them(temp) {
-  theTeme.value = temp
-  myfuncs.setTheme(temp, true)
+  theTeme.value = temp;
+  myfuncs.setTheme(temp, true);
 }
 
 function changeLanguage(lang) {
   // 切换语言
-  const selectElement = lang.target
-  const selectedLang = selectElement.value
-  locale.value = selectedLang
-  myfuncs.save('userLanguage', selectedLang)
+  const selectElement = lang.target;
+  const selectedLang = selectElement.value;
+  locale.value = selectedLang;
+  myfuncs.save("userLanguage", selectedLang);
   //console.log("selectedLang:",selectedLang);
 }
 
 onMounted(() => {
-  const savedTheme = myfuncs.getThemefromStorge()
-  theTeme.value = savedTheme
-  myfuncs.setTheme(savedTheme, false)
-  const userLang = myfuncs.load('userLanguage')
+  const savedTheme = myfuncs.getThemefromStorge();
+  theTeme.value = savedTheme;
+  myfuncs.setTheme(savedTheme, false);
+  const userLang = myfuncs.load("userLanguage");
   if (userLang) {
-    locale.value = userLang
+    locale.value = userLang;
     if (lang_sele.value) {
-      ;(lang_sele.value).value = userLang
+      lang_sele.value.value = userLang;
     }
   }
-})
+});
 </script>
 
 <template>
@@ -60,7 +59,9 @@ onMounted(() => {
       </button>
       <!-- END NAVBAR TOGGLER -->
       <!-- BEGIN NAVBAR LOGO -->
-      <div class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+      <div
+        class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3"
+      >
         <router-link to="/" aria-label="Tabler">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -137,8 +138,8 @@ onMounted(() => {
           </a>
         </div>
         <!-- 这里判断是否已经登陆 是则显示用户信息 否则显示登陆按钮 -->
-        <div v-if="!isLogin" class="nav-item">
-          <router-link to="login" class="btn btn-outline-primary" >
+        <div v-if="!userStore.isLoggedIn" class="nav-item">
+          <router-link to="login" class="btn btn-outline-primary">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               class="icon"
@@ -157,18 +158,21 @@ onMounted(() => {
               <path d="M19 22v-6"></path>
               <path d="M22 19l-3 -3l-3 3"></path>
             </svg>
-            {{ t('message.login_or_register') }}
+            {{ t("message.login_or_register") }}
           </router-link>
         </div>
 
-        <div v-if="isLogin" class="nav-item dropdown">
+        <div v-if="userStore.isLoggedIn" class="nav-item dropdown">
           <a
             href="#"
             class="nav-link d-flex lh-1 p-0 px-2"
             data-bs-toggle="dropdown"
             aria-label="Open user menu"
           >
-            <span class="avatar avatar-sm" style="background-image: url(./static/avatars/000m.jpg)">
+            <span
+              class="avatar avatar-sm"
+              style="background-image: url(./static/avatars/000m.jpg)"
+            >
             </span>
             <div class="d-none d-xl-block ps-2">
               <div>Paweł Kuna</div>
@@ -213,15 +217,23 @@ onMounted(() => {
                       >
                         <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
                         <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
-                        <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg
+                        <path
+                          d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"
+                        /></svg
                     ></span>
-                    <span class="nav-link-title"> {{ t('appname.home') }} </span>
+                    <span class="nav-link-title">
+                      {{ t("appname.home") }}
+                    </span>
                   </router-link>
                 </li>
               </ul>
 
               <div class="ms-auto">
-                <select class="form-select" @change="changeLanguage" ref="lang_sele">
+                <select
+                  class="form-select"
+                  @change="changeLanguage"
+                  ref="lang_sele"
+                >
                   <option value="en">English</option>
                   <option value="zh-CN">中文</option>
                 </select>

@@ -39,13 +39,19 @@ func Md5Str(str string) string {
 	return hashString2
 }
 
-func HashUserPass(str string) string {
+func HashUserPass(user *TabUser_) {
 	switch ConfigsUser.PassHashType {
 	case "text":
-		return str
+		break
 	case "md5":
-		return Md5Str(str)
+		user.Pass = Md5Str(user.Pass)
+
+	case "md5salt":
+		if user.Salt == "" {
+			user.Salt = RandStr32()
+		}
+		user.Pass = Md5Str(Md5Str(user.Pass) + user.Salt)
+
 	}
 
-	return GetCurrentTimeString() + RandStr32() //如果转换失败返回当前时间，避免撞库
 }
