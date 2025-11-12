@@ -93,6 +93,9 @@ function createAccount() {
                 }
               );
               break;
+            default:
+              mos.value?.showAlert("danger", t("message.server_error"), 5000);
+              break;
           }
           break;
         default:

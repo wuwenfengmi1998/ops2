@@ -36,7 +36,8 @@
     "already_have_an_account":"已经有账户了？",
     "network_err":"网络错误",
     "username_dup":"用户名重复",
-    "registration_successful":"注册成功！"
+    "registration_successful":"注册成功！",
+    "server_error":"服务端错误"
   },
   "button": {
     "submit": "提交",

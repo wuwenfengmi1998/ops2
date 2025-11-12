@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mitchellh/mapstructure"
 )
 
 var ErrorCode map[string]interface{}
@@ -26,28 +25,30 @@ func init() {
 
 }
 
-func ApiRoot(r *gin.RouterGroup) {
+// 把数据分离成cookie和json
+func SeparateData(ctx *gin.Context) (map[string]interface{}, string) {
+	var jsonData map[string]interface{}
 
-	r.Use(func(ctx *gin.Context) {
-		//转换传进来的数据
-		var jsonData map[string]interface{}
-		if err := ctx.ShouldBindJSON(&jsonData); err == nil {
-			//分离数据
-
-			if jsonData["cookie"] != "" && jsonData["cookie"] != nil {
-				ctx.Set("cookie_value", jsonData["cookie"])
-			}
-
-			if jsonData["data"] != nil {
-				//fmt.Println(jsonData["data"])
-				var data_t map[string]interface{}
-				if err = mapstructure.Decode(jsonData["data"], &data_t); err == nil {
-					ctx.Set("data", &data_t)
-				}
-			}
-
+	if err := ctx.ShouldBindJSON(&jsonData); err == nil {
+		//分离数据
+		cookie, ok := jsonData["cookie"].(string)
+		if !ok {
+			cookie = ""
 		}
-	})
+
+		data, ok := jsonData["data"].(map[string]interface{})
+		if !ok {
+			data = nil
+		}
+
+		return data, cookie
+	}
+
+	return nil, ""
+
+}
+
+func ApiRoot(r *gin.RouterGroup) {
 
 	ApiUser(r.Group("/users"))
 

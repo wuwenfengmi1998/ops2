@@ -65,9 +65,10 @@ func ApiUser(r *gin.RouterGroup) {
 	r.POST("/register", func(ctx *gin.Context) {
 		//转换传进来的数据
 		var jsonData From_user_add
-		data, isHaveData := ctx.Get("data")
 
-		if isHaveData {
+		data, _ := SeparateData(ctx)
+
+		if data != nil {
 			if err := mapstructure.Decode(data, &jsonData); err == nil {
 				//转换字段
 				newUser := models.TabUser_{
