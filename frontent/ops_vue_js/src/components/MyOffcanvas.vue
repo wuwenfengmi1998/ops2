@@ -54,8 +54,8 @@ defineExpose({
   right: 0;
   left: 0;
 
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: 20%;
+  margin-right: 20%;
   margin-top: 20px;
 
   max-height: 100%;
