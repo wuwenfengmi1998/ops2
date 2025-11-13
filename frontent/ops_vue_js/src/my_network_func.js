@@ -26,10 +26,14 @@ export const my_network_func = {
     //把cookie插入json
     var data = {};
     data["data"] = json;
+
+    var userstore=useUserStore()
+
+    //console.log(userstore.cookieValue)
    
-    // if (useUserStore.cookieValue!="") {
-    //   data["cookie"] = useUserStore.cookieValue;
-    // }
+    if (userstore.userCookie) {
+      data["userCookie"] = userstore.userCookie
+    }
 
     var re_data = {};
 

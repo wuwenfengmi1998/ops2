@@ -91,7 +91,7 @@ function login() {
               }
 
               //更新用户信息
-              userStore.loginUpdata(r.data.return.cookie)
+              userStore.login(r.data.return.cookie)
               
 
               mos.value?.showAlert(

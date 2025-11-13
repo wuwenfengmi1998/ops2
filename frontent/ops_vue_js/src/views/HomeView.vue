@@ -20,6 +20,6 @@ const user = useUserStore()
   <main>
     1112
     <button @click="t">222</button>
-    {{ user.isLoggedIn }}
+    {{ user.userCookie }}
   </main>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref } from "vue";
-import { Offcanvas } from "bootstrap";
+import { Offcanvas } from "@tabler/core";
 
 const offcanvasTop = ref(null);
 let ov;
