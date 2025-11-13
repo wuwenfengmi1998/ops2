@@ -7,8 +7,7 @@ import App from './App.vue'
 import router from './router'
 
 import '@tabler/core/dist/css/tabler.min.css'
-import '@tabler/core/dist/css/tabler-vendors.min.css'
-import '@tabler/core/dist/js/tabler.min.js'
+
 
 import en from './i18n/en.json'
 import zhCN from './i18n/zh-CN.json'
