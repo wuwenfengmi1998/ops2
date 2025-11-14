@@ -73,6 +73,47 @@ func ApiUser(r *gin.RouterGroup) {
 	r.POST("/test", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
+	//通过cookie获取用户info
+	r.POST("/getinfo", func(ctx *gin.Context) {
+		_, cookieval := SeparateData(ctx)
+		//fmt.Println("cookieis" + cookieval)
+		if cookieval != "" {
+			cookie := models.TabCookie_{
+				Value: cookieval,
+			}
+			if models.DB.Where(&cookie).First(&cookie).Error == nil {
+				//找到cookie，验证cookie有效性，以及更新cookie
+				if models.CheckCookiesAndUpdate(&cookie) {
+					//cookie有效
+					//返回最新cookie
+					redata := map[string]interface{}{
+						"cookie": cookie,
+					}
+					//载入用户info
+					userInfo := models.TabFileInfo_{
+						UserID: cookie.UserID,
+					}
+					if models.DB.Where(&userInfo).First(&userInfo).Error == nil {
+						redata["userInfo"] = userInfo
+					} else {
+						redata["userInfo"] = nil
+					}
+
+					ReturnJson(ctx, "apiOK", redata)
+
+				} else {
+					ReturnJson(ctx, "userCookieExpired", nil)
+				}
+
+			} else {
+				ReturnJson(ctx, "userCookieNotFund", nil)
+			}
+
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+
+	})
 	//用户登陆
 	r.POST("/login", func(ctx *gin.Context) {
 		var loginuser From_user_login

@@ -32,7 +32,7 @@ export const my_network_func = {
     //console.log(userstore.cookieValue)
    
     if (userstore.userCookie) {
-      data["userCookie"] = userstore.userCookie
+      data["userCookieValue"] = userstore.userCookie.Value
     }
 
     var re_data = {};
@@ -50,6 +50,20 @@ export const my_network_func = {
         if (response.data) {
           re_data["data"] = response.data;
           //自动保存服务器发送的cookie
+          if(response.status==200)
+          {
+            
+            if(response.data.err_code==0){
+              if(response.data.return.cookie){
+                
+                userstore.cookieUpdata(response.data.return.cookie)
+              }
+
+            }else if(response.data.err_code==-46){
+              //userCookieExpired
+              userstore.logout()
+            }
+          }
           // if (response.data.cookie) {
           //   if (response.data.cookie.Value == "") {
           //     myfuncs.dele("cookie");

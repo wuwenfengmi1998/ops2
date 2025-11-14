@@ -30,6 +30,7 @@ function tt(){
     <button @click="t">222</button>
     {{ user.userCookie }}
     <button @click="tt">333</button>
+    {{ user.userInfo }}
   </main>
   <MyOffcanvas ref="mos" />
 </template>

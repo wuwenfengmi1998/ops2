@@ -5,6 +5,9 @@
     "jsonErr":-3,
     "userNameDup":-4,
     "userNameNoFund":-41,
-    "userPassIncorrect":-42
+    "userPassIncorrect":-42,
+    "userCookieError":-44,
+    "userCookieNotFund":-45,
+    "userCookieExpired":-46
 
 }

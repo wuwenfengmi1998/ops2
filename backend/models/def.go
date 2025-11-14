@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+
 	"time"
 )
 
@@ -54,4 +55,29 @@ func HashUserPass(user *TabUser_) {
 
 	}
 
+}
+
+func IsExpired(expireTime time.Time) bool {
+	return expireTime.Before(time.Now())
+}
+
+func CheckCookiesAndUpdate(cookie *TabCookie_) bool {
+	if !IsExpired(cookie.ExpiresAt) {
+		if cookie.Remember {
+			cookiewhere := TabCookie_{
+				ID: cookie.ID,
+			}
+			cookieupdata := TabCookie_{
+				UpdatedAt: time.Now(),
+				ExpiresAt: time.Now().Add(time.Duration(ConfigsUser.CookieTimeout) * time.Second),
+			}
+			DB.Where(&cookiewhere).Updates(&cookieupdata)
+
+		}
+		return true
+	} else {
+		//以过期
+		return false
+	}
+	//return false
 }

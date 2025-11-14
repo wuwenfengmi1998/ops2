@@ -31,7 +31,7 @@ func SeparateData(ctx *gin.Context) (map[string]interface{}, string) {
 
 	if err := ctx.ShouldBindJSON(&jsonData); err == nil {
 		//分离数据
-		cookie, ok := jsonData["cookie"].(string)
+		cookie, ok := jsonData["userCookieValue"].(string)
 		if !ok {
 			cookie = ""
 		}

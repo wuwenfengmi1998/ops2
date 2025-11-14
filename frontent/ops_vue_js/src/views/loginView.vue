@@ -60,7 +60,7 @@ function login() {
       remember: remember,
     },
     (r) => {
-      console.log(r)
+      //console.log(r)
       switch (r.statusCode) {
         case 200:
           switch (r.data.err_code) {
@@ -84,11 +84,7 @@ function login() {
             case 0:
               //登录成功，载入cookie
               //临时保存cookie
-              myfuncs.saveJsonT("userCookie",r.data.return.cookie)
-              if(remember){
-                //长期保存cookie
-                myfuncs.saveJson("userCookie",r.data.return.cookie)
-              }
+              userStore.cookieUpdata(r.data.return.cookie)
 
               //更新用户信息
               userStore.login(r.data.return.cookie)

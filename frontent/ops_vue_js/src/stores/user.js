@@ -2,6 +2,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { myfuncs } from "@/myfunc.js";
+import { my_network_func } from "@/my_network_func";
 
 // 组合式 API 写法 (推荐)
 export const useUserStore = defineStore("user", () => {
@@ -20,6 +21,30 @@ export const useUserStore = defineStore("user", () => {
     }
     return userCookie.value;
   };
+
+  const getUserInfoFromCookie = () => {
+    my_network_func.postJson("/users/getinfo", {}, (r) => {
+      //console.log(r);
+      switch (r.statusCode) {
+        case 200:
+          switch (r.data.err_code) {
+            case 0:
+              if(r.data.return.userInfo){
+                userInfo.value=r.data.return.userInfo
+              }else{
+                userInfo.value=null
+              }
+              break;
+            default:
+              break;
+          }
+          break;
+        default:
+          break;
+      }
+    });
+  };
+
   const logout = () => {
     userCookie.value = null;
     isLoggedIn.value = false;
@@ -31,6 +56,17 @@ export const useUserStore = defineStore("user", () => {
     isLoggedIn.value = true;
     //这里应该判读cookie的实效性
     userCookie.value = cookiesQualified();
+    //到这里cookie应该是有效的，尝试获取用户info,因为有的info可能是隐藏的 所以用post携带当前cookie去请求用户info
+    getUserInfoFromCookie();
+  };
+
+  const cookieUpdata = (cookie) => {
+    userCookie.value = cookie;
+    myfuncs.saveJsonT("userCookie", cookie);
+    if (cookie.Remember) {
+      //长期保存cookie
+      myfuncs.saveJson("userCookie", cookie);
+    }
   };
 
   const loginFromStoreCookie = () => {
@@ -49,7 +85,6 @@ export const useUserStore = defineStore("user", () => {
     }
   };
 
-
   return {
     userInfo,
     userCookie,
@@ -57,6 +92,6 @@ export const useUserStore = defineStore("user", () => {
     logout,
     login,
     loginFromStoreCookie,
-    
+    cookieUpdata,
   };
 });
