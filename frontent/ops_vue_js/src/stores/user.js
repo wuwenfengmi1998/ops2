@@ -8,6 +8,7 @@ import { my_network_func } from "@/my_network_func";
 export const useUserStore = defineStore("user", () => {
   // 状态 (State)
   const userInfo = ref(null);
+  const user =ref(null)
   const userCookie = ref(null);
   const isLoggedIn = ref(false);
 
@@ -29,6 +30,7 @@ export const useUserStore = defineStore("user", () => {
         case 200:
           switch (r.data.err_code) {
             case 0:
+              user.value=r.data.return.user
               if(r.data.return.userInfo){
                 userInfo.value=r.data.return.userInfo
               }else{
@@ -86,6 +88,7 @@ export const useUserStore = defineStore("user", () => {
   };
 
   return {
+    user,
     userInfo,
     userCookie,
     isLoggedIn,

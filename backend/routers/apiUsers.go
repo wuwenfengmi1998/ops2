@@ -99,6 +99,16 @@ func ApiUser(r *gin.RouterGroup) {
 						redata["userInfo"] = nil
 					}
 
+					//载入user
+					user := models.TabUser_{
+						ID: cookie.UserID,
+					}
+					models.DB.Where(&user).First(&user)
+					user.Pass = ""
+					user.Salt = ""
+
+					redata["user"] = user
+
 					ReturnJson(ctx, "apiOK", redata)
 
 				} else {
