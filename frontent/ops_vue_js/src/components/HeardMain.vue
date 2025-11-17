@@ -213,7 +213,7 @@ onMounted(() => {
               <router-link to="" class="dropdown-item">{{
                 t("message.user_home")
               }}</router-link>
-              <router-link to="" class="dropdown-item">{{
+              <router-link to="/settings/account" class="dropdown-item">{{
                 t("message.user_settings")
               }}</router-link>
               <router-link to="" class="dropdown-item">{{

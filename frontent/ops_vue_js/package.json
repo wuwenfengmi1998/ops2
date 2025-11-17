@@ -16,6 +16,7 @@
     "@tabler/icons-vue": "^3.35.0",
     "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
+    "litepicker": "^2.0.12",
     "pinia": "^3.0.4",
     "vue": "^3.5.22",
     "vue-i18n": "^11.1.12",
