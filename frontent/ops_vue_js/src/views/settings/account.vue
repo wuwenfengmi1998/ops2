@@ -1,8 +1,17 @@
 <script setup>
+import { onMounted, watch, ref } from 'vue'
 import settingNavigation from "@/components/settingNavigation.vue";
 import { useI18n } from "vue-i18n";
 import datePicker from "@/components/datePicker.vue";
 const { t } = useI18n();
+
+const datapicker = ref();
+
+function updataInfo() {
+  console.log("保存用户信息");
+  console.log("生日:", datapicker.value.datepicker.value);
+}
+
 </script>
 
 <template>
@@ -49,12 +58,11 @@ const { t } = useI18n();
                   </div>
                   <div class="col-md">
                     <div class="form-label">{{ t("settings.birthday") }}</div>
-                    <input type="text" class="form-control" />
-                    <datePicker />
+                    <datePicker ref="datapicker"/>
                     
                   </div>
                   <div>
-                    <button class="btn">{{ t("settings.save_changes") }}</button>
+                    <button class="btn" @click="updataInfo">{{ t("settings.save_changes") }}</button>
                   </div>
                 </div>
                 <h3 class="card-title mt-4">{{ t("settings.email") }}</h3>

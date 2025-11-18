@@ -1,26 +1,38 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import Litepicker from "litepicker";
+import { useI18n } from "vue-i18n";
+const { t, locale } = useI18n();
 
-const datepicker_inline = ref(null);
+const datepicker = ref(null);
+var picker = null
+
+watch(locale, () => {
+  picker?.setOptions({ lang: locale.value });
+});
 
 onMounted(() => {
   // @formatter:off
 
-  new Litepicker({
-    element: datepicker_inline.value,
-    lang: 'zh-cn',
+  picker = new Litepicker({
+    element: datepicker.value,
+    lang: locale.value,
     firstDay: 0,
-    buttonText: {
-      previousMonth: `<!-- Download SVG icon from http://tabler-icons.io/i/chevron-left -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6" /></svg>`,
-      nextMonth: `<!-- Download SVG icon from http://tabler-icons.io/i/chevron-right -->
-    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>`,
-    },
-    inlineMode: true,
-  });
+    format: "YYYY-MM-DD", // 日期格式
 
-  // @formatter:on
+    dropdowns: {
+      minYear: 1900, // 最小可选年份
+      maxYear: new Date().getFullYear() + 1, // 最大为当前年份
+      months: true, // 显示月份下拉
+      years: true, // 显示年份下拉
+    },
+    //inlineMode: true,
+  });
+});
+
+defineExpose({
+  datepicker,
+  
 });
 </script>
 
@@ -54,13 +66,8 @@ onMounted(() => {
     <input
       class="form-control"
       placeholder="Select a date"
-      id="datepicker-icon-prepend"
-      value="2020-06-20"
+      ref="datepicker"
+      value=""
     />
-  </div>
-
-  <div class="mb-3">
-    <label class="form-label">Inline datepicker</label>
-    <div class="datepicker-inline" ref="datepicker_inline"></div>
   </div>
 </template>
