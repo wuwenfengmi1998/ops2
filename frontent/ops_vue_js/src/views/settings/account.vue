@@ -1,17 +1,51 @@
 <script setup>
-import { onMounted, watch, ref } from 'vue'
+import { onMounted, watch, ref } from "vue";
 import settingNavigation from "@/components/settingNavigation.vue";
 import { useI18n } from "vue-i18n";
 import datePicker from "@/components/datePicker.vue";
 const { t } = useI18n();
 
-const datapicker = ref();
+const birthday = ref();
+const username = ref();
+const userremark = ref();
 
 function updataInfo() {
-  console.log("保存用户信息");
-  console.log("生日:", datapicker.value.datepicker.value);
-}
+  
 
+  let isDataErr = false;
+
+  let birthdayValue = birthday.value.datepicker.value;
+  let usernameValue = username.value.value;
+  let userremarkValue = userremark.value.value;
+
+  username.value?.classList.remove("is-invalid");
+  userremark.value?.classList.remove("is-invalid");
+  birthday.value?.datepicker.classList.remove("is-invalid");
+
+  if (!usernameValue) {
+    isDataErr = true;
+    username.value?.classList.add("is-invalid");
+  }
+
+  if (!userremarkValue) {
+    isDataErr = true;
+    userremark.value?.classList.add("is-invalid");
+  }
+
+  if (!birthdayValue) {
+    isDataErr = true;
+    birthday.value?.datepicker.classList.add("is-invalid");
+  }
+
+  if (isDataErr) {
+    console.log("用户信息有误，无法保存");
+    return;
+  }
+  console.log("保存用户信息");
+  console.log("用户名:", usernameValue);
+  console.log("备注:", userremarkValue);
+  console.log("生日:", birthdayValue);
+}
 </script>
 
 <template>
@@ -50,19 +84,20 @@ function updataInfo() {
                 <div class="row g-3">
                   <div class="col-md">
                     <div class="form-label">{{ t("settings.name") }}</div>
-                    <input type="text" class="form-control" />
+                    <input ref="username" type="text" class="form-control" />
                   </div>
                   <div class="col-md">
                     <div class="form-label">{{ t("settings.remark") }}</div>
-                    <input type="text" class="form-control" />
+                    <input ref="userremark" type="text" class="form-control" />
                   </div>
                   <div class="col-md">
                     <div class="form-label">{{ t("settings.birthday") }}</div>
-                    <datePicker ref="datapicker"/>
-                    
+                    <datePicker ref="birthday" />
                   </div>
                   <div>
-                    <button class="btn" @click="updataInfo">{{ t("settings.save_changes") }}</button>
+                    <button class="btn" @click="updataInfo">
+                      {{ t("settings.save_changes") }}
+                    </button>
                   </div>
                 </div>
                 <h3 class="card-title mt-4">{{ t("settings.email") }}</h3>
@@ -84,7 +119,9 @@ function updataInfo() {
                 <input type="password" class="form-control w-auto mb-1" />
 
                 <div>
-                  <button class="btn">{{ t("settings.set_new_password") }}</button>
+                  <button class="btn">
+                    {{ t("settings.set_new_password") }}
+                  </button>
                 </div>
               </div>
             </div>
