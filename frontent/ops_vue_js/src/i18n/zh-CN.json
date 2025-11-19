@@ -45,7 +45,8 @@
     "user_home": "个人主页",
     "user_settings": "个人资料",
     "preferences": "偏好设置",
-    "administrator": "管理员"
+    "administrator": "管理员",
+    "select_date":"选择日期"
   },
   "settings": {
     "account_settings": "个人设置",

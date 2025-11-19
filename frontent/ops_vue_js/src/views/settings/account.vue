@@ -3,6 +3,7 @@ import { onMounted, watch, ref } from "vue";
 import settingNavigation from "@/components/settingNavigation.vue";
 import { useI18n } from "vue-i18n";
 import datePicker from "@/components/datePicker.vue";
+import imageCropper from "@/components/imageCropper.vue";
 const { t } = useI18n();
 
 const birthday = ref();
@@ -46,6 +47,13 @@ function updataInfo() {
   console.log("备注:", userremarkValue);
   console.log("生日:", birthdayValue);
 }
+
+onMounted(()=>{
+  //console.log("account mounted");
+  //username.value.value="Kevin";
+
+})
+
 </script>
 
 <template>
@@ -74,6 +82,7 @@ function updataInfo() {
                       style="background-image: url(./static/avatars/000m.jpg)"
                     ></span>
                   </div>
+                  <imageCropper />
                   <div class="col-auto">
                     <button class="btn">
                       {{ t("settings.change_avatar") }}

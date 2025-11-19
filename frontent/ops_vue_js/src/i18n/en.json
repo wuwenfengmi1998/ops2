@@ -45,7 +45,8 @@
     "user_home": "Profile",
     "user_settings": "Settings",
     "preferences": "Preferences",
-    "administrator": "Administrator"
+    "administrator": "Administrator",
+    "select_date":"Select a date"
   },
   "settings": {
     "account_settings": "Account Settings",

@@ -65,7 +65,7 @@ defineExpose({
     </span>
     <input
       class="form-control"
-      placeholder="Select a date"
+      :placeholder="t('message.select_date')"
       ref="datepicker"
       value=""
     />

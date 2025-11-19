@@ -16,9 +16,11 @@
     "@tabler/icons-vue": "^3.35.0",
     "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
+    "cropperjs": "^2.1.0",
     "litepicker": "^2.0.12",
     "pinia": "^3.0.4",
     "vue": "^3.5.22",
+    "vue-cropper": "^0.6.5",
     "vue-i18n": "^11.1.12",
     "vue-router": "^4.6.3"
   },
