@@ -6,7 +6,7 @@
       </button>
       <button @click="handleRotate">旋转</button>
       <button :class="{ active: isCropperSelection }" @click="handleCropper">
-        {{ isCropperSelection ? "重置选区" : "裁剪" }}
+        {{ isCropperSelection ? '重置选区' : '裁剪' }}
       </button>
     </div>
     <div class="dialog_wrap">
@@ -66,8 +66,8 @@
 </template>
 
 <script setup>
-import "cropperjs";
-import { computed, ref } from "vue";
+import 'cropperjs';
+import { computed, ref } from 'vue';
 
 const fileObj = ref({});
 
@@ -83,15 +83,15 @@ const isCropperSelection = ref(false);
 const isCropperMove = ref(true);
 
 //  判断当前是移动还是选区
-const currentType = computed(() => (isCropperMove.value ? "move" : "select"));
+const currentType = computed(() => (isCropperMove.value ? 'move' : 'select'));
 
 /**
  * 按钮方法
  */
 // 旋转
 function handleRotate() {
-  cropperimage.value.$rotate("90deg");
-  cropperimage.value.$center("contain");
+  cropperimage.value.$rotate('90deg');
+  cropperimage.value.$center('contain');
 }
 // 裁剪
 function handleCropper() {
@@ -114,7 +114,7 @@ function handleCropper() {
       maxSelection.x,
       maxSelection.y,
       maxSelection.width,
-      maxSelection.height
+      maxSelection.height,
     );
   }
 }
@@ -142,14 +142,14 @@ function onCropperSelectionChange(event) {
 /**
  * 确认裁剪
  */
-const emit = defineEmits(["success"]);
+const emit = defineEmits(['success']);
 async function handleConfirm() {
   if (isCropperSelection.value) {
     const res = await cropperselection.value.$toCanvas();
 
-    const dataImage = res.toDataURL("image/png");
+    const dataImage = res.toDataURL('image/png');
     const file = dataURLtoFile(dataImage, fileObj.value.name);
-    emit("success", {
+    emit('success', {
       ...fileObj.value,
       file: file,
       fileShow: dataImage,
@@ -158,7 +158,7 @@ async function handleConfirm() {
 }
 // 将data:image转成新的file
 function dataURLtoFile(dataurl, filename) {
-  var arr = dataurl.split(","),
+  var arr = dataurl.split(','),
     mime = arr[0].match(/:(.*?);/)[1],
     bstr = atob(arr[1]),
     n = bstr.length,
@@ -192,7 +192,7 @@ function handleUploadSuccess() {
 .dialog_wrap {
   display: flex;
   .image_wrap {
-    width: 300px;
+    width: 400px;
     height: 300px;
     flex-shrink: 0;
 
