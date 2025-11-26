@@ -184,9 +184,7 @@ onMounted(() => {
             >
               <img
                 :src="
-                  userStore.userInfo
-                    ? userStore.userInfo.AvatarPath
-                    : '/ava.svg'
+                  userStore.getUserAvatarPath()
                 "
                 alt=""
                 class="avatar avatar-sm"

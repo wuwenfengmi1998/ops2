@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch ,defineProps} from "vue";
 import Litepicker from "litepicker";
 import { useI18n } from "vue-i18n";
 const { t, locale } = useI18n();
@@ -11,6 +11,12 @@ watch(locale, () => {
   picker?.setOptions({ lang: locale.value });
 });
 
+defineProps({
+  setdef: {
+    type: String,
+    default: "",
+  },
+})
 onMounted(() => {
   // @formatter:off
 
@@ -37,6 +43,7 @@ defineExpose({
 </script>
 
 <template>
+  
   <div class="input-icon">
     <span class="input-icon-addon"
       ><!-- Download SVG icon from http://tabler-icons.io/i/calendar -->
@@ -67,7 +74,7 @@ defineExpose({
       class="form-control"
       :placeholder="t('message.select_date')"
       ref="datepicker"
-      value=""
+      :value="setdef"
     />
   </div>
 </template>

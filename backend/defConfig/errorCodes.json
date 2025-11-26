@@ -7,7 +7,7 @@
     "userNameNoFund":-41,
     "userPassIncorrect":-42,
     "userCookieError":-44,
-    "userCookieNotFund":-45,
-    "userCookieExpired":-46
+    "userCookieNotFund":-44,
+    "userCookieExpired":-44
 
 }

@@ -46,7 +46,8 @@
     "user_settings": "Settings",
     "preferences": "Preferences",
     "administrator": "Administrator",
-    "select_date":"Select a date"
+    "select_date":"Select a date",
+    "save_ok":"Saved successfully"
   },
   "settings": {
     "account_settings": "Account Settings",

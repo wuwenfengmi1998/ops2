@@ -8,7 +8,7 @@ import { my_network_func } from "@/my_network_func";
 export const useUserStore = defineStore("user", () => {
   // 状态 (State)
   const userInfo = ref(null);
-  const user =ref(null)
+  const user = ref(null);
   const userCookie = ref(null);
   const isLoggedIn = ref(false);
 
@@ -23,6 +23,30 @@ export const useUserStore = defineStore("user", () => {
     return userCookie.value;
   };
 
+  const getUserBirthday = () => {
+    if (userInfo.value != null) {
+      const date = new Date(userInfo.value.Birthdate);
+
+      // 获取年月日并格式化
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
+      const formattedDate = `${year}-${month}-${day}`;
+      return formattedDate;
+    }
+    return "";
+  };
+
+  const getUserAvatarPath = () => {
+    if (userInfo.value != null) {
+      if (userInfo.value.AvatarPath != "") {
+        return userInfo.value.AvatarPath;
+      }
+    }
+    return "/ava.svg";
+  };
+
   const getUserInfoFromCookie = () => {
     my_network_func.postJson("/users/getinfo", {}, (r) => {
       //console.log(r);
@@ -30,11 +54,11 @@ export const useUserStore = defineStore("user", () => {
         case 200:
           switch (r.data.err_code) {
             case 0:
-              user.value=r.data.return.user
-              if(r.data.return.userInfo){
-                userInfo.value=r.data.return.userInfo
-              }else{
-                userInfo.value=null
+              user.value = r.data.return.user;
+              if (r.data.return.userInfo) {
+                userInfo.value = r.data.return.userInfo;
+              } else {
+                userInfo.value = null;
               }
               break;
             default:
@@ -92,6 +116,8 @@ export const useUserStore = defineStore("user", () => {
     userInfo,
     userCookie,
     isLoggedIn,
+    getUserAvatarPath,
+    getUserBirthday,
     logout,
     login,
     loginFromStoreCookie,

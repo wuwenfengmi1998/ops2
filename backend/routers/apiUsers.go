@@ -65,6 +65,51 @@ type From_user_login struct {
 	Remember bool   `json:"remember"`
 }
 
+type From_user_updateinfo struct {
+	Username string `json:"username"`
+	Remark   string `json:"remark"`
+	Birthday string `json:"birthday"`
+}
+
+func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[string]interface{}) {
+	var user models.TabUser_
+
+	data, cookieval := SeparateData(ctx)
+	//fmt.Println("cookieis" + cookieval)
+	if cookieval != "" {
+		cookie := models.TabCookie_{
+			Value: cookieval,
+		}
+		if models.DB.Where(&cookie).First(&cookie).Error == nil {
+			//找到cookie，验证cookie有效性，以及更新cookie
+			if models.CheckCookiesAndUpdate(&cookie) {
+				//cookie有效
+				//载入user
+				user := models.TabUser_{
+					ID: cookie.UserID,
+				}
+				models.DB.Where(&user).First(&user)
+
+				return true, user, data
+
+			} else {
+				ReturnJson(ctx, "userCookieExpired", nil)
+				return false, user, nil
+			}
+
+		} else {
+			ReturnJson(ctx, "userCookieNotFund", nil)
+			return false, user, nil
+		}
+
+	} else {
+		ReturnJson(ctx, "userCookieError", nil)
+		return false, user, nil
+	}
+
+	//return false, user
+}
+
 func ApiUser(r *gin.RouterGroup) {
 
 	r.GET("/test", func(ctx *gin.Context) {
@@ -73,55 +118,120 @@ func ApiUser(r *gin.RouterGroup) {
 	r.POST("/test", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
-	//通过cookie获取用户info
-	r.POST("/getinfo", func(ctx *gin.Context) {
-		_, cookieval := SeparateData(ctx)
-		//fmt.Println("cookieis" + cookieval)
-		if cookieval != "" {
-			cookie := models.TabCookie_{
-				Value: cookieval,
-			}
-			if models.DB.Where(&cookie).First(&cookie).Error == nil {
-				//找到cookie，验证cookie有效性，以及更新cookie
-				if models.CheckCookiesAndUpdate(&cookie) {
-					//cookie有效
-					//返回最新cookie
-					redata := map[string]interface{}{
-						"cookie": cookie,
-					}
-					//载入用户info
-					userInfo := models.TabFileInfo_{
-						UserID: cookie.UserID,
-					}
-					if models.DB.Where(&userInfo).First(&userInfo).Error == nil {
-						redata["userInfo"] = userInfo
+	//更新用户info
+	r.POST("/updateInfo", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var jsonData From_user_updateinfo
+
+			if err := mapstructure.Decode(data, &jsonData); err == nil {
+				// fmt.Println("updateinfo data is", jsonData)
+				// fmt.Println(user)
+				t, err := time.Parse("2006-01-02", jsonData.Birthday)
+				if err == nil {
+					var userinfo models.TabUserInfo_
+					userinfo.UserID = user.ID
+
+					var userinfoupdate models.TabUserInfo_
+					userinfoupdate.UserID = user.ID
+					userinfoupdate.CreatedAt = time.Now()
+					userinfoupdate.Username = jsonData.Username
+					userinfoupdate.Birthdate = t
+					userinfoupdate.FirstName = jsonData.Remark
+
+					//先查找是否有记录
+					if models.DB.Where(&userinfo).First(&userinfo).Error == nil {
+						//有记录，更新
+						models.DB.Model(&userinfo).Updates(&userinfoupdate)
 					} else {
-						redata["userInfo"] = nil
+						//无记录，创建
+						models.DB.Create(&userinfoupdate) // 传入指针
+
 					}
 
-					//载入user
-					user := models.TabUser_{
-						ID: cookie.UserID,
-					}
-					models.DB.Where(&user).First(&user)
-					user.Pass = ""
-					user.Salt = ""
-
-					redata["user"] = user
-
-					ReturnJson(ctx, "apiOK", redata)
+					ReturnJson(ctx, "apiOK", nil)
 
 				} else {
-					ReturnJson(ctx, "userCookieExpired", nil)
+					ReturnJson(ctx, "jsonErr", nil)
 				}
 
 			} else {
-				ReturnJson(ctx, "userCookieNotFund", nil)
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		}
+
+	})
+
+	//通过cookie获取用户info
+	r.POST("/getinfo", func(ctx *gin.Context) {
+		isAuth, user, _ := AuthenticationAuthority(ctx)
+		if isAuth {
+			//载入用户info
+			var userinfo models.TabUserInfo_
+			userinfo.UserID = user.ID
+			//fmt.Println(userInfo)
+			var redata map[string]interface{} = make(map[string]interface{})
+			if models.DB.Where(&userinfo).First(&userinfo).Error == nil {
+				redata["userInfo"] = userinfo
+			} else {
+				redata["userInfo"] = nil
 			}
 
-		} else {
-			ReturnJson(ctx, "userCookieError", nil)
+			user.Pass = ""
+			user.Salt = ""
+
+			redata["user"] = user
+
+			ReturnJson(ctx, "apiOK", redata)
+
 		}
+		// _, cookieval := SeparateData(ctx)
+		// //fmt.Println("cookieis" + cookieval)
+		// if cookieval != "" {
+		// 	cookie := models.TabCookie_{
+		// 		Value: cookieval,
+		// 	}
+		// 	if models.DB.Where(&cookie).First(&cookie).Error == nil {
+		// 		//找到cookie，验证cookie有效性，以及更新cookie
+		// 		if models.CheckCookiesAndUpdate(&cookie) {
+		// 			//cookie有效
+		// 			//返回最新cookie
+		// 			redata := map[string]interface{}{
+		// 				"cookie": cookie,
+		// 			}
+		// 			//载入用户info
+		// 			userInfo := models.TabFileInfo_{
+		// 				UserID: cookie.UserID,
+		// 			}
+		// 			if models.DB.Where(&userInfo).First(&userInfo).Error == nil {
+		// 				redata["userInfo"] = userInfo
+		// 			} else {
+		// 				redata["userInfo"] = nil
+		// 			}
+
+		// 			//载入user
+		// 			user := models.TabUser_{
+		// 				ID: cookie.UserID,
+		// 			}
+		// 			models.DB.Where(&user).First(&user)
+		// 			user.Pass = ""
+		// 			user.Salt = ""
+
+		// 			redata["user"] = user
+
+		// 			ReturnJson(ctx, "apiOK", redata)
+
+		// 		} else {
+		// 			ReturnJson(ctx, "userCookieExpired", nil)
+		// 		}
+
+		// 	} else {
+		// 		ReturnJson(ctx, "userCookieNotFund", nil)
+		// 	}
+
+		// } else {
+		// 	ReturnJson(ctx, "userCookieError", nil)
+		// }
 
 	})
 	//用户登陆

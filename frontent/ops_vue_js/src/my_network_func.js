@@ -54,12 +54,12 @@ export const my_network_func = {
           {
             
             if(response.data.err_code==0){
-              if(response.data.return.cookie){
+              // if(response.data.return.cookie){
                 
-                userstore.cookieUpdata(response.data.return.cookie)
-              }
+              //   userstore.cookieUpdata(response.data.return.cookie)
+              // }
 
-            }else if(response.data.err_code==-46){
+            }else if(response.data.err_code==-44){//后端返回的cookie错误码
               //userCookieExpired
               userstore.logout()
             }

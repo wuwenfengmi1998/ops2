@@ -1,127 +1,114 @@
 <template>
-  <div class="cropper-demo">
-    <div class="container">
-      <header>
-        <h1>CropperJS 组件演示</h1>
-        <p class="description">
-          此演示展示了CropperJS各个组件的功能和使用方法。您可以通过下方控制面板调整裁剪区域、查看预览效果，并了解每个组件的作用。
-        </p>
-      </header>
-      
-      <div class="demo-area">
-        <div class="cropper-container">
-          <h3>裁剪画布</h3>
-          <div class="canvas-wrapper">
-            <canvas 
-              ref="canvas" 
-              class="cropper-canvas"
-              @mousedown="onCanvasMouseDown"
-              @mousemove="onCanvasMouseMove"
-              @mouseup="onCanvasMouseUp"
-              @mouseleave="onCanvasMouseLeave"
-            ></canvas>
-          </div>
-          
-          <div class="viewer-container">
-            <div class="viewer-label">实时预览</div>
-            <canvas ref="previewCanvas" class="preview-viewer"></canvas>
-          </div>
-          
-          <div class="status-bar">
-            <div>选区位置: <span>{{ positionInfo }}</span></div>
-            <div>选区尺寸: <span>{{ sizeInfo }}</span></div>
-            <div>宽高比: <span>{{ ratioInfo }}</span></div>
-          </div>
+  <div class="avatar-cropper">
+    <!-- 上传区域 -->
+    <div v-if="!imageSrc" class="upload-area" @click="triggerFileInput">
+      <div class="upload-content">
+        <div class="upload-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
-        
-        <div class="controls">
-          <h3>控制面板</h3>
-          
-          <div class="control-group">
-            <h4>选区操作</h4>
-            <div class="btn-group">
-              <button 
-                :class="{ active: interactionMode === 'move' }"
-                @click="setInteractionMode('move')"
+        <h3>点击上传图片</h3>
+        <p>支持 JPG、PNG 格式，建议尺寸 200×200 像素以上</p>
+      </div>
+      <input 
+        ref="fileInput"
+        type="file" 
+        accept="image/*" 
+        @change="handleFileSelect"
+        style="display: none"
+      >
+    </div>
+
+    <!-- 裁剪区域 -->
+    <div v-else class="cropper-container">
+      <div class="cropper-header">
+        <h3>调整头像</h3>
+        <button class="btn-close" @click="reset">×</button>
+      </div>
+      
+      <div class="cropper-content">
+        <!-- 裁剪画布 -->
+        <div class="canvas-wrapper">
+            <div class="canvas-container" ref="canvasContainer">
+              <canvas ref="canvas" class="cropper-canvas"></canvas>
+              <div 
+                class="crop-box"
+                :style="cropBoxStyle"
+                @mousedown="startDrag"
+                @touchstart="startDrag"
               >
-                移动选区
-              </button>
-              <button 
-                :class="{ active: interactionMode === 'resize' }"
-                @click="setInteractionMode('resize')"
-              >
-                调整大小
-              </button>
-              <button @click="rotateSelection">旋转</button>
+                <div class="crop-box-handle" v-for="handle in handles" :key="handle.position"
+                  :class="`handle-${handle.position}`"
+                  @mousedown="startResize(handle.position, $event)"
+                  @touchstart="startResize(handle.position, $event)"
+                ></div>
+              </div>
             </div>
-          </div>
-          
-          <div class="control-group">
-            <h4>宽高比设置</h4>
-            <div class="btn-group">
-              <button 
-                v-for="ratio in aspectRatios" 
-                :key="ratio.value"
-                @click="setAspectRatio(ratio.value)"
-              >
-                {{ ratio.label }}
-              </button>
+        </div>
+
+        <!-- 预览区域 -->
+        <div class="preview-section">
+          <div class="preview-container">
+            <div class="preview-item">
+              <h4>圆形预览</h4>
+              <div class="preview-circle">
+                <img v-if="previewUrl" :src="previewUrl" alt="头像预览" class="preview-image">
+                <div v-else class="preview-placeholder">预览</div>
+              </div>
             </div>
-          </div>
-          
-          <div class="control-group">
-            <h4>遮罩设置</h4>
-            <div class="slider-container">
-              <label for="opacitySlider">遮罩透明度: <span>{{ shade.opacity }}</span></label>
-              <input 
-                type="range" 
-                id="opacitySlider" 
-                min="0" 
-                max="1" 
-                step="0.1" 
-                v-model="shade.opacity"
-              >
-            </div>
-            <div class="btn-group">
-              <button 
-                v-for="color in shadeColors" 
-                :key="color.value"
-                @click="setShadeColor(color.value)"
-              >
-                {{ color.label }}
-              </button>
-            </div>
-          </div>
-          
-          <div class="control-group">
-            <h4>十字准星</h4>
-            <div class="crosshair-controls">
-              <button @click="showCrosshair">显示准星</button>
-              <button @click="hideCrosshair">隐藏准星</button>
-              <button @click="moveCrosshair">移动准星</button>
-            </div>
-          </div>
-          
-          <div class="control-group">
-            <h4>其他操作</h4>
-            <div class="btn-group">
-              <button @click="resetSelection">重置选区</button>
-              <button @click="cropImage">裁剪图片</button>
-              <button @click="downloadResult">下载结果</button>
+            <div class="preview-item">
+              <h4>方形预览</h4>
+              <div class="preview-square">
+                <img v-if="previewUrl" :src="previewUrl" alt="头像预览" class="preview-image">
+                <div v-else class="preview-placeholder">预览</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      
-      <div class="component-info">
-        <h3>组件说明</h3>
-        <div class="info-grid">
-          <div class="info-card" v-for="component in components" :key="component.name">
-            <h4>{{ component.name }}</h4>
-            <p>{{ component.description }}</p>
-          </div>
+
+      <!-- 控制面板 -->
+      <div class="control-panel">
+        <div class="control-group">
+          <label>缩放: {{ Math.round(scale * 100) }}%</label>
+          <input 
+            type="range" 
+            min="10" 
+            max="200" 
+            step="1" 
+            v-model.number="scale"
+            class="zoom-slider"
+          >
+        </div>
+
+        <div class="control-group">
+          <label>旋转: {{ rotation }}°</label>
+          <input 
+            type="range" 
+            min="0" 
+            max="360" 
+            step="1" 
+            v-model.number="rotation"
+            class="rotate-slider"
+          >
+        </div>
+
+        <div class="button-group">
+          <button class="btn-secondary" @click="reset">重新选择</button>
+          <button class="btn-primary" @click="cropAvatar">确认裁剪</button>
         </div>
       </div>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>处理中...</p>
     </div>
   </div>
 </template>
@@ -129,632 +116,676 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 
-// Refs
+// 响应式数据
+const fileInput = ref(null)
 const canvas = ref(null)
-const previewCanvas = ref(null)
+const canvasContainer = ref(null)
+const imageSrc = ref('')
+const previewUrl = ref('')
+const loading = ref(false)
 
-// 响应式状态
-const selection = reactive({
-  x: 100,
-  y: 100,
-  width: 300,
-  height: 200,
-  aspectRatio: 0,
-  isMoving: false,
+// 裁剪状态
+const state = reactive({
+  scale: 100,
+  rotation: 0,
+  position: { x: 0, y: 0 },
+  cropSize: 200,
+  isDragging: false,
   isResizing: false,
-  startX: 0,
-  startY: 0
+  resizeDirection: null,
+  dragStart: { x: 0, y: 0 }
 })
-
-const shade = reactive({
-  opacity: 0.5,
-  color: '#000000'
-})
-
-const crosshair = reactive({
-  visible: false,
-  x: 200,
-  y: 150
-})
-
-const interactionMode = ref('move')
-const rotation = ref(0)
 
 // 计算属性
-const positionInfo = computed(() => {
-  return `x: ${selection.x}, y: ${selection.y}`
-})
-
-const sizeInfo = computed(() => {
-  return `${selection.width} × ${selection.height}`
-})
-
-const ratioInfo = computed(() => {
-  const ratio = (selection.width / selection.height).toFixed(2)
-  return selection.aspectRatio ? 
-    `${selection.aspectRatio}:1` : 
-    `${ratio}:1 (自由)`
-})
-
-// 常量数据
-const aspectRatios = [
-  { value: 0, label: '自由' },
-  { value: 1, label: '1:1 (方形)' },
-  { value: 1.777, label: '16:9 (宽屏)' },
-  { value: 0.75, label: '3:4 (竖屏)' }
-]
-
-const shadeColors = [
-  { value: '#000000', label: '黑色遮罩' },
-  { value: '#3498db', label: '蓝色遮罩' },
-  { value: '#e74c3c', label: '红色遮罩' }
-]
-
-const components = [
-  { 
-    name: 'CropperImage', 
-    description: '承载原始图片的基础组件，负责加载和显示图片，支持跨域处理和图片大小限制。' 
-  },
-  { 
-    name: 'CropperShade', 
-    description: '创建遮罩层，突出显示裁剪区域，可调整透明度和颜色。' 
-  },
-  { 
-    name: 'CropperHandle', 
-    description: '裁剪框的控制手柄，用于调整选区大小和旋转，支持八个方向的手柄。' 
-  },
-  { 
-    name: 'CropperCrosshair', 
-    description: '十字准星，用于精确定位，可显示/隐藏和移动到指定位置。' 
-  },
-  { 
-    name: 'CropperSelection', 
-    description: '管理裁剪选区，包括位置、大小和约束条件，支持宽高比锁定。' 
-  },
-  { 
-    name: 'CropperCanvas', 
-    description: '画布容器，承载所有裁剪组件，提供绘制上下文和事件处理。' 
-  },
-  { 
-    name: 'CropperViewer', 
-    description: '实时预览裁剪结果的视图，同步显示裁剪区域的内容。' 
+const scale = computed({
+  get: () => state.scale,
+  set: (value) => {
+    state.scale = Math.max(10, Math.min(200, value))
+    redrawCanvas()
   }
-]
+})
 
-// 图片引用
-const img = new Image()
-img.src = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb'
+const rotation = computed({
+  get: () => state.rotation,
+  set: (value) => {
+    state.rotation = value % 360
+    redrawCanvas()
+  }
+})
+
+const cropBoxStyle = computed(() => ({
+  width: `${state.cropSize}px`,
+  height: `${state.cropSize}px`,
+  left: `${state.position.x}px`,
+  top: `${state.position.y}px`,
+  transform: `rotate(${state.rotation}deg)`
+}))
+
+// 控制点配置
+const handles = [
+  { position: 'nw' }, { position: 'n' }, { position: 'ne' },
+  { position: 'w' }, { position: 'e' },
+  { position: 'sw' }, { position: 's' }, { position: 'se' }
+]
 
 // 方法
-const setCanvasSize = () => {
-  if (!canvas.value) return
-  
-  const container = canvas.value.parentElement
-  canvas.value.width = container.clientWidth
-  canvas.value.height = container.clientHeight
-  drawCanvas()
+const triggerFileInput = () => {
+  fileInput.value?.click()
 }
 
-const drawCanvas = () => {
-  if (!canvas.value || !previewCanvas.value) return
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    alert('请选择图片文件')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    imageSrc.value = e.target.result
+    nextTick(() => {
+      initializeCropper()
+    })
+  }
+  reader.readAsDataURL(file)
+}
+
+const initializeCropper = () => {
+  if (!canvas.value || !canvasContainer.value) return
+
+  const containerRect = canvasContainer.value.getBoundingClientRect()
+  const containerSize = Math.min(containerRect.width, containerRect.height) - 40
   
+  // 设置画布尺寸
+  canvas.value.width = containerSize
+  canvas.value.height = containerSize
+  
+  // 初始化裁剪框位置
+  state.cropSize = Math.min(containerSize * 0.6, 300)
+  state.position.x = (containerSize - state.cropSize) / 2
+  state.position.y = (containerSize - state.cropSize) / 2
+  state.scale = 100
+  state.rotation = 0
+
+  redrawCanvas()
+}
+
+const redrawCanvas = () => {
+  if (!canvas.value || !imageSrc.value) return
+
   const ctx = canvas.value.getContext('2d')
-  const previewCtx = previewCanvas.value.getContext('2d')
+  const size = canvas.value.width
   
   // 清空画布
-  ctx.clearRect(0, 0, canvas.value.width, canvas.value.height)
+  ctx.clearRect(0, 0, size, size)
   
   // 绘制背景
-  ctx.fillStyle = '#ecf0f1'
-  ctx.fillRect(0, 0, canvas.value.width, canvas.value.height)
+  ctx.fillStyle = '#f5f5f5'
+  ctx.fillRect(0, 0, size, size)
   
-  // 绘制图片
-  if (img.complete) {
-    const scale = Math.min(
-      canvas.value.width / img.width, 
-      canvas.value.height / img.height
+  // 创建离屏canvas用于图片变换
+  const offscreen = document.createElement('canvas')
+  const offscreenCtx = offscreen.getContext('2d')
+  
+  const img = new Image()
+  img.onload = () => {
+    // 计算缩放后的尺寸
+    const scaleFactor = state.scale / 100
+    const imgWidth = img.width * scaleFactor
+    const imgHeight = img.height * scaleFactor
+    
+    // 设置离屏canvas尺寸
+    offscreen.width = Math.max(imgWidth, imgHeight) * 2
+    offscreen.height = Math.max(imgWidth, imgHeight) * 2
+    
+    // 在离屏canvas上绘制并旋转图片
+    offscreenCtx.save()
+    offscreenCtx.translate(offscreen.width / 2, offscreen.height / 2)
+    offscreenCtx.rotate(state.rotation * Math.PI / 180)
+    offscreenCtx.drawImage(img, -imgWidth / 2, -imgHeight / 2, imgWidth, imgHeight)
+    offscreenCtx.restore()
+    
+    // 在主画布上绘制
+    ctx.drawImage(offscreen, 
+      (size - offscreen.width) / 2, 
+      (size - offscreen.height) / 2
     )
-    const x = (canvas.value.width - img.width * scale) / 2
-    const y = (canvas.value.height - img.height * scale) / 2
     
-    ctx.save()
-    if (rotation.value !== 0) {
-      ctx.translate(canvas.value.width / 2, canvas.value.height / 2)
-      ctx.rotate(rotation.value * Math.PI / 180)
-      ctx.translate(-canvas.value.width / 2, -canvas.value.height / 2)
-    }
-    ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
-    ctx.restore()
+    updatePreview()
   }
-  
-  // 绘制遮罩
-  ctx.fillStyle = shade.color
-  ctx.globalAlpha = shade.opacity
-  ctx.fillRect(0, 0, canvas.value.width, canvas.value.height)
-  
-  // 清除选区区域的遮罩
-  ctx.globalCompositeOperation = 'destination-out'
-  ctx.fillRect(
-    selection.x, 
-    selection.y, 
-    selection.width, 
-    selection.height
-  )
-  ctx.globalCompositeOperation = 'source-over'
-  ctx.globalAlpha = 1
-  
-  // 绘制选区边框
-  ctx.strokeStyle = '#3498db'
-  ctx.lineWidth = 2
-  ctx.strokeRect(
-    selection.x, 
-    selection.y, 
-    selection.width, 
-    selection.height
-  )
-  
-  // 绘制控制手柄
-  const handleSize = 8
-  ctx.fillStyle = '#3498db'
-  
-  // 四角手柄
-  ctx.fillRect(
-    selection.x - handleSize/2, 
-    selection.y - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  ctx.fillRect(
-    selection.x + selection.width - handleSize/2, 
-    selection.y - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  ctx.fillRect(
-    selection.x - handleSize/2, 
-    selection.y + selection.height - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  ctx.fillRect(
-    selection.x + selection.width - handleSize/2, 
-    selection.y + selection.height - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  
-  // 四边手柄
-  ctx.fillRect(
-    selection.x + selection.width/2 - handleSize/2, 
-    selection.y - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  ctx.fillRect(
-    selection.x + selection.width/2 - handleSize/2, 
-    selection.y + selection.height - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  ctx.fillRect(
-    selection.x - handleSize/2, 
-    selection.y + selection.height/2 - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  ctx.fillRect(
-    selection.x + selection.width - handleSize/2, 
-    selection.y + selection.height/2 - handleSize/2, 
-    handleSize, 
-    handleSize
-  )
-  
-  // 绘制十字准星
-  if (crosshair.visible) {
-    ctx.strokeStyle = '#e74c3c'
-    ctx.lineWidth = 1
-    ctx.setLineDash([5, 5])
-    
-    // 横线
-    ctx.beginPath()
-    ctx.moveTo(0, crosshair.y)
-    ctx.lineTo(canvas.value.width, crosshair.y)
-    ctx.stroke()
-    
-    // 竖线
-    ctx.beginPath()
-    ctx.moveTo(crosshair.x, 0)
-    ctx.lineTo(crosshair.x, canvas.value.height)
-    ctx.stroke()
-    
-    ctx.setLineDash([])
-    
-    // 中心点
-    ctx.fillStyle = '#e74c3c'
-    ctx.beginPath()
-    ctx.arc(crosshair.x, crosshair.y, 4, 0, Math.PI * 2)
-    ctx.fill()
-  }
-  
-  // 更新预览
-  updatePreview()
+  img.src = imageSrc.value
 }
 
 const updatePreview = () => {
-  if (!previewCanvas.value || !canvas.value) return
-  
-  const previewCtx = previewCanvas.value.getContext('2d')
-  previewCtx.clearRect(0, 0, previewCanvas.value.width, previewCanvas.value.height)
-  
-  if (img.complete) {
-    const scale = Math.min(
-      canvas.value.width / img.width, 
-      canvas.value.height / img.height
-    )
-    const imgX = (canvas.value.width - img.width * scale) / 2
-    const imgY = (canvas.value.height - img.height * scale) / 2
-    
-    // 计算源图像中的对应区域
-    const srcX = (selection.x - imgX) / scale
-    const srcY = (selection.y - imgY) / scale
-    const srcWidth = selection.width / scale
-    const srcHeight = selection.height / scale
-    
-    // 绘制到预览画布
-    previewCtx.drawImage(
-      img, 
-      srcX, srcY, srcWidth, srcHeight,
-      0, 0, previewCanvas.value.width, previewCanvas.value.height
-    )
-    
-    // 绘制预览边框
-    previewCtx.strokeStyle = '#3498db'
-    previewCtx.lineWidth = 2
-    previewCtx.strokeRect(0, 0, previewCanvas.value.width, previewCanvas.value.height)
-  }
-}
-
-const setAspectRatio = (ratio) => {
-  selection.aspectRatio = ratio
-  if (ratio > 0) {
-    selection.height = selection.width / ratio
-  }
-  drawCanvas()
-}
-
-const setShadeColor = (color) => {
-  shade.color = color
-  drawCanvas()
-}
-
-const setInteractionMode = (mode) => {
-  interactionMode.value = mode
-}
-
-const showCrosshair = () => {
-  crosshair.visible = true
-  drawCanvas()
-}
-
-const hideCrosshair = () => {
-  crosshair.visible = false
-  drawCanvas()
-}
-
-const moveCrosshair = () => {
-  crosshair.x = Math.random() * canvas.value.width
-  crosshair.y = Math.random() * canvas.value.height
-  drawCanvas()
-}
-
-const resetSelection = () => {
-  selection.x = 100
-  selection.y = 100
-  selection.width = 300
-  selection.height = 200
-  selection.aspectRatio = 0
-  rotation.value = 0
-  drawCanvas()
-}
-
-const rotateSelection = () => {
-  rotation.value = (rotation.value + 90) % 360
-  drawCanvas()
-}
-
-const cropImage = () => {
-  alert('裁剪功能已触发！在实际应用中，这里会执行裁剪操作。')
-}
-
-const downloadResult = () => {
-  alert('下载功能已触发！在实际应用中，这里会下载裁剪后的图片。')
-}
-
-// 画布事件处理
-const onCanvasMouseDown = (e) => {
   if (!canvas.value) return
+
+  const previewCanvas = document.createElement('canvas')
+  previewCanvas.width = state.cropSize
+  previewCanvas.height = state.cropSize
+  const previewCtx = previewCanvas.getContext('2d')
   
-  const rect = canvas.value.getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
+  // 绘制裁剪区域到预览canvas
+  previewCtx.drawImage(
+    canvas.value,
+    state.position.x, state.position.y, state.cropSize, state.cropSize,
+    0, 0, state.cropSize, state.cropSize
+  )
   
-  // 检查是否点击在选区内
-  if (x >= selection.x && x <= selection.x + selection.width &&
-      y >= selection.y && y <= selection.y + selection.height) {
-    selection.isMoving = true
-    selection.startX = x - selection.x
-    selection.startY = y - selection.y
+  previewUrl.value = previewCanvas.toDataURL('image/png')
+}
+
+const startDrag = (e) => {
+  console.log('startDrag', e)
+  e.preventDefault()
+  state.isDragging = true
+  const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX
+  const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY
+  
+  state.dragStart.x = clientX - state.position.x
+  state.dragStart.y = clientY - state.position.y
+  
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.addEventListener('touchmove', onDrag)
+  document.addEventListener('touchend', stopDrag)
+}
+
+const onDrag = (e) => {
+  if (!state.isDragging || !canvas.value) return
+  
+  e.preventDefault()
+  const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX
+  const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY
+  
+  const containerRect = canvas.value.getBoundingClientRect()
+  const newX = clientX - containerRect.left - state.dragStart.x
+  const newY = clientY - containerRect.top - state.dragStart.y
+  
+  // 限制在画布范围内
+  state.position.x = Math.max(0, Math.min(canvas.value.width - state.cropSize, newX))
+  state.position.y = Math.max(0, Math.min(canvas.value.height - state.cropSize, newY))
+  
+  updatePreview()
+}
+
+const stopDrag = () => {
+  state.isDragging = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.removeEventListener('touchmove', onDrag)
+  document.removeEventListener('touchend', stopDrag)
+}
+
+const startResize = (direction, e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  
+  state.isResizing = true
+  state.resizeDirection = direction
+  
+  const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX
+  const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY
+  
+  state.dragStart.x = clientX
+  state.dragStart.y = clientY
+  state.dragStart.width = state.cropSize
+  state.dragStart.position = { ...state.position }
+  
+  document.addEventListener('mousemove', onResize)
+  document.addEventListener('mouseup', stopResize)
+  document.addEventListener('touchmove', onResize)
+  document.addEventListener('touchend', stopResize)
+}
+
+const onResize = (e) => {
+  if (!state.isResizing || !canvas.value) return
+  
+  e.preventDefault()
+  const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX
+  const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY
+  
+  const deltaX = clientX - state.dragStart.x
+  const deltaY = clientY - state.dragStart.y
+  const minSize = 50
+  const maxSize = Math.min(canvas.value.width, canvas.value.height)
+  
+  let newSize = state.dragStart.width
+  let newX = state.dragStart.position.x
+  let newY = state.dragStart.position.y
+  
+  switch (state.resizeDirection) {
+    case 'e':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width + deltaX))
+      break
+    case 'w':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width - deltaX))
+      newX = state.dragStart.position.x + deltaX
+      break
+    case 's':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width + deltaY))
+      break
+    case 'n':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width - deltaY))
+      newY = state.dragStart.position.y + deltaY
+      break
+    case 'se':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width + Math.max(deltaX, deltaY)))
+      break
+    case 'sw':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width + Math.max(-deltaX, deltaY)))
+      newX = state.dragStart.position.x + deltaX
+      break
+    case 'ne':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width + Math.max(deltaX, -deltaY)))
+      newY = state.dragStart.position.y + deltaY
+      break
+    case 'nw':
+      newSize = Math.max(minSize, Math.min(maxSize, state.dragStart.width + Math.max(-deltaX, -deltaY)))
+      newX = state.dragStart.position.x + deltaX
+      newY = state.dragStart.position.y + deltaY
+      break
+  }
+  
+  // 限制位置在画布范围内
+  state.cropSize = newSize
+  state.position.x = Math.max(0, Math.min(canvas.value.width - newSize, newX))
+  state.position.y = Math.max(0, Math.min(canvas.value.height - newSize, newY))
+  
+  updatePreview()
+}
+
+const stopResize = () => {
+  state.isResizing = false
+  state.resizeDirection = null
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.removeEventListener('touchmove', onResize)
+  document.removeEventListener('touchend', stopResize)
+}
+
+const cropAvatar = async () => {
+  loading.value = true
+  
+  try {
+    // 模拟处理时间
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 创建最终裁剪结果
+    const resultCanvas = document.createElement('canvas')
+    resultCanvas.width = 400 // 输出尺寸
+    resultCanvas.height = 400
+    const resultCtx = resultCanvas.getContext('2d')
+    
+    // 绘制圆形遮罩
+    resultCtx.beginPath()
+    resultCtx.arc(200, 200, 200, 0, Math.PI * 2)
+    resultCtx.closePath()
+    resultCtx.clip()
+    
+    // 绘制图片
+    const img = new Image()
+    img.onload = () => {
+      resultCtx.drawImage(img, 0, 0, 400, 400)
+      
+      // 触发裁剪完成事件
+      const dataUrl = resultCanvas.toDataURL('image/png')
+      emit('cropped', dataUrl)
+      
+      loading.value = false
+    }
+    img.src = previewUrl.value
+    
+  } catch (error) {
+    console.error('裁剪失败:', error)
+    loading.value = false
   }
 }
 
-const onCanvasMouseMove = (e) => {
-  if (selection.isMoving && canvas.value) {
-    const rect = canvas.value.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    selection.x = x - selection.startX
-    selection.y = y - selection.startY
-    
-    // 限制选区不超出画布
-    selection.x = Math.max(
-      0, 
-      Math.min(canvas.value.width - selection.width, selection.x)
-    )
-    selection.y = Math.max(
-      0, 
-      Math.min(canvas.value.height - selection.height, selection.y)
-    )
-    
-    drawCanvas()
+const reset = () => {
+  imageSrc.value = ''
+  previewUrl.value = ''
+  if (fileInput.value) {
+    fileInput.value.value = ''
   }
 }
 
-const onCanvasMouseUp = () => {
-  selection.isMoving = false
-}
-
-const onCanvasMouseLeave = () => {
-  selection.isMoving = false
-}
-
-// 生命周期
+// 组件挂载
 onMounted(() => {
-  setCanvasSize()
-  window.addEventListener('resize', setCanvasSize)
-  
-  img.onload = () => {
-    drawCanvas()
-  }
+  window.addEventListener('resize', initializeCropper)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', setCanvasSize)
+  window.removeEventListener('resize', initializeCropper)
 })
 
-// 监听器
-watch([shade, selection], () => {
-  drawCanvas()
-}, { deep: true })
-
-watch(() => shade.opacity, () => {
-  drawCanvas()
+// 监听图片源变化
+watch(imageSrc, () => {
+  if (imageSrc.value) {
+    nextTick(() => {
+      initializeCropper()
+    })
+  }
 })
+
+// 定义组件事件
+const emit = defineEmits(['cropped'])
 </script>
 
 <style scoped>
-.cropper-demo {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 20px;
-  color: #333;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
-
-.description {
-  color: #7f8c8d;
+.avatar-cropper {
   max-width: 800px;
   margin: 0 auto;
-  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.demo-area {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 30px;
+/* 上传区域 */
+.upload-area {
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafafa;
 }
 
+.upload-area:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.upload-content .upload-icon {
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.upload-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.upload-content p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* 裁剪容器 */
 .cropper-container {
-  flex: 1;
-  min-width: 500px;
   background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-.controls {
-  flex: 0 0 300px;
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+.cropper-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
+.cropper-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.cropper-content {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  padding: 24px;
+}
+
+/* 画布区域 */
 .canvas-wrapper {
+  position: relative;
+}
+
+.canvas-container {
   position: relative;
   width: 100%;
   height: 400px;
-  border: 2px dashed #bdc3c7;
-  border-radius: 5px;
+  background: #f9fafb;
+  border-radius: 8px;
   overflow: hidden;
-  margin-bottom: 20px;
-  background: #ecf0f1;
 }
 
 .cropper-canvas {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
-.viewer-container {
+.crop-box {
+  position: absolute;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+  cursor: move;
+  z-index: 10;
+}
+
+.crop-box-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 2px;
+  z-index: 20;
+}
+
+.handle-nw { top: -6px; left: -6px; cursor: nw-resize; }
+.handle-n { top: -6px; left: 50%; margin-left: -6px; cursor: n-resize; }
+.handle-ne { top: -6px; right: -6px; cursor: ne-resize; }
+.handle-w { top: 50%; left: -6px; margin-top: -6px; cursor: w-resize; }
+.handle-e { top: 50%; right: -6px; margin-top: -6px; cursor: e-resize; }
+.handle-sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+.handle-s { bottom: -6px; left: 50%; margin-left: -6px; cursor: s-resize; }
+.handle-se { bottom: -6px; right: -6px; cursor: se-resize; }
+
+/* 预览区域 */
+.preview-section {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-top: 20px;
 }
 
-.viewer-label {
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: #2c3e50;
+.preview-container {
+  display: flex;
+  gap: 20px;
+  flex-direction: column;
 }
 
-.preview-viewer {
-  width: 200px;
-  height: 150px;
-  border: 2px solid #3498db;
-  border-radius: 5px;
+.preview-item h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+}
+
+.preview-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
   overflow: hidden;
-  background: white;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.preview-square {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-placeholder {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* 控制面板 */
+.control-panel {
+  grid-column: 1 / -1;
+  padding: 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
 
 .control-group {
   margin-bottom: 20px;
 }
 
-h3 {
-  color: #2c3e50;
-  margin-bottom: 15px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #ecf0f1;
-}
-
-.btn-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
-  background: #3498db;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-weight: 600;
-  flex: 1;
-  min-width: 80px;
-}
-
-button:hover {
-  background: #2980b9;
-  transform: translateY(-2px);
-}
-
-button.active {
-  background: #e74c3c;
-}
-
-.slider-container {
-  margin: 15px 0;
-}
-
-label {
+.control-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  font-size: 14px;
   font-weight: 500;
+  color: #374151;
 }
 
-input[type="range"] {
+.zoom-slider, .rotate-slider {
   width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e5e7eb;
+  outline: none;
+  -webkit-appearance: none;
 }
 
-.component-info {
+.zoom-slider::-webkit-slider-thumb,
+.rotate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
   background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 15px;
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
-.info-card {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  border-left: 4px solid #3498db;
-}
-
-.info-card h4 {
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
-
-.info-card p {
-  color: #7f8c8d;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.status-bar {
+/* 加载状态 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-  font-size: 0.9rem;
-  color: #7f8c8d;
-}
-
-.crosshair-controls {
-  display: flex;
-  gap: 10px;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 1000;
 }
 
-.crosshair-controls button {
-  padding: 8px 12px;
-  font-size: 0.9rem;
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-left: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
 }
 
-@media (max-width: 900px) {
-  .demo-area {
-    flex-direction: column;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .cropper-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
   
-  .cropper-container, .controls {
-    min-width: 100%;
+  .preview-container {
+    flex-direction: row;
+    justify-content: center;
   }
   
-  .status-bar {
+  .canvas-container {
+    height: 300px;
+  }
+  
+  .button-group {
     flex-direction: column;
-    gap: 5px;
   }
 }
 </style>
