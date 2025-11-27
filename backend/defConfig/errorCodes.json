@@ -6,6 +6,7 @@
     "userNameDup":-4,
     "userNameNoFund":-41,
     "userPassIncorrect":-42,
+    "userEmailFormatError":-43,
     "userCookieError":-44,
     "userCookieNotFund":-44,
     "userCookieExpired":-44

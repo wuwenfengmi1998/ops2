@@ -6,6 +6,7 @@
     "register": "注册"
   },
   "message": {
+    "functionality_not_yet_developed":"功能未开发",
     "hello": "你好",
     "welcome": "欢迎",
     "dark_mode": "深色模式",
@@ -47,7 +48,13 @@
     "preferences": "偏好设置",
     "administrator": "管理员",
     "select_date":"选择日期",
-    "save_ok":"保存成功"
+    "save_ok":"保存成功",
+    "change_ok":"更改成功",
+    "type_old_pass":"输入旧密码",
+    "type_new_pass":"输入新密码",
+    "type_cof_pass":"确认新密码",
+    "old_pass_incorrect":"旧密码不正确",
+    "confirm_password_incorrect":"确认密码不正确"
   },
   "settings": {
     "account_settings": "个人设置",

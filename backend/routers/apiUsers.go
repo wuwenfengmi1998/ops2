@@ -71,6 +71,15 @@ type From_user_updateinfo struct {
 	Birthday string `json:"birthday"`
 }
 
+type From_user_changeemail struct {
+	Newemail string `json:"newemail"`
+}
+
+type From_user_changepass struct {
+	Oldpass string `json:"oldpass"`
+	Newpass string `json:"newpass"`
+}
+
 func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[string]interface{}) {
 	var user models.TabUser_
 
@@ -118,6 +127,64 @@ func ApiUser(r *gin.RouterGroup) {
 	r.POST("/test", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
+
+	//修改用户密码
+	r.POST("/changePassword", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var jsonData From_user_changepass
+			if err := mapstructure.Decode(data, &jsonData); err == nil {
+				//验证旧密码
+				fmt.Println(user)
+				//转换旧密码
+				olduser := models.TabUser_{
+					Pass: jsonData.Oldpass,
+					Salt: user.Salt,
+				}
+				models.HashUserPass(&olduser)
+				if olduser.Pass == user.Pass {
+					//旧密码正确，更新新密码
+					var userupdate models.TabUser_
+					userupdate.Pass = jsonData.Newpass
+					userupdate.Salt = models.RandStr32()
+					models.HashUserPass(&userupdate)
+					models.DB.Model(&user).Updates(&userupdate)
+					ReturnJson(ctx, "apiOK", nil)
+				} else {
+					//旧密码错误
+					ReturnJson(ctx, "userPassIncorrect", nil)
+				}
+
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+
+		}
+	})
+
+	//更新用户邮箱
+	r.POST("/changeEmail", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var jsonData From_user_changeemail
+			if err := mapstructure.Decode(data, &jsonData); err == nil {
+				//判断新邮箱格式
+				if models.IsEmailValid(jsonData.Newemail) {
+					var userupdate models.TabUser_
+					userupdate.Email = jsonData.Newemail
+					models.DB.Model(&user).Updates(&userupdate)
+					ReturnJson(ctx, "apiOK", nil)
+				} else {
+					ReturnJson(ctx, "userEmailFormatError", nil)
+
+				}
+
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		}
+	})
+
 	//更新用户info
 	r.POST("/updateInfo", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)

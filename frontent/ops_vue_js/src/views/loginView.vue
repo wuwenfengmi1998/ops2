@@ -117,6 +117,9 @@ function functionupdataTitle() {
 }
 onMounted(() => {
   functionupdataTitle();
+  if (userStore.isLoggedIn) {
+    router.push("/");
+  }
 });
 // 监听语言变化，更新标题
 watch(locale, () => {

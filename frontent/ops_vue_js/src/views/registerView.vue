@@ -167,7 +167,11 @@ watch(locale, () => {
               <span class="input-group-text">
                 <div
                   class="link-secondary"
-                  title="Show password"
+                  :title="
+                    isShowPassword
+                      ? t('message.hidden_Password')
+                      : t('message.show_password')
+                  "
                   data-bs-toggle="tooltip"
                 >
                   <!-- Download SVG icon from http://tabler-icons.io/i/eye -->

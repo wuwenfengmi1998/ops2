@@ -86,6 +86,8 @@ export const useUserStore = defineStore("user", () => {
     getUserInfoFromCookie();
   };
 
+ 
+
   const cookieUpdata = (cookie) => {
     userCookie.value = cookie;
     myfuncs.saveJsonT("userCookie", cookie);
@@ -118,6 +120,7 @@ export const useUserStore = defineStore("user", () => {
     isLoggedIn,
     getUserAvatarPath,
     getUserBirthday,
+    getUserInfoFromCookie,
     logout,
     login,
     loginFromStoreCookie,

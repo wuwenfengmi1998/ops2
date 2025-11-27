@@ -6,6 +6,7 @@
     "register": "Register"
   },
   "message": {
+    "functionality_not_yet_developed":"Functionality not yet developed",
     "hello": "Hello",
     "welcome": "Welcome",
     "dark_mode": "Enable dark mode",
@@ -47,7 +48,13 @@
     "preferences": "Preferences",
     "administrator": "Administrator",
     "select_date":"Select a date",
-    "save_ok":"Saved successfully"
+    "save_ok":"Saved successfully",
+    "change_ok":"Changed successfully",
+    "type_old_pass":"Enter old password",
+    "type_new_pass":"Enter new password",
+    "type_cof_pass":"Confirm new password",
+    "old_pass_incorrect":"Old password is incorrect",
+    "confirm_password_incorrect":"Confirm password is incorrect"
   },
   "settings": {
     "account_settings": "Account Settings",

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"regexp"
 
 	"time"
 )
@@ -80,4 +81,12 @@ func CheckCookiesAndUpdate(cookie *TabCookie_) bool {
 		return false
 	}
 	//return false
+}
+
+// 判断邮箱是否合法
+func IsEmailValid(email string) bool {
+	// 正则表达式（覆盖 99% 常见邮箱格式）
+	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+	regex := regexp.MustCompile(pattern)
+	return regex.MatchString(email)
 }
