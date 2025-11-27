@@ -3,7 +3,8 @@
     "home": "主页",
     "login": "登录",
     "forgot_password": "忘记密码",
-    "register": "注册"
+    "register": "注册",
+    "schedule":"日程"
   },
   "message": {
     "functionality_not_yet_developed":"功能未开发",

@@ -3,7 +3,8 @@
     "home": "Home",
     "login": "Login",
     "forgot_password": "Forgot Password",
-    "register": "Register"
+    "register": "Register",
+    "schedule":"Schedule"
   },
   "message": {
     "functionality_not_yet_developed":"Functionality not yet developed",

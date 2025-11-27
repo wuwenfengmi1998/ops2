@@ -183,9 +183,7 @@ onMounted(() => {
               aria-label="Open user menu"
             >
               <img
-                :src="
-                  userStore.getUserAvatarPath()
-                "
+                :src="userStore.getUserAvatarPath()"
                 alt=""
                 class="avatar avatar-sm"
               />
@@ -275,35 +273,26 @@ onMounted(() => {
           <div class="row flex-column flex-md-row flex-fill align-items-center">
             <div class="col d-flex">
               <!-- BEGIN NAVBAR MENU -->
-              <ul class="navbar-nav">
-                <li class="nav-item active">
-                  <router-link to="/" class="nav-link">
-                    <span class="nav-link-icon d-md-none d-lg-inline-block"
-                      ><!-- Download SVG icon from http://tabler.io/icons/icon/home -->
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        class="icon icon-1"
-                      >
-                        <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
-                        <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
-                        <path
-                          d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"
-                        /></svg
-                    ></span>
-                    <span class="nav-link-title">
-                      {{ t("appname.home") }}
-                    </span>
-                  </router-link>
-                </li>
-              </ul>
+              <dev class="navbar-nav">
+                <router-link
+                  to="/"
+                  class="nav-item nav-link"
+                  active-class="active"
+                >
+                  <span class="nav-link-title">
+                    {{ t("appname.home") }}
+                  </span>
+                </router-link>
+                <router-link
+                  to="/schedule"
+                  class="nav-item nav-link"
+                  active-class="active"
+                >
+                  <span class="nav-link-title">
+                    {{ t("appname.schedule") }}
+                  </span>
+                </router-link>
+              </dev>
 
               <div class="ms-auto">
                 <select
