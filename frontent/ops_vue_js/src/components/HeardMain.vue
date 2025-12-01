@@ -273,7 +273,7 @@ onMounted(() => {
           <div class="row flex-column flex-md-row flex-fill align-items-center">
             <div class="col d-flex">
               <!-- BEGIN NAVBAR MENU -->
-              <dev class="navbar-nav">
+              <div class="navbar-nav">
                 <router-link
                   to="/"
                   class="nav-item nav-link"
@@ -292,7 +292,7 @@ onMounted(() => {
                     {{ t("appname.schedule") }}
                   </span>
                 </router-link>
-              </dev>
+              </div>
 
               <div class="ms-auto">
                 <select

@@ -111,16 +111,17 @@ function login() {
     }
   );
 }
-
-function functionupdataTitle() {
-  document.title = "Operations." + t("appname.login");
-}
 onMounted(() => {
   functionupdataTitle();
   if (userStore.isLoggedIn) {
     router.push("/");
   }
 });
+
+function functionupdataTitle() {
+  document.title = "Operations." + t("appname.login");
+}
+
 // 监听语言变化，更新标题
 watch(locale, () => {
   functionupdataTitle();
