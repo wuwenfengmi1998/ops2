@@ -4,7 +4,27 @@
     "login": "登录",
     "forgot_password": "忘记密码",
     "register": "注册",
-    "schedule":"日程"
+    "schedule":"日程",
+    "purchase":"采购"
+  },
+  "schedule": {
+    "my_schedule":"我的日程",
+    "add_event":"添加事件",
+    "event_title":"事件标题",
+    "event_date":"事件日期",
+    "event_time":"事件时间",
+    "event_description":"事件描述",
+    "save_event":"保存事件",
+    "no_events":"没有找到事件",
+    "delete_event":"删除事件",
+    "edit_event":"编辑事件",
+    "tody":"今天",
+    "week":"本周",
+    "month":"本月",
+    "previous_month":"上月",
+    "next_month":"下月",
+    "previous_year":"上年",
+    "next_year":"下年"
   },
   "message": {
     "functionality_not_yet_developed":"功能未开发",

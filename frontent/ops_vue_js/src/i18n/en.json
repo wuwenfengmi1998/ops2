@@ -4,7 +4,27 @@
     "login": "Login",
     "forgot_password": "Forgot Password",
     "register": "Register",
-    "schedule":"Schedule"
+    "schedule":"Schedule",
+    "purchase":"Purchase"
+  },
+  "schedule": {
+    "my_schedule":"My Schedule",
+    "add_event":"Add Event",
+    "event_title":"Event Title",
+    "event_date":"Event Date",
+    "event_time":"Event Time",
+    "event_description":"Event Description",
+    "save_event":"Save Event",
+    "no_events":"No events found",
+    "delete_event":"Delete Event",
+    "edit_event":"Edit Event",
+    "tody":"Today",
+    "week":"This Week",
+    "month":"This Month",
+    "previous_month":"Prev Month",
+    "next_month":"Next Month",
+    "previous_year":"Prev Year",
+    "next_year":"Next Year"
   },
   "message": {
     "functionality_not_yet_developed":"Functionality not yet developed",
