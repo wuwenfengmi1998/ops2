@@ -7,6 +7,25 @@
     "schedule":"Schedule",
     "purchase":"Purchase"
   },
+  "purchase":{
+    "purchase_list":"Purchase List",
+    "item_name":"Item Name",
+    "purpose":"Purpose",
+    "unit":"Unit",
+    "quantity":"Quantity",
+    "unit_price":"Unit Price",
+    "total_price":"Total Price",
+    "created_at":"Created At",
+    "updated_at":"Updated At",
+    "status":"Status",
+    "completed":"Completed",
+    "pending":"Pending",
+    "show":"Show",
+    "entries":"entries",
+    "search":"Search",
+    "add_part":"Add Order",
+    "exp_report":"Export Report"
+  },
   "schedule": {
     "my_schedule":"My Schedule",
     "add_event":"Add Event",

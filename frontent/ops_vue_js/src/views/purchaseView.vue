@@ -1,14 +1,33 @@
+<script setup>
+import { onMounted, watch, ref } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t, locale } = useI18n();
+
+function functionupdataTitle() {
+  document.title = "Operations." + t("appname.purchase");
+}
+onMounted(() => {
+  functionupdataTitle();
+});
+// 监听语言变化，更新标题
+watch(locale, () => {
+  functionupdataTitle();
+});
+</script>
+
 <template>
    
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Invoices</h3>
+        <h3 class="card-title">{{ t('purchase.purchase_list') }}</h3>
       </div>
       <div class="card-body border-bottom py-3">
         <div class="d-flex">
+
           <div class="text-secondary">
-            Show
+            {{ t('purchase.show') }}
             <div class="mx-2 d-inline-block">
               <input
                 type="text"
@@ -18,17 +37,25 @@
                 aria-label="Invoices count"
               />
             </div>
-            entries
+            {{ t('purchase.entries') }}
           </div>
+
           <div class="ms-auto text-secondary">
-            Search:
-            <div class="ms-2 d-inline-block">
+            <button class="btn btn-info m-1">{{ t('purchase.add_part') }}</button>
+            <button class="btn m-1">{{ t('purchase.exp_report') }}</button>
+          </div>
+
+
+          <div class="ms-auto text-secondary">
+            {{ t('purchase.search') }}
+            <div class="ms-2 d-inline-block mr-2">
               <input
                 type="text"
                 class="form-control form-control-sm"
                 aria-label="Search invoice"
               />
             </div>
+            
           </div>
         </div>
       </div>
@@ -62,15 +89,15 @@
                   <path d="M6 15l6 -6l6 6" />
                 </svg>
               </th>
-              <th class="col-5">物品名称</th>
-              <th class="col-1">用途</th>
-              <th class="w-1">单位</th>
-              <th class="w-1">数量</th>
-              <th class="w-1">单价</th>
-              <th class="w-1">总价</th>
-              <th class="w-1">创建日期</th>
-              <th class="w-1">更新日期</th>
-              <th class="w-1">最新状态</th>
+              <th class="col-5">{{ t('purchase.item_name') }}</th>
+              <th class="col-1">{{ t('purchase.purpose') }}</th>
+              <th class="w-1">{{ t('purchase.unit') }}</th>
+              <th class="w-1">{{ t('purchase.quantity') }}</th>
+              <th class="w-1">{{ t('purchase.unit_price') }}</th>
+              <th class="w-1">{{ t('purchase.total_price') }}</th>
+              <th class="w-1">{{ t('purchase.created_at') }}</th>
+              <th class="w-1">{{ t('purchase.updated_at') }}</th>
+              <th class="w-1">{{ t('purchase.status') }}</th>
               <th class="w-1"></th>
             </tr>
           </thead>

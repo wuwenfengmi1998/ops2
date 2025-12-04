@@ -7,6 +7,25 @@
     "schedule":"日程",
     "purchase":"采购"
   },
+  "purchase":{
+    "purchase_list":"采购列表",
+    "item_name":"物品名称",
+    "purpose":"用途",
+    "unit":"单位",
+    "quantity":"数量",
+    "unit_price":"单价",
+    "total_price":"总价",
+    "created_at":"创建日期",
+    "updated_at":"更新日期",
+    "status":"状态",
+    "completed":"已完成",
+    "pending":"待处理",
+    "show":"显示",
+    "entries":"个物件",
+    "search":"搜索",
+    "add_part":"添加订单",
+    "exp_report":"生成报告"
+  },
   "schedule": {
     "my_schedule":"我的日程",
     "add_event":"添加事件",
