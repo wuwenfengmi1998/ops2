@@ -5,7 +5,8 @@
     "forgot_password": "Forgot Password",
     "register": "Register",
     "schedule":"Schedule",
-    "purchase":"Purchase"
+    "purchase":"Purchase",
+    "warehouse":"Warehouse"
   },
   "purchase":{
     "purchase_list":"Purchase List",

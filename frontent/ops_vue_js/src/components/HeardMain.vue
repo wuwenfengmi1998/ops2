@@ -292,6 +292,17 @@ onMounted(() => {
                     {{ t("appname.schedule") }}
                   </span>
                 </router-link>
+                
+                <router-link
+                  to="/warehouse"
+                  class="nav-item nav-link"
+                  active-class="active"
+                >
+                  <span class="nav-link-title">
+                    {{ t("appname.warehouse") }}
+                  </span>
+                </router-link>
+
                 <router-link
                   to="/purchase"
                   class="nav-item nav-link"
@@ -301,6 +312,8 @@ onMounted(() => {
                     {{ t("appname.purchase") }}
                   </span>
                 </router-link>
+
+                
               </div>
 
               <div class="ms-auto">

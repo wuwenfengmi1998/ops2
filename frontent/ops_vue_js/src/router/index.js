@@ -60,6 +60,11 @@ const router = createRouter({
       path: "/purchase",
       name: "purchase",
       component: () => import("../views/purchaseView.vue"),
+    },
+     {
+      path: "/warehouse",
+      name: "warehouse",
+      component: () => import("../views/warehouse.vue"),
     }
   ],
 });

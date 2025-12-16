@@ -1,16 +1,20 @@
 <script setup>
 import { useUserStore } from '@/stores/user'
 
+import imageCropper from '@/components/imageCropper.vue';
+
+import croppertest from '@/components/croppertest.vue';
+
 const user = useUserStore()
 
-function t(){
-    user.login();
-}
+
 
 </script>
 
 <template>
     test
-    <button @click="t">222</button>
-    {{ user.isLoggedIn }}
+
+    <imageCropper></imageCropper>
+   
+    
 </template>

@@ -5,7 +5,8 @@
     "forgot_password": "忘记密码",
     "register": "注册",
     "schedule":"日程",
-    "purchase":"采购"
+    "purchase":"采购",
+    "warehouse":"仓库"
   },
   "purchase":{
     "purchase_list":"采购列表",
