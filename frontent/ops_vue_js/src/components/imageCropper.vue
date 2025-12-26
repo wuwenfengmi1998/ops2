@@ -7,6 +7,7 @@ import { onMounted, ref } from "vue";
 import Cropper from 'cropperjs';
 
 
+
 const image = new Image();
 image.src = "https://wnfed.com/usr/uploads/2020/07/736937178.jpg";
 image.alt = 'Picture';
@@ -20,8 +21,7 @@ onMounted(()=>{
 
       cropper.value = new Cropper(image, {
       container: imagecroppert.value,
-      aspectRatio: 1,
-      viewMode: 2,
+     
       
 
     });
@@ -33,11 +33,22 @@ onMounted(()=>{
 
 })
 
+function getsele(){
+  console.log(cropper.value.getCropperCanvas())
+
+}
+
+
 </script>
 
 <template>
 
 <div class="cropper-container" ref="imagecroppert"></div>
+
+
+<button @click="getsele">getsele</button>
+
+
 
 </template>
 
