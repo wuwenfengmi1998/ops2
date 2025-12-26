@@ -5,6 +5,8 @@ import imageCropper from '@/components/imageCropper.vue';
 
 import croppertest from '@/components/croppertest.vue';
 
+import imageCropperComponent from '@/components/imageCropperComponent.vue';
+
 const user = useUserStore()
 
 
@@ -14,7 +16,7 @@ const user = useUserStore()
 <template>
     test
 
-    <imageCropper></imageCropper>
+   <imageCropper></imageCropper>
    
     
 </template>

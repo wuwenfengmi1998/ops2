@@ -12,6 +12,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cropper/element": "^2.1.0",
+    "@cropper/element-canvas": "^2.1.0",
+    "@cropper/element-crosshair": "^2.1.0",
+    "@cropper/element-grid": "^2.1.0",
+    "@cropper/element-handle": "^2.1.0",
+    "@cropper/element-image": "^2.1.0",
+    "@cropper/element-selection": "^2.1.0",
+    "@cropper/element-shade": "^2.1.0",
+    "@cropper/element-viewer": "^2.1.0",
+    "@cropper/elements": "^2.1.0",
+    "@cropper/utils": "^2.1.0",
     "@fullcalendar/core": "^6.1.19",
     "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/interaction": "^6.1.19",
