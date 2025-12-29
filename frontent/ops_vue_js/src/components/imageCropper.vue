@@ -4,7 +4,9 @@
 import { Modal } from "@tabler/core";
 import { onMounted, ref } from "vue";
 
-import Cropper from 'cropperjs';
+
+
+import 'cropperjs';
 
 
 
@@ -19,22 +21,10 @@ const cropper = ref(null);
 
 onMounted(()=>{
 
-      cropper.value = new Cropper(image, {
-      container: imagecroppert.value,
-     
-      
-
-    });
-
-    //cropper.value.
-    console.log(cropper.value)
-
-
 
 })
 
 function getsele(){
-  console.log(cropper.value.getCropperCanvas())
 
 }
 
@@ -43,9 +33,24 @@ function getsele(){
 
 <template>
 
-<div class="cropper-container" ref="imagecroppert"></div>
-
-
+<cropper-canvas class="cropper-container" background>
+  <cropper-image src="https://wnfed.com/usr/uploads/2020/07/736937178.jpg" alt="Picture" rotatable scalable skewable translatable></cropper-image>
+  <cropper-shade hidden></cropper-shade>
+  <cropper-handle action="select" plain></cropper-handle>
+  <cropper-selection initial-coverage="0.5" movable resizable>
+    <cropper-grid role="grid" covered></cropper-grid>
+    <cropper-crosshair centered></cropper-crosshair>
+    <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
+    <cropper-handle action="n-resize"></cropper-handle>
+    <cropper-handle action="e-resize"></cropper-handle>
+    <cropper-handle action="s-resize"></cropper-handle>
+    <cropper-handle action="w-resize"></cropper-handle>
+    <cropper-handle action="ne-resize"></cropper-handle>
+    <cropper-handle action="nw-resize"></cropper-handle>
+    <cropper-handle action="se-resize"></cropper-handle>
+    <cropper-handle action="sw-resize"></cropper-handle>
+  </cropper-selection>
+</cropper-canvas>
 <button @click="getsele">getsele</button>
 
 
@@ -54,14 +59,11 @@ function getsele(){
 
 <style lang="scss" scoped>
 .cropper-container {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 0.375rem;
-  margin-bottom: 1rem;
-  margin-top: 1rem;
-  padding: 1.25rem 1.5rem;
 
-  :deep(cropper-canvas) {
-    height: 360px;
-  }
+
+  width: 400px;
+  height: 400px;
+
+ 
 }
 </style>
