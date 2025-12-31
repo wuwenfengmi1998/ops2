@@ -1,69 +1,64 @@
 <script setup>
-
-
 import { Modal } from "@tabler/core";
 import { onMounted, ref } from "vue";
 
+import "cropperjs";
 
+const cro_sele=ref()
+const cro_canv=ref()
 
-import 'cropperjs';
+var cor_size_width=400
+var cor_size_height=400
 
+onMounted(() => {
+  cro_sele.value.$change(0,0,cor_size_width,cor_size_height)
+  cro_canv.value.style.width=cor_size_width.toString()+"px"
+  cro_canv.value.style.height=cor_size_height.toString()+"px"
 
+  //console.log(cro_canv.value.clientHeight)
+});
 
-const image = new Image();
-image.src = "https://wnfed.com/usr/uploads/2020/07/736937178.jpg";
-image.alt = 'Picture';
-
-const imagecroppert=ref()
-
-const cropper = ref(null);
-
-
-onMounted(()=>{
-
-
-})
-
-function getsele(){
-
-}
-
-
+function getsele() {}
 </script>
 
 <template>
+  <cropper-canvas ref="cro_canv" class="cropper-container" background scale-step="0.2">
+    <cropper-image
+      src="https://wnfed.com/usr/uploads/2020/07/736937178.jpg"
+      alt="Picture"
+      initialCenterSize="cover"
+      rotatable
+      scalable
+      skewable
+      translatable
+    ></cropper-image>
+    <cropper-shade hidden></cropper-shade>
+    <cropper-handle action="move" plain></cropper-handle>
+    <cropper-selection
+      ref="cro_sele"
+    >
+      <cropper-grid role="grid" covered></cropper-grid>
+      <cropper-crosshair centered></cropper-crosshair>
+      <cropper-handle
+        action="move"
+        theme-color="rgba(255, 255, 255, 0)"
+      ></cropper-handle>
 
-<cropper-canvas class="cropper-container" background>
-  <cropper-image src="https://wnfed.com/usr/uploads/2020/07/736937178.jpg" alt="Picture" rotatable scalable skewable translatable></cropper-image>
-  <cropper-shade hidden></cropper-shade>
-  <cropper-handle action="select" plain></cropper-handle>
-  <cropper-selection initial-coverage="0.5" movable resizable>
-    <cropper-grid role="grid" covered></cropper-grid>
-    <cropper-crosshair centered></cropper-crosshair>
-    <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
-    <cropper-handle action="n-resize"></cropper-handle>
-    <cropper-handle action="e-resize"></cropper-handle>
-    <cropper-handle action="s-resize"></cropper-handle>
-    <cropper-handle action="w-resize"></cropper-handle>
-    <cropper-handle action="ne-resize"></cropper-handle>
-    <cropper-handle action="nw-resize"></cropper-handle>
-    <cropper-handle action="se-resize"></cropper-handle>
-    <cropper-handle action="sw-resize"></cropper-handle>
-  </cropper-selection>
-</cropper-canvas>
-<button @click="getsele">getsele</button>
-
-
-
+    </cropper-selection>
+  </cropper-canvas>
+  <button @click="getsele">getsele</button>
 </template>
 
 <style lang="scss" scoped>
 .cropper-container {
 
+  
+   /* 四个角相同圆角 */
+  border-radius: 10px;
+  /* 基本描边 */
+  //border: 2px solid #333;
 
-  width: 400px;
-  height: 400px;
-
- 
+   /* 基本阴影：x偏移 y偏移 模糊半径 扩展半径 颜色 */
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
 }
 </style>
