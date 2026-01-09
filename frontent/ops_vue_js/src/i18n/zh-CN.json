@@ -8,6 +8,13 @@
     "purchase":"采购",
     "warehouse":"仓库"
   },
+   "cropper": {
+    "select_image": "选择图片",
+    "select_File": "选择文件",
+    "crop_image": "裁剪图片",
+    "cancel": "取消",
+     "closs": "关闭"
+  }, 
   "purchase":{
     "purchase_list":"采购列表",
     "item_name":"物品名称",

@@ -29,6 +29,9 @@ const cnfPassInput = ref();
 
 const isShowPassword = ref(false);
 
+const is_avatar_change=ref(false);
+const avatar_temp_url=ref("");
+
 function togglePasswordVisibility() {
   isShowPassword.value = !isShowPassword.value;
 }
@@ -241,6 +244,12 @@ function changeAvatar() {
   );
 }
 
+function rev_avatar_url(url){
+  is_avatar_change.value=true
+  avatar_temp_url.value=url
+  //console.log(url)
+}
+
 function functionupdataTitle() {
   document.title = "Operations." + t("settings.account_settings");
 }
@@ -283,16 +292,17 @@ onMounted(() => {
                 <div class="row align-items-center">
                   <div class="col-auto">
                     <img
-                      :src="userStore.getUserAvatarPath()"
+                      :src="is_avatar_change?avatar_temp_url:userStore.getUserAvatarPath()"
                       alt=""
                       class="avatar avatar-xl"
                     />
                   </div>
                   <!-- <imageCropper /> -->
                   <div class="col-auto">
-                    <button class="btn" @click="changeAvatar">
+                    <imageCropper @crop="rev_avatar_url"></imageCropper>
+                    <!-- <button class="btn" @click="changeAvatar">
                       {{ t("settings.change_avatar") }}
-                    </button>
+                    </button> -->
                   </div>
                 </div>
                 <h3 class="card-title mt-4">-</h3>
