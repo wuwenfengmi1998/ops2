@@ -23,6 +23,22 @@ const userStore = useUserStore();
 
 const is_avatar_change = ref(false);
 const avatar_temp_url = ref("");
+const avatar_canvas=ref();
+
+// 将 Base64 转换为 File 对象
+function base64ToFile(base64Data, filename) {
+  const arr = base64Data.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1] || base64Data);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  
+  return new File([u8arr], filename, { type: mime });
+}
 
 function updataInfo() {
 
@@ -57,9 +73,30 @@ function updataInfo() {
   }
 
   //检查头像是否需要更新
-  if(is_avatar_change)
+  if(is_avatar_change.value)
   {
-    
+    my_network_func.postflise("/users/updateAvatar",base64ToFile(avatar_temp_url.value,"avatar.png"),(r)=>{
+      is_avatar_change.value=false
+      //console.log(r)
+       switch (r.statusCode) {
+        case 200:
+          switch (r.data.err_code) {
+            case 0:
+              //mos.value?.showAlert("success", t("message.save_ok"), 1000);
+              is_avatar_change.value=false
+              // 更新用户信息到store
+              //userStore.getUserInfoFromCookie();
+              break;
+            default:
+              mos.value?.showAlert("danger", t("message.server_error"), 5000);
+              break;
+          }
+          break;
+        default:
+          mos.value?.showAlert("danger", t("message.network_err"), 5000);
+          break;
+      }
+    })
   }
 
   my_network_func.postJson(
@@ -92,9 +129,11 @@ function updataInfo() {
   );
 }
 
-function rev_avatar_url(url) {
+function rev_avatar_canvas(canvas) {
+
   is_avatar_change.value = true;
-  avatar_temp_url.value = url;
+  avatar_temp_url.value = canvas.toDataURL("image/png");
+  avatar_canvas.value=canvas
   //console.log(url)
 }
 
@@ -156,7 +195,7 @@ onMounted(() => {
                   </div>
                   <!-- <imageCropper /> -->
                   <div class="col-auto " >
-                    <imageCropper @crop="rev_avatar_url"></imageCropper>
+                    <imageCropper @crop_to_canvas="rev_avatar_canvas"></imageCropper>
                     
                     <button v-show="is_avatar_change" class="btn btn-outline-secondary " @click="cancel_change_avatar">
                       {{ t("settings.cancel") }}

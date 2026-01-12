@@ -20,7 +20,7 @@ reader.onload = () => {
   initCropper(reader.result);
 };
 
-const emit = defineEmits(['crop'])
+const emit = defineEmits(['crop_to_canvas'])
 
 onMounted(() => {
   cro_sele.value.$change(0, 0, cor_size_width, cor_size_height);
@@ -72,11 +72,11 @@ function openFilePicker() {
 }
 
 function getsele() {
-  const canvas = cro_canv.value.$toCanvas().then((a) => {
+  cro_canv.value.$toCanvas().then((a) => {
     //console.log(a);
-    const imageData = a.toDataURL("image/png");
+    //const imageData = a.toDataURL("image/png");
 
-    emit('crop',imageData)
+    emit('crop_to_canvas',a)
     //console.log(imageData);
   });
 }

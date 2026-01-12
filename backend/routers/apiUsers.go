@@ -188,6 +188,7 @@ func ApiUser(r *gin.RouterGroup) {
 	//修改用户头像
 	r.POST("/updateAvatar", func(ctx *gin.Context) {
 
+		ReturnJson(ctx, "jsonErr", nil)
 	})
 
 	//更新用户info
