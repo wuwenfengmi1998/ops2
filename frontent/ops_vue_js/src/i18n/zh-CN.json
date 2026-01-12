@@ -105,6 +105,10 @@
     "confirm_password_incorrect":"确认密码不正确"
   },
   "settings": {
+    "cancel": "取消",
+    "basic_information":"基本信息",
+    "contact_information":"联系信息",
+    "security_settings":"安全设置",
     "account_settings": "个人设置",
     "my_account": "我的账户",
     "profile_information": "个人信息",

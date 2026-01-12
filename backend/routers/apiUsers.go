@@ -185,6 +185,11 @@ func ApiUser(r *gin.RouterGroup) {
 		}
 	})
 
+	//修改用户头像
+	r.POST("/updateAvatar", func(ctx *gin.Context) {
+
+	})
+
 	//更新用户info
 	r.POST("/updateInfo", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)

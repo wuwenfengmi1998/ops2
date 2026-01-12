@@ -11,14 +11,31 @@ const { t } = useI18n();
       <div class="list-group list-group-transparent">
         <router-link
           to="/settings/account"
-          class="list-group-item list-group-item-action d-flex align-items-center active"
+          active-class="active"
+          class="list-group-item list-group-item-action d-flex align-items-center"
         >
-          {{t('settings.account_settings')}}</router-link
+          {{t('settings.basic_information')}}</router-link
         >
-      
-        
       </div>
-      <h4 class="subheader mt-4">{{t('settings.admin')}}</h4>
+      <div class="list-group list-group-transparent">
+        <router-link
+          to="/settings/contact"
+          active-class="active"
+          class="list-group-item list-group-item-action d-flex align-items-center"
+        >
+          {{t('settings.contact_information')}}</router-link
+        >
+      </div>
+      <div class="list-group list-group-transparent">
+        <router-link
+          to="/settings/security"
+          active-class="active"
+          class="list-group-item list-group-item-action d-flex align-items-center"
+        >
+          {{t('settings.security_settings')}}</router-link
+        >
+      </div>
+      <!-- <h4 class="subheader mt-4">{{t('settings.admin')}}</h4>
       <div class="list-group list-group-transparent">
         <router-link
           to="/settings/account"
@@ -26,7 +43,7 @@ const { t } = useI18n();
         >
           {{t('settings.website_settings')}}</router-link
         >
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

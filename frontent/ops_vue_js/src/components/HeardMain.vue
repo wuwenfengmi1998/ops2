@@ -206,18 +206,18 @@ onMounted(() => {
               </div>
             </div>
             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-              <router-link to="" class="dropdown-item">{{
+              <!-- <router-link to="" class="dropdown-item">{{
                 t("message.user_home")
-              }}</router-link>
+              }}</router-link> -->
               <router-link to="/settings/account" class="dropdown-item">{{
                 t("message.user_settings")
               }}</router-link>
-              <router-link to="" class="dropdown-item">{{
+              <!-- <router-link to="" class="dropdown-item">{{
                 t("message.preferences")
-              }}</router-link>
+              }}</router-link> -->
               <div class="dropdown-divider"></div>
               <!-- 如何用户是系统管理员这里显示跳转管理的url -->
-              <router-link to="/admin" class="dropdown-item">
+              <!-- <router-link to="/admin" class="dropdown-item">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -237,7 +237,7 @@ onMounted(() => {
                   <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
                 </svg>
                 {{ t("message.administrator") }}</router-link
-              >
+              > -->
               <div @click="logOut" class="dropdown-item">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

@@ -22,6 +22,9 @@ export const my_network_func = {
         callback(re_data);
       });
   },
+  postflise(path,flise,json,callback){
+
+  },
   postJson(path, json, callback) {
     //把cookie插入json
     var data = {};

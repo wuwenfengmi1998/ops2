@@ -14,6 +14,21 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: "/settings/account",
+      name: "settings account",
+      component: () => import("../views/settings/account.vue"),
+    },
+    {
+      path: "/settings/contact",
+      name: "settings contact",
+      component: () => import("../views/settings/contact.vue"),
+    },
+    {
+      path: "/settings/security",
+      name: "settings security",
+      component: () => import("../views/settings/security.vue"),
+    },
+    {
       path: "/about",
       name: "about",
       // route level code-splitting
@@ -46,11 +61,7 @@ const router = createRouter({
       name: "admin",
       component: () => import("../views/adminView.vue"),
     },
-    {
-      path: "/settings/account",
-      name: "settings account",
-      component: () => import("../views/settings/account.vue"),
-    },
+    
     {
       path: "/schedule",
       name: "schedule",

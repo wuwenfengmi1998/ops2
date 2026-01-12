@@ -105,6 +105,10 @@
     "confirm_password_incorrect": "Confirm password is incorrect"
   },
   "settings": {
+    "cancel": "Cancel",
+    "basic_information":"Basic Information",
+    "contact_information":"Contact Information",
+    "security_settings":"Security Settings",
     "account_settings": "Account Settings",
     "my_account": "My Account",
     "profile_information": "Profile Information",
