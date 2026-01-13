@@ -22,3 +22,13 @@ func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 	//ctx.Abort()
 
 }
+
+func Return_file(ctx *gin.Context, file_path string, preview bool) {
+	if preview {
+		ctx.File(file_path)
+	} else {
+		//需要从数据库拉取原始文件名
+		//ctx.FileAttachment(file_info.Path, file_info.Name)
+	}
+
+}

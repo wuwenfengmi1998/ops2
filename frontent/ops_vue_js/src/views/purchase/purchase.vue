@@ -17,17 +17,15 @@ watch(locale, () => {
 </script>
 
 <template>
-   
   <div class="col-12">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">{{ t('purchase.purchase_list') }}</h3>
+        <h3 class="card-title">{{ t("purchase.purchase_list") }}</h3>
       </div>
       <div class="card-body border-bottom py-3">
         <div class="d-flex">
-
           <div class="text-secondary">
-            {{ t('purchase.show') }}
+            {{ t("purchase.show") }}
             <div class="mx-2 d-inline-block">
               <input
                 type="text"
@@ -37,17 +35,19 @@ watch(locale, () => {
                 aria-label="Invoices count"
               />
             </div>
-            {{ t('purchase.entries') }}
+            {{ t("purchase.entries") }}
           </div>
 
           <div class="ms-auto text-secondary">
-            <button class="btn btn-info m-1">{{ t('purchase.add_part') }}</button>
-            <button class="btn m-1">{{ t('purchase.exp_report') }}</button>
+            <router-link to="/purchase/addorder" class="btn btn-info m-1">
+              {{ t("purchase.add_part") }}
+            </router-link>
+
+            <button class="btn m-1">{{ t("purchase.exp_report") }}</button>
           </div>
 
-
           <div class="ms-auto text-secondary">
-            {{ t('purchase.search') }}
+            {{ t("purchase.search") }}
             <div class="ms-2 d-inline-block mr-2">
               <input
                 type="text"
@@ -55,7 +55,6 @@ watch(locale, () => {
                 aria-label="Search invoice"
               />
             </div>
-            
           </div>
         </div>
       </div>
@@ -89,46 +88,39 @@ watch(locale, () => {
                   <path d="M6 15l6 -6l6 6" />
                 </svg>
               </th>
-              <th class="col-5">{{ t('purchase.item_name') }}</th>
-              <th class="col-1">{{ t('purchase.purpose') }}</th>
-              <th class="w-1">{{ t('purchase.unit') }}</th>
-              <th class="w-1">{{ t('purchase.quantity') }}</th>
-              <th class="w-1">{{ t('purchase.unit_price') }}</th>
-              <th class="w-1">{{ t('purchase.total_price') }}</th>
-              <th class="w-1">{{ t('purchase.created_at') }}</th>
-              <th class="w-1">{{ t('purchase.updated_at') }}</th>
-              <th class="w-1">{{ t('purchase.status') }}</th>
+              <th class="col-5">{{ t("purchase.item_name") }}</th>
+              <th class="col-1">{{ t("purchase.purpose") }}</th>
+              <th class="w-1">{{ t("purchase.unit") }}</th>
+              <th class="w-1">{{ t("purchase.quantity") }}</th>
+              <th class="w-1">{{ t("purchase.unit_price") }}</th>
+              <th class="w-1">{{ t("purchase.total_price") }}</th>
+              <th class="w-1">{{ t("purchase.created_at") }}</th>
+              <th class="w-1">{{ t("purchase.updated_at") }}</th>
+              <th class="w-1">{{ t("purchase.status") }}</th>
               <th class="w-1"></th>
             </tr>
           </thead>
           <tbody>
             <tr>
-                <td>
-                    <input
-                    class="form-check-input m-0 align-middle"
-                    type="checkbox"
-                    aria-label="Select invoice"
-                    />
-                </td>
-                <td><span class="text-muted">001</span></td>
-                <td>
-                    办公室用纸
-                </td>
-                <td>办公用品</td>
-                <td>包</td>
-                <td>10</td>
-                <td>15.00</td>
-                <td>150.00</td>
-                <td>2024-06-01</td>
-                <td>2024-06-05</td>
-                <td>
-                    <span class="badge bg-success me-1"></span> 已完成
-                </td>
-                <td class="text-end">
-                   
-                </td>
+              <td>
+                <input
+                  class="form-check-input m-0 align-middle"
+                  type="checkbox"
+                  aria-label="Select invoice"
+                />
+              </td>
+              <td><span class="text-muted">001</span></td>
+              <td>办公室用纸</td>
+              <td>办公用品</td>
+              <td>包</td>
+              <td>10</td>
+              <td>15.00</td>
+              <td>150.00</td>
+              <td>2024-06-01</td>
+              <td>2024-06-05</td>
+              <td><span class="badge bg-success me-1"></span> 已完成</td>
+              <td class="text-end"></td>
             </tr>
-           
           </tbody>
         </table>
       </div>

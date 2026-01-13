@@ -68,6 +68,17 @@ func main() {
 	models.ConfigAllInit()
 	routers.ApiInit()
 
+	//创建必要目录
+	for _, path := range models.ConfigsFile.Pahts {
+		fmt.Println(path)
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			fmt.Printf("创建文件夹失败: %v\n", err)
+			panic("创建文件夹失败")
+
+		}
+	}
+
 	//启动gin服务
 	r := gin.Default()
 

@@ -14,6 +14,11 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: "/404",
+      name: "404",
+      component: () => import("../views/404.vue"),
+    },
+    {
       path: "/settings/account",
       name: "settings account",
       component: () => import("../views/settings/account.vue"),
@@ -61,7 +66,7 @@ const router = createRouter({
       name: "admin",
       component: () => import("../views/adminView.vue"),
     },
-    
+
     {
       path: "/schedule",
       name: "schedule",
@@ -70,13 +75,18 @@ const router = createRouter({
     {
       path: "/purchase",
       name: "purchase",
-      component: () => import("../views/purchaseView.vue"),
+      component: () => import("../views/purchase/purchase.vue"),
     },
-     {
+        {
+      path: "/purchase/addorder",
+      name: "purchase",
+      component: () => import("../views/purchase/addorder.vue"),
+    },
+    {
       path: "/warehouse",
       name: "warehouse",
       component: () => import("../views/warehouse.vue"),
-    }
+    },
   ],
 });
 

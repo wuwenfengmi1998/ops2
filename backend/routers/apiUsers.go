@@ -1,8 +1,10 @@
 package routers
 
 import (
+	"errors"
 	"fmt"
 	"ops/models"
+	"path"
 	"strconv"
 	"time"
 
@@ -78,6 +80,33 @@ type From_user_changeemail struct {
 type From_user_changepass struct {
 	Oldpass string `json:"oldpass"`
 	Newpass string `json:"newpass"`
+}
+
+func AuthenticationAuthorityFromCookie(c string) (*models.TabUser_, error) {
+
+	if c != "" {
+		cookie := models.TabCookie_{
+			Value: c,
+		}
+		if models.DB.Where(&cookie).First(&cookie).Error == nil {
+			//找到cookie，验证cookie有效性，以及更新cookie
+			if models.CheckCookiesAndUpdate(&cookie) {
+				//cookie有效
+				//载入user
+				user := models.TabUser_{
+					ID: cookie.UserID,
+				}
+				models.DB.Where(&user).First(&user)
+				return &user, nil
+			} else {
+				return nil, errors.New("cookie  过期")
+			}
+		} else {
+			return nil, errors.New("cookie Not Fund")
+		}
+	} else {
+		return nil, errors.New("cookie 参数错误")
+	}
 }
 
 func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[string]interface{}) {
@@ -187,8 +216,92 @@ func ApiUser(r *gin.RouterGroup) {
 
 	//修改用户头像
 	r.POST("/updateAvatar", func(ctx *gin.Context) {
+		cookie := ctx.PostForm("cookie")
+		user, err := AuthenticationAuthorityFromCookie(cookie)
+		if err == nil {
+			file, err := ctx.FormFile("file")
+			if err == nil {
+				if file.Filename != "" {
+					//限制文件大小
+					if file.Size > 512 {
+						//头像裁剪过限制1M应该差不多
+						if file.Size < 1048576 {
 
-		ReturnJson(ctx, "jsonErr", nil)
+							//判断mime
+							mimeType, err := models.GetFileMime(file)
+							if err == nil {
+
+								file_extname := models.ConfigsFile.AllowImageMime[mimeType]
+								if file_extname != "" {
+
+									//haxi文件
+
+									file_hashi_name, err := models.SHA256HashFile(file)
+									if err == nil {
+
+										dst := path.Join(models.ConfigsFile.Pahts["avatar"], file_hashi_name+file_extname)
+
+										var is_save_ok = false
+										//判断文件是否存在避免重复保存
+										if models.FileExists(dst) {
+											//fmt.Println("文件存在")
+											is_save_ok = true
+											ReturnJson(ctx, "apiOK", nil)
+										} else {
+											//fmt.Println("文件no存在")
+											ferr := ctx.SaveUploadedFile(file, dst)
+											if ferr == nil {
+												//文件保存成功
+												//fmt.Print("save_ok")
+												is_save_ok = true
+												ReturnJson(ctx, "apiOK", nil)
+											} else {
+												fmt.Print(ferr)
+												ReturnJson(ctx, "postErr", nil)
+											}
+
+										}
+										if is_save_ok {
+											//修改数据库内容
+											var user_info_fund models.TabUserInfo_
+											user_info_fund.UserID = user.ID
+
+											var user_update_avatar models.TabUserInfo_
+											user_update_avatar.AvatarPath = file_hashi_name + file_extname
+
+											models.DB.Where(&user_info_fund).Updates(&user_update_avatar)
+
+										}
+
+									} else {
+										ReturnJson(ctx, "postErr", nil)
+									}
+
+								} else {
+									ReturnJson(ctx, "file_mime_err", nil)
+								}
+
+							} else {
+								ReturnJson(ctx, "postErr", nil)
+							}
+
+						} else {
+							ReturnJson(ctx, "file_size_err", nil)
+						}
+					} else {
+						ReturnJson(ctx, "file_size_err", nil)
+					}
+				} else {
+					ReturnJson(ctx, "file_name_err", nil)
+				}
+			} else {
+				ReturnJson(ctx, "file_get_err", nil)
+			}
+
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+
 	})
 
 	//更新用户info

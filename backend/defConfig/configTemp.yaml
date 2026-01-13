@@ -24,12 +24,12 @@ user:
 file:
   maxSize: 52428800
   pahts:
-    avatar: "./data/avatar/"
-    image:  "./data/upload/image/"
-    video:  "./data/upload/video/"
-    music:  "./data/upload/music/"
-    pdf:    "./data/upload/pdf/"
-    other:  "./data/upload/other/"
+    avatar: "data/static/avatar/"
+    image:  "data/upload/image/"
+    video:  "data/upload/video/"
+    music:  "data/upload/music/"
+    pdf:    "data/upload/pdf/"
+    other:  "data/upload/other/"
 
   allowImageMime:
     image/jpeg: ".jpeg"

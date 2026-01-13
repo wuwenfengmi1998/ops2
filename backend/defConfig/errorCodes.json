@@ -9,6 +9,11 @@
     "userEmailFormatError":-43,
     "userCookieError":-44,
     "userCookieNotFund":-44,
-    "userCookieExpired":-44
+    "userCookieExpired":-44,
+    "file_mime_err":-51,
+    "file_size_err":-52,
+    "file_name_err":-53,
+    "file_get_err":-54
+
 
 }

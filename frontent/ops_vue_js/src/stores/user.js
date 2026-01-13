@@ -41,7 +41,7 @@ export const useUserStore = defineStore("user", () => {
   const getUserAvatarPath = () => {
     if (userInfo.value != null) {
       if (userInfo.value.AvatarPath != "") {
-        return userInfo.value.AvatarPath;
+        return "/api/static/avatar/"+userInfo.value.AvatarPath;
       }
     }
     return "/ava.svg";

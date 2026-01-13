@@ -4,8 +4,6 @@ import "github.com/mitchellh/mapstructure"
 
 var Configs map[string]interface{}
 
-//mime信息转换位拓展名
-
 type ConfigsWeb_ struct {
 	Host            string `mapstructure:"host"`
 	Port            string `mapstructure:"port"`
