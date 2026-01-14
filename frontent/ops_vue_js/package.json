@@ -36,6 +36,7 @@
     "cropperjs": "^2.1.0",
     "litepicker": "^2.0.12",
     "pinia": "^3.0.4",
+    "tom-select": "^2.4.3",
     "vue": "^3.5.22",
     "vue-cropper": "^0.6.5",
     "vue-i18n": "^11.1.12",

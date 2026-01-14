@@ -3,7 +3,8 @@
     "404_title": "404 资源未找到",
     "404_msg_title": "抱歉…您刚刚发现了一个错误页面",
     "404_msg": "您所查找的页面不存在",
-    "404_back_home": "返回首页"
+    "404_back_home": "返回首页",
+    "404_previous_page": "上一页"
   },
   "appname": {
     "home": "主页",
@@ -13,6 +14,11 @@
     "schedule": "日程",
     "purchase": "采购",
     "warehouse": "仓库"
+  },
+  "tagadder":{
+    "not_fund_item":"没有找到匹配项",
+    "loding":"正在加载...",
+    "add":"添加新选项: "
   },
   "cropper": {
     "select_image": "选择图片",
