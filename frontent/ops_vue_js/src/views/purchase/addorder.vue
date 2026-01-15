@@ -1,9 +1,9 @@
 <script setup>
-import { onMounted, watch, ref ,reactive} from "vue";
+import { onMounted, watch, ref, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 
 import tagadder from "@/components/tagadder.vue";
-import datePicker from "@/components/datePicker.vue";
+import dateTimePicker from "@/components/dateTimePicker.vue";
 
 import TomSelect from "tom-select";
 import "tom-select/dist/css/tom-select.css";
@@ -14,47 +14,69 @@ function functionupdataTitle() {
   document.title = "Operations." + t("purchase.add_part");
 }
 
+//货币类型
+const currency_type = reactive({
+  1: "RMB",
+  2: "MOP",
+  3: "HKD",
+  4: "USD",
+});
+//成本类型
+const cost_type = reactive({
+  1: t("cost_type.unit_price"),
+  2: t("cost_type.freight"),
+});
+function update_cost_type() {
+  cost_type["1"] = t("cost_type.unit_price");
+  cost_type["2"] = t("cost_type.freight");
+}
+
+//订单状态
+const order_status = reactive({
+  1: t("order_status.pending_order"),
+  2: t("order_status.order_placed"),
+  3: t("order_status.in_transit"),
+  4: t("order_status.completed"),
+  5: t("order_status.refund_requested"),
+  6: t("order_status.returning"),
+  7: t("order_status.refunded"),
+  8: t("order_status.lost_package"),
+});
+
+function update_order_status() {
+  order_status["1"] = t("order_status.pending_order");
+  order_status["2"] = t("order_status.order_placed");
+  order_status["3"] = t("order_status.in_transit");
+  order_status["4"] = t("order_status.completed");
+  order_status["5"] = t("order_status.refund_requested");
+  order_status["6"] = t("order_status.returning");
+  order_status["7"] = t("order_status.refunded");
+  order_status["8"] = t("order_status.lost_package");
+}
+
 const cost_sheet_tab = reactive([]);
 // 表单对象
 const cost_sheet = reactive({
-  type: '1',
+  type: "1",
   int: 1,
   cost: 0.0,
-  currency_type:'1'
-})
+  currency_type: "1",
+});
 
-function add_cost(){
-  var t={
-     type: cost_sheet.type,
-      int: cost_sheet.int,
-      cost: cost_sheet.cost,
-      currency_type:cost_sheet.currency_type
-  }
-cost_sheet_tab.push(t)
-console.log(cost_sheet_tab)
-
+function del_cost(key) {
+  cost_sheet_tab.splice(key, 1);
 }
-
-// const select_beast = ref()
-// const select_type = ref()
-// function sele_init(){
-// new TomSelect(select_beast.value,{
-// 	create: true,
-// 	sortField: {
-// 		//field: "text",
-// 		//direction: "asc"
-// 	}
-// });
-
-// new TomSelect(select_type.value,{
-// 	create: true,
-// 	sortField: {
-// 		//field: "text",
-// 		//direction: "asc"
-// 	}
-// });
-
-// }
+function add_cost() {
+  cost_sheet_tab.push(JSON.parse(JSON.stringify(cost_sheet)));
+  // var t = {
+  //   type: cost_type[cost_sheet.type],
+  //   int: cost_sheet.int,
+  //   cost: cost_sheet.cost,
+  //   currency_type: currency_type[cost_sheet.currency_type],
+  // };
+  // cost_sheet_tab.push(t);
+  //console.log(t);
+}
 
 onMounted(() => {
   functionupdataTitle();
@@ -63,6 +85,8 @@ onMounted(() => {
 // 监听语言变化，更新标题
 watch(locale, () => {
   functionupdataTitle();
+  update_cost_type();
+  update_order_status();
 });
 </script>
 
@@ -96,7 +120,7 @@ watch(locale, () => {
               </div>
               <div class="mb-3">
                 <label class="form-label"
-                  >用途 <span class="form-label-description">0/100</span></label
+                  >备注 <span class="form-label-description">0/100</span></label
                 >
                 <textarea
                   class="form-control"
@@ -129,7 +153,10 @@ watch(locale, () => {
                 <div class="mt-3">
                   <label class="form-label">成本</label>
 
-                  <table class="table table-vcenter card-table table-striped">
+                  <table
+                    v-show="cost_sheet_tab.length"
+                    class="table table-vcenter card-table table-striped"
+                  >
                     <thead>
                       <tr>
                         <th>类型</th>
@@ -141,14 +168,23 @@ watch(locale, () => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="value in cost_sheet_tab">
-                        <td>{{value.type}}</td>
-                        <td class="text-secondary">{{value.int}}</td>
-                        <td class="text-secondary">{{value.cost}}</td>
-                        <td class="text-secondary">{{value.cost*value.int}}</td>
-                        <td class="text-secondary">{{value.currency_type}}</td>
+                      <tr v-for="(value, key) in cost_sheet_tab">
+                        <td>{{ cost_type[value.type] }}</td>
+                        <td class="text-secondary">{{ value.int }}</td>
+                        <td class="text-secondary">{{ value.cost }}</td>
+                        <td class="text-secondary">
+                          {{ value.cost * value.int }}
+                        </td>
+                        <td class="text-secondary">
+                          {{ currency_type[value.currency_type] }}
+                        </td>
                         <td>
-                          <button class="btn btn-outline-danger">Del</button>
+                          <button
+                            class="btn btn-outline-danger"
+                            @click="del_cost(key)"
+                          >
+                            Del
+                          </button>
                         </td>
                       </tr>
                       <!-- <tr>
@@ -174,8 +210,9 @@ watch(locale, () => {
                         value="1"
                         v-model="cost_sheet.type"
                       >
-                        <option value="1">单价</option>
-                        <option value="2">运输</option>
+                        <option v-for="(value, key) in cost_type" :value="key">
+                          {{ value }}
+                        </option>
                       </select>
                     </div>
                     <div class="col-xl-3">
@@ -209,15 +246,20 @@ watch(locale, () => {
                         value="1"
                         v-model="cost_sheet.currency_type"
                       >
-                        <option value="1">RMB</option>
-                        <option value="2">MOP</option>
-                        <option value="3">HKD</option>
-                        <option value="4">USD</option>
+                        <option
+                          v-for="(value, key) in currency_type"
+                          :value="key"
+                        >
+                          {{ value }}
+                        </option>
                       </select>
                     </div>
                     <div class="col-xl-2">
                       操作
-                      <button class="form-control btn btn-outline-primary" @click="add_cost">
+                      <button
+                        class="form-control btn btn-outline-primary"
+                        @click="add_cost"
+                      >
                         添加
                       </button>
                     </div>
@@ -234,7 +276,7 @@ watch(locale, () => {
                 <div class="row g-5">
                   <div class="col-xl-4">
                     <label class="form-label required">更新时间</label>
-                    <datePicker></datePicker>
+                    <dateTimePicker></dateTimePicker>
                   </div>
                   <div class="col-xl-4">
                     <label class="form-label">快递单号</label>
@@ -254,13 +296,9 @@ watch(locale, () => {
                       autocomplete="off"
                       value="1"
                     >
-                      <option value="1">待下单</option>
-                      <option value="2">已下单</option>
-                      <option value="3">运输中</option>
-                      <option value="4">已完成</option>
-                      <option value="5">申请退款</option>
-                      <option value="6">退回中</option>
-                      <option value="7">已退款</option>
+                      <option v-for="(value, key) in order_status" :value="key">
+                        {{ value }}
+                      </option>
                     </select>
                   </div>
                 </div>

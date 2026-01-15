@@ -52,6 +52,7 @@ func ApiRoot(r *gin.RouterGroup) {
 
 	ApiStatic(r.Group("/static"))
 	ApiUser(r.Group("/users"))
+	ApiFiles(r.Group("/files"))
 
 	r.GET("/", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)

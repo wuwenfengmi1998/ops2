@@ -15,10 +15,10 @@
     "purchase": "采购",
     "warehouse": "仓库"
   },
-  "tagadder":{
-    "not_fund_item":"没有找到匹配项",
-    "loding":"正在加载...",
-    "add":"添加新选项: "
+  "tagadder": {
+    "not_fund_item": "没有找到匹配项",
+    "loding": "正在加载...",
+    "add": "添加新选项: "
   },
   "cropper": {
     "select_image": "选择图片",
@@ -154,5 +154,19 @@
     "license": "协议",
     "source_code": "源码",
     "copy": "版权 © 2025 Operations. 保留所有权利。"
+  },
+  "cost_type": {
+    "unit_price": "单价",
+    "freight": "运费"
+  },
+  "order_status": {
+    "pending_order": "待下单",
+    "order_placed": "已下单",
+    "in_transit": "运输中",
+    "completed": "已完成",
+    "refund_requested": "申请退款",
+    "returning": "退回中",
+    "refunded": "已退款",
+    "lost_package": "丢件"
   }
 }

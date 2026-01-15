@@ -154,5 +154,19 @@
     "license": "License",
     "source_code": "Source Code",
     "copy": "Copyright © 2025 Operations. All rights reserved."
+  },
+    "cost_type":{
+    "unit_price":"Unit Price",
+    "freight":"Freight"
+  },
+    "order_status": {
+    "pending_order": "Pending Order",
+    "order_placed": "Order Placed",
+    "in_transit": "In Transit",
+    "completed": "Completed",
+    "refund_requested": "Refund Requested",
+    "returning": "Returning",
+    "refunded": "Refunded",
+    "lost_package": "Lost Package"
   }
 }

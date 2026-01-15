@@ -1,22 +1,8 @@
 <script setup>
-import { useUserStore } from '@/stores/user'
-
-import imageCropper from '@/components/imageCropper.vue';
-
-import croppertest from '@/components/croppertest.vue';
-
-import imageCropperComponent from '@/components/imageCropperComponent.vue';
-
-const user = useUserStore()
-
-
-
+    import useDropzone from '@/components/useDropzone.vue';
 </script>
 
 <template>
-    test
 
-   <imageCropper></imageCropper>
-   
-    
+<useDropzone></useDropzone>
 </template>
