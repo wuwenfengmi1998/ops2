@@ -5,6 +5,14 @@ import { useI18n } from "vue-i18n";
 import tagadder from "@/components/tagadder.vue";
 import dateTimePicker from "@/components/dateTimePicker.vue";
 
+import useDropzone from "@/components/useDropzone.vue";
+
+import { useUserStore } from "@/stores/user";
+const userStore = useUserStore();
+
+import { useRouter } from "vue-router";
+const router = useRouter();
+
 import TomSelect from "tom-select";
 import "tom-select/dist/css/tom-select.css";
 
@@ -81,6 +89,10 @@ function add_cost() {
 onMounted(() => {
   functionupdataTitle();
   //sele_init();
+  if (!userStore.isLoggedIn) {
+    router.push("/login");
+  }
+
 });
 // 监听语言变化，更新标题
 watch(locale, () => {
@@ -95,7 +107,7 @@ watch(locale, () => {
     <div class="container-xl">
       <div class="row g-2 align-items-center">
         <div class="col">
-          <h2 class="page-title">添加订单</h2>
+          <h2 class="page-title">{{ t("purchase_addorder.add_order") }}</h2>
         </div>
       </div>
     </div>
@@ -106,37 +118,47 @@ watch(locale, () => {
         <div class="col-12">
           <div class="card">
             <div class="card-header">
-              <h4 class="card-title">订单信息</h4>
+              <h4 class="card-title">
+                {{ t("purchase_addorder.order_info") }}
+              </h4>
             </div>
             <div class="card-body">
               <div class="mb-3">
-                <label class="form-label required">标题</label>
+                <label class="form-label required">{{
+                  t("purchase_addorder.title")
+                }}</label>
                 <input
                   type="text"
                   class="form-control"
                   name="example-text-input"
-                  placeholder="输入订单标题"
+                  :placeholder="t('purchase_addorder.title')"
                 />
               </div>
               <div class="mb-3">
                 <label class="form-label"
-                  >备注 <span class="form-label-description">0/100</span></label
+                  >{{ t("purchase_addorder.remarks") }}
+                  <span class="form-label-description">0/100</span></label
                 >
+                <useDropzone></useDropzone>
                 <textarea
-                  class="form-control"
+                  class="form-control mt-2"
                   name="example-textarea-input"
                   rows="6"
-                  placeholder="Content.."
+                  :placeholder="t('purchase_addorder.remarks_text')"
                 ></textarea>
               </div>
             </div>
 
             <div class="card-header">
-              <h4 class="card-title">采购途径</h4>
+              <h4 class="card-title">
+                {{ t("purchase_addorder.purchase_channel") }}
+              </h4>
             </div>
             <div class="card-body">
               <div class="mb-3">
-                <label class="form-label">URL</label>
+                <label class="form-label">{{
+                  t("purchase_addorder.link")
+                }}</label>
                 <input
                   name="url"
                   type="url"
@@ -145,13 +167,19 @@ watch(locale, () => {
                   value=""
                 />
                 <div class="mt-3">
-                  <label class="form-label">样式备注</label>
+                  <label class="form-label">{{
+                    t("purchase_addorder.style_remarks")
+                  }}</label>
 
-                  <tagadder placeholder="添加样式"></tagadder>
+                  <tagadder
+                    :placeholder="t('purchase_addorder.add_style')"
+                  ></tagadder>
                 </div>
 
                 <div class="mt-3">
-                  <label class="form-label">成本</label>
+                  <label class="form-label">{{
+                    t("purchase_addorder.cost")
+                  }}</label>
 
                   <table
                     v-show="cost_sheet_tab.length"
@@ -159,12 +187,14 @@ watch(locale, () => {
                   >
                     <thead>
                       <tr>
-                        <th>类型</th>
-                        <th>数量</th>
-                        <th>费用</th>
-                        <th>总价</th>
-                        <th>货币</th>
-                        <th class="w-1">操作</th>
+                        <th>{{ t("purchase_addorder.type") }}</th>
+                        <th>{{ t("purchase_addorder.quantity") }}</th>
+                        <th>{{ t("purchase_addorder.fee") }}</th>
+                        <th>{{ t("purchase_addorder.total_price") }}</th>
+                        <th>{{ t("purchase_addorder.currency") }}</th>
+                        <th class="w-1">
+                          {{ t("purchase_addorder.operation") }}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -183,7 +213,7 @@ watch(locale, () => {
                             class="btn btn-outline-danger"
                             @click="del_cost(key)"
                           >
-                            Del
+                            {{ t("purchase_addorder.remove") }}
                           </button>
                         </td>
                       </tr>
@@ -201,11 +231,10 @@ watch(locale, () => {
 
                   <div class="row g-5">
                     <div class="col-xl-2">
-                      类型
+                      {{ t("purchase_addorder.fee_type") }}
                       <select
                         ref="select_type"
                         class="form-control"
-                        placeholder="选择费用类型"
                         autocomplete="off"
                         value="1"
                         v-model="cost_sheet.type"
@@ -216,7 +245,7 @@ watch(locale, () => {
                       </select>
                     </div>
                     <div class="col-xl-3">
-                      数量
+                      {{ t("purchase_addorder.input_quantity") }}
                       <input
                         type="number"
                         class="form-control"
@@ -226,7 +255,7 @@ watch(locale, () => {
                       />
                     </div>
                     <div class="col-xl-3">
-                      费用
+                      {{ t("purchase_addorder.input_fee") }}
                       <input
                         type="number"
                         class="form-control"
@@ -237,11 +266,10 @@ watch(locale, () => {
                       />
                     </div>
                     <div class="col-xl-2">
-                      货币
+                      {{ t("purchase_addorder.select_currency") }}
                       <select
                         ref="select_beast"
                         class="form-control"
-                        placeholder="选择货币类型"
                         autocomplete="off"
                         value="1"
                         v-model="cost_sheet.currency_type"
@@ -255,12 +283,12 @@ watch(locale, () => {
                       </select>
                     </div>
                     <div class="col-xl-2">
-                      操作
+                      {{ t("purchase_addorder.operation") }}
                       <button
                         class="form-control btn btn-outline-primary"
                         @click="add_cost"
                       >
-                        添加
+                        {{ t("purchase_addorder.add") }}
                       </button>
                     </div>
                   </div>
@@ -269,30 +297,37 @@ watch(locale, () => {
             </div>
 
             <div class="card-header">
-              <h4 class="card-title">其他状态</h4>
+              <h4 class="card-title">
+                {{ t("purchase_addorder.other_status") }}
+              </h4>
             </div>
             <div class="card-body">
               <div class="mb-3">
                 <div class="row g-5">
                   <div class="col-xl-4">
-                    <label class="form-label required">更新时间</label>
+                    <label class="form-label required">{{
+                      t("purchase_addorder.update_time")
+                    }}</label>
                     <dateTimePicker></dateTimePicker>
                   </div>
                   <div class="col-xl-4">
-                    <label class="form-label">快递单号</label>
+                    <label class="form-label">{{
+                      t("purchase_addorder.tracking_number")
+                    }}</label>
                     <input
                       type="text"
                       class="form-control"
-                      placeholder="输入快递单号"
+                      :placeholder="
+                        t('purchase_addorder.input_tracking_number')
+                      "
                       value=""
                     />
                   </div>
                   <div class="col-xl-4">
-                    订单状态
+                    {{ t("purchase_addorder.order_status") }}
                     <select
                       ref="select_beast"
                       class="form-control"
-                      placeholder="选择订单状态"
                       autocomplete="off"
                       value="1"
                     >
@@ -306,9 +341,8 @@ watch(locale, () => {
             </div>
             <div class="card-footer text-end">
               <div class="d-flex">
-                <button class="btn btn-link">Cancel</button>
                 <button type="submit" class="btn btn-primary ms-auto">
-                  Send data
+                  {{ t("purchase_addorder.submit") }}
                 </button>
               </div>
             </div>

@@ -20,6 +20,20 @@
     "loding": "Loading...",
     "add": "Add new option: "
   },
+  "dropzone": {
+    "upload_drop_or_click": "Drag and drop files here or click to upload",
+    "upload_browser_not_supported": "Your browser does not support drag-and-drop file upload",
+    "upload_file_too_big": "File is too large",
+    "upload_max_file_size": "Maximum file size: ",
+    "upload_invalid_file_type": "File type not supported",
+    "upload_server_error": "Server responded with an error",
+    "upload_cancel": "Cancel upload",
+    "upload_canceled": "Upload canceled",
+    "upload_cancel_confirmation": "Are you sure you want to cancel the upload?",
+    "upload_remove_file": "Remove file",
+    "upload_max_files": "You can upload up to ",
+    "upload_max_files_unit": " files"
+  },
   "cropper": {
     "select_image": "Select Image",
     "select_File": "Select File",
@@ -45,6 +59,38 @@
     "search": "Search",
     "add_part": "Add Order",
     "exp_report": "Export Report"
+  },
+  "purchase_addorder": {
+    "add_order": "Add Order",
+    "order_info": "Order Information",
+    "title": "Title",
+    "input_title": "Enter order title",
+    "remarks": "Remarks",
+    "remarks_text": "Enter text notes",
+    "purchase_channel": "Purchase Channel",
+    "link": "Link",
+    "style_remarks": "Style Remarks",
+    "add_style": "Add Style",
+    "cost": "Cost",
+    "type": "Type",
+    "quantity": "Quantity",
+    "fee": "Fee",
+    "total_price": "Total Price",
+    "currency": "Currency",
+    "operation": "Operation",
+    "remove": "Remove",
+    "fee_type": "Fee type",
+    "input_quantity": "Quantity",
+    "input_fee": "Fee",
+    "select_currency": "Select currency",
+    "add": "Add",
+    "other_status": "Other Status",
+    "update_time": "Update Time",
+    "tracking_number": "Tracking Number",
+    "input_tracking_number": "Enter tracking number",
+    "order_status": "Order Status",
+    "modify_order_status": "Modify Order Status",
+    "submit": "Submit"
   },
   "schedule": {
     "my_schedule": "My Schedule",
@@ -155,11 +201,11 @@
     "source_code": "Source Code",
     "copy": "Copyright © 2025 Operations. All rights reserved."
   },
-    "cost_type":{
-    "unit_price":"Unit Price",
-    "freight":"Freight"
+  "cost_type": {
+    "unit_price": "Unit Price",
+    "freight": "Freight"
   },
-    "order_status": {
+  "order_status": {
     "pending_order": "Pending Order",
     "order_placed": "Order Placed",
     "in_transit": "In Transit",
