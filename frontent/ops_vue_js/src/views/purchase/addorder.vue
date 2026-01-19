@@ -139,13 +139,14 @@ watch(locale, () => {
                   >{{ t("purchase_addorder.remarks") }}
                   <span class="form-label-description">0/100</span></label
                 >
-                <useDropzone></useDropzone>
                 <textarea
-                  class="form-control mt-2"
+                  class="form-control mt-2 mb-2"
                   name="example-textarea-input"
                   rows="6"
                   :placeholder="t('purchase_addorder.remarks_text')"
                 ></textarea>
+                <useDropzone acceptedFiles="image/*" uploadURL="/api/files/upload/image" maxFiles="10"></useDropzone>
+                
               </div>
             </div>
 

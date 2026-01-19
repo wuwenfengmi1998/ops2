@@ -24,7 +24,11 @@ const prop= defineProps({
   maxFilesize:{
     type: Number,
     default: 10,
-  }
+  },
+  uploadURL:{
+    type: String,
+    default: "/api/files/upload",
+  },
 });
 
 // 初始化 Dropzone
@@ -41,7 +45,7 @@ const initDropzone = () => {
 
   // 初始化新的实例
   dropzoneInstance = new Dropzone(dropzoneElement.value, {
-    url: "/api/files/upload", // 上传地址
+    url: prop.uploadURL, // 上传地址
     // headers: {
     //   user_cookie: "cccc",
     // },

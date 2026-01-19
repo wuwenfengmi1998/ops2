@@ -1,6 +1,10 @@
 package routers
 
-import "github.com/gin-gonic/gin"
+import (
+	"ops/models"
+
+	"github.com/gin-gonic/gin"
+)
 
 func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 	var errCode = ErrorCode[errMsg]
@@ -23,12 +27,12 @@ func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 
 }
 
-func Return_file(ctx *gin.Context, file_path string, preview bool) {
+func ReturnFile(ctx *gin.Context, file_info *models.TabFileInfo_, preview bool) {
 	if preview {
-		ctx.File(file_path)
+		ctx.File(file_info.Path)
 	} else {
 		//需要从数据库拉取原始文件名
-		//ctx.FileAttachment(file_info.Path, file_info.Name)
+		ctx.FileAttachment(file_info.Path, file_info.Name)
 	}
 
 }

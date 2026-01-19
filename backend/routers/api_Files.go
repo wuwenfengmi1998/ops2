@@ -1,7 +1,11 @@
 package routers
 
 import (
-	"fmt"
+	"io"
+	"net/http"
+	"ops/models"
+	"path"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,22 +15,151 @@ func file_save() {
 }
 
 func ApiFiles(r *gin.RouterGroup) {
-	r.POST("/upload", func(ctx *gin.Context) {
 
-		cookie := ctx.PostForm("cookie")
-		file, _ := ctx.FormFile("file")
-		//通过cookie获取用户信息
-		_, err := AuthenticationAuthorityFromCookie(cookie)
-		if err == nil {
+	//getfile := r.Group("/get") //定义上传组
+	r.GET("/:mode/:hash", func(ctx *gin.Context) {
+		hash := ctx.Param("hash")
+		mode := ctx.Param("mode")
+		// filename := ctx.Param("filename")
+		// fmt.Println(filename)
 
+		download := false
+		isPartOK := false
+
+		if mode == "get" {
+			isPartOK = true
+			download = true
+		}
+		if mode == "download" {
+			isPartOK = true
+			download = false
+		}
+		if isPartOK {
+			file_info := models.TabFileInfo_{
+				Sha256: hash,
+			}
+			if models.DB.Where(&file_info).First(&file_info).Error == nil {
+				ReturnFile(ctx, &file_info, download)
+			} else {
+				//fmt.Println("not fund")
+				ReturnJson(ctx, "file_not_found", nil)
+			}
+		} else {
+			ReturnJson(ctx, "file_part_err", nil)
 		}
 
-		fmt.Println(file.Filename)
-		fmt.Println(cookie)
-		ReturnJson(ctx, "apiOK", nil)
 	})
-	r.GET("/upload", func(ctx *gin.Context) {
-		ReturnJson(ctx, "apiOK", nil)
+
+	upload := r.Group("/upload") //定义上传组
+	//上传文件的总接口，能上传什么文件应该由后端决定，前端仅做相应限制
+
+	upload.POST("/image", func(ctx *gin.Context) {
+
+		cookie := ctx.PostForm("cookie") //首先需要判断用户是否登录
+
+		//通过cookie获取用户信息
+		user, err := AuthenticationAuthorityFromCookie(cookie)
+		if err == nil {
+			file, err := ctx.FormFile("file")
+
+			if err == nil {
+				if file.Filename != "" {
+					//限制文件大小
+					if file.Size > 512 {
+						if file.Size < int64(models.ConfigsFile.MaxSize) {
+
+							//判断文件mime是否合法
+							// 打开文件流
+							src_mime, _ := file.Open()
+							defer src_mime.Close()
+							// 读取前512字节用于MIME检测
+							buffer := make([]byte, 512)
+							io.ReadFull(src_mime, buffer)
+							// 检测MIME类型
+							mimeType := http.DetectContentType(buffer)
+							file_extname := models.ConfigsFile.AllowImageMime[mimeType]
+							if file_extname != "" {
+								filename := filepath.Base(file.Filename) // 防御性处理路径分隔符
+								// 计算哈希值
+								hash_str, err := models.SHA256HashFile(file)
+								if err == nil {
+									//fmt.Println(hash_str)
+									//fmt.Println(filename)
+									//这是上传的真实路径
+									dst := path.Join(models.ConfigsFile.Pahts["image"], hash_str)
+									//fmt.Println(dst)
+									//判断文件是否存在避免重复保存
+									if models.FileExists(dst) {
+										//fmt.Println("文件存在")
+
+									} else {
+										//fmt.Println("文件no存在")
+										ferr := ctx.SaveUploadedFile(file, dst)
+										if ferr == nil {
+											//文件保存成功
+
+										} else {
+
+											ReturnJson(ctx, "file_save_err", nil)
+											ctx.Abort() //end
+											return
+										}
+									}
+									//记录到数据库
+									//先检查数据库有没有数据
+									fund_file_info := models.TabFileInfo_{
+										Name:   filename,
+										Sha256: hash_str,
+										Mime:   mimeType,
+										Type:   "image",
+										UserID: user.ID,
+									}
+									fund_file_info2 := models.TabFileInfo_{}
+
+									models.DB.Where(&fund_file_info).Find(&fund_file_info2)
+
+									if fund_file_info2.ID != 0 {
+										fund_file_info2.Const += 1
+										models.DB.Where(&fund_file_info).Updates(&fund_file_info2)
+									} else {
+										fund_file_info.Path = dst
+										models.DB.Create(&fund_file_info) // 传入指针
+									}
+
+									ReturnJson(ctx, "apiOK", nil)
+
+								} else {
+									ReturnJson(ctx, "file_hash_err", nil)
+								}
+
+							} else {
+								ReturnJson(ctx, "file_mime_err", nil)
+							}
+						} else {
+							ReturnJson(ctx, "file_size_err", nil)
+						}
+
+					} else {
+						ReturnJson(ctx, "file_size_err", nil)
+					}
+
+				} else {
+					ReturnJson(ctx, "file_name_err", nil)
+				}
+
+			} else {
+				ReturnJson(ctx, "file_get_err", nil)
+			}
+
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+
+		ReturnJson(ctx, "apiErr", nil)
 	})
+
+	// r.GET("/upload", func(ctx *gin.Context) {
+	// 	ReturnJson(ctx, "apiOK", nil)
+	// })
 
 }

@@ -16,7 +16,7 @@ type TabFileInfo_ struct {
 	ID     uint      `gorm:"primaryKey;autoIncrement"`
 	Name   string    `gorm:"not null;size:256;index"` // 前端报告的文件名
 	Path   string    `gorm:"not null;size:300"`       //
-	Sha256 string    `gorm:"not null;size:256;index"` //
+	Sha256 string    `gorm:"not null;size:64;index"`  //
 	Mime   string    `gorm:"size:64;index"`
 	Type   string    `gorm:"size:64;index"`
 	Const  uint      `gorm:"default:1;index"`
