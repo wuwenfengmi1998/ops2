@@ -1,31 +1,56 @@
 <script setup>
-import { ref, onMounted, onUnmounted,defineProps } from "vue";
+import { ref, onMounted, onUnmounted, defineProps, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 const { t, locale } = useI18n();
 import Dropzone from "dropzone";
 import "dropzone/dist/dropzone.css";
 
 import { useUserStore } from "@/stores/user";
+
+import "fslightbox";
+const lightbox = new FsLightbox();
+
 const userStore = useUserStore();
 
 const dropzoneElement = ref(null);
 let dropzoneInstance = null;
-const files = ref([]);
 
-const prop= defineProps({
+const files = reactive([]);
+
+function get_file_from_uuid(uuid) {
+  if (files.length != 0) {
+    for(let i=0;i<files.length;i++){
+      if(files[i].uuid==uuid){
+        return i;
+      }
+    }  
+  } 
+  return -1;
+  
+}
+
+function remove_file_from_uuie(uuid) {
+  //delete files[uuid]
+  var id=get_file_from_uuid(uuid)
+  if(id>=0){
+    files.splice(id, 1) 
+  }
+}
+
+const prop = defineProps({
   maxFiles: {
     type: Number,
     default: 5,
   },
-  acceptedFiles:{
+  acceptedFiles: {
     type: String,
     default: "image/*",
   },
-  maxFilesize:{
+  maxFilesize: {
     type: Number,
     default: 10,
   },
-  uploadURL:{
+  uploadURL: {
     type: String,
     default: "/api/files/upload",
   },
@@ -58,7 +83,7 @@ const initDropzone = () => {
     parallelUploads: 3, // 同时上传的文件数
     maxFilesize: prop.maxFilesize, // MB
     maxFiles: prop.maxFiles, // 最大文件数
-    acceptedFiles:prop.acceptedFiles, // 接受的文件类型
+    acceptedFiles: prop.acceptedFiles, // 接受的文件类型
     //addRemoveLinks: true, // 显示移除链接
     dictDefaultMessage: t("dropzone.upload_drop_or_click"),
     dictFallbackMessage: t("dropzone.upload_browser_not_supported"),
@@ -89,11 +114,60 @@ const initDropzone = () => {
           // 处理点击事件
           console.log("缩略图被点击", file);
 
+          //动态把文件载入灯箱
+          //先移除原有数据
+          lightbox.props.sources.splice(0,lightbox.props.sources.length)
+
+          var dis_id=0;
+          var dis_id_t=0;
+          for (let i=0;i<files.length;i++){
+            if(files[i]["is_upload"]==true){
+              lightbox.props.sources.push(files[i]["get_url"])
+              if(files[i]["uuid"]==file.upload.uuid){
+                dis_id=dis_id_t;
+              }
+            }
+            dis_id_t+=1;
+          }
+
+          lightbox.open(dis_id);
+
           // 可以在这里实现：
           // 1. 预览大图
           // 2. 显示文件详情
           // 3. 触发自定义操作
         });
+
+        //将后台接收到的url添加到文件列表
+        // var t = {
+        //   //uuid:file.upload.uuid,
+        //   hash: response.return.hash,
+        //   get_url: response.return.get,
+        //   download_url: response.return.download,
+        //   name: file.name,
+        //   size: file.size,
+        // };
+
+        var file_id=get_file_from_uuid(file.upload.uuid)
+        if(file_id>=0)
+        {
+          files[file_id]["hash"]=response.return.hash;
+          files[file_id]["get_url"]=response.return.get;
+          files[file_id]["download_url"]=response.return.download;
+          files[file_id]["file_name"]=file.name;
+          files[file_id]["file_size"]=file.size;
+
+          files[file_id]["is_upload"]=true;
+
+          console.log(files)
+        }
+
+        //files.push(t)
+        // files[file.upload.uuid]=t
+        // console.log(files)
+
+        // lightbox.props.sources.push(t.get_url)
+        // console.log(lightbox)
       });
       this.on("error", (file, errorMessage) => {
         console.error("上传失败:", file.name, errorMessage);
@@ -101,15 +175,24 @@ const initDropzone = () => {
       this.on("removedfile", (file) => {
         console.log("remove:", file);
         //files.value = files.value.filter(f => f.name !== file.name)
+         remove_file_from_uuie(file.upload.uuid)
+         console.log(files)
       });
       this.on("addedfile", (file) => {
+        //添加文件
         console.log("addfile", file);
+        //控制排序 需要从添加文件开始操作
+        var t = {
+          uuid: file.upload.uuid,
+          is_upload: false,
+        };
+        files.push(t);
+        console.log(files);
       });
       this.on("sending", function (file, xhr, formData) {
         // 获取表单值并添加到 FormData
         //console.log(userStore.userCookie.Value)
         formData.append("cookie", userStore.userCookie.Value);
-
       });
     },
   });
@@ -149,6 +232,8 @@ const initDropzone = () => {
 // 组件挂载时初始化
 onMounted(() => {
   initDropzone();
+
+  //console.log(lightbox)
 });
 
 // 组件卸载时销毁

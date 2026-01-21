@@ -126,7 +126,16 @@ func ApiFiles(r *gin.RouterGroup) {
 										models.DB.Create(&fund_file_info) // 传入指针
 									}
 
-									ReturnJson(ctx, "apiOK", nil)
+									//返回后台存储的URL
+									download_URL := path.Join("/api/files/download/", hash_str)
+									get_URL := path.Join("/api/files/get/", hash_str)
+									re := map[string]interface{}{
+										"download": download_URL,
+										"get":      get_URL,
+										"hash":     hash_str,
+									}
+
+									ReturnJson(ctx, "apiOK", re)
 
 								} else {
 									ReturnJson(ctx, "file_hash_err", nil)
@@ -155,7 +164,7 @@ func ApiFiles(r *gin.RouterGroup) {
 			ReturnJson(ctx, "userCookieError", nil)
 		}
 
-		ReturnJson(ctx, "apiErr", nil)
+		//ReturnJson(ctx, "apiErr", nil)
 	})
 
 	// r.GET("/upload", func(ctx *gin.Context) {
