@@ -16,7 +16,30 @@ const router = useRouter();
 import TomSelect from "tom-select";
 import "tom-select/dist/css/tom-select.css";
 
+
+const textarea_maxlen=256
+const textarea_len=ref(0)
+const textarea_val=ref()
+
 const { t, locale } = useI18n();
+
+function submit_order(){
+
+}
+
+
+function textarea_change(a){
+  //console.log(textarea_val.value.length)
+
+  textarea_len.value=textarea_val.value.length
+
+  // if(a.inputType=="insertText"){
+  //   textarea_len.value+=1;
+  // }
+  // if(a.inputType=="deleteContentBackward"){
+  //   textarea_len.value-=1;
+  // }
+}
 
 function functionupdataTitle() {
   document.title = "Operations." + t("purchase.add_part");
@@ -137,13 +160,16 @@ watch(locale, () => {
               <div class="mb-3">
                 <label class="form-label"
                   >{{ t("purchase_addorder.remarks") }}
-                  <span class="form-label-description">0/100</span></label
+                  <span class="form-label-description">{{textarea_len}}/{{textarea_maxlen}}</span></label
                 >
                 <textarea
                   class="form-control mt-2 mb-2"
                   name="example-textarea-input"
                   rows="6"
                   :placeholder="t('purchase_addorder.remarks_text')"
+                  :maxlength="textarea_maxlen"
+                  @input="textarea_change"
+                  v-model="textarea_val"
                 ></textarea>
                 <useDropzone acceptedFiles="image/*" uploadURL="/api/files/upload/image" maxFiles="10"></useDropzone>
                 
@@ -262,7 +288,7 @@ watch(locale, () => {
                         class="form-control"
                         step="0.01"
                         min="0"
-                        value="0.0"
+                        value="0"
                         v-model="cost_sheet.cost"
                       />
                     </div>
@@ -342,7 +368,7 @@ watch(locale, () => {
             </div>
             <div class="card-footer text-end">
               <div class="d-flex">
-                <button type="submit" class="btn btn-primary ms-auto">
+                <button type="submit" class="btn btn-primary ms-auto" @click="submit_order">
                   {{ t("purchase_addorder.submit") }}
                 </button>
               </div>
