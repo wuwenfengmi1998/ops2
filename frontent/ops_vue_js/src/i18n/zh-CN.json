@@ -90,7 +90,8 @@
     "input_tracking_number": "输入快递单号",
     "order_status": "订单状态",
     "modify_order_status": "修改订单状态",
-    "submit": "提交"
+    "submit": "提交",
+    "part_name":"物件名称"
   },
   "schedule": {
     "my_schedule": "我的日程",

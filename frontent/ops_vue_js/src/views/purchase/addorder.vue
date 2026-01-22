@@ -16,34 +16,11 @@ const router = useRouter();
 import TomSelect from "tom-select";
 import "tom-select/dist/css/tom-select.css";
 
-
-const textarea_maxlen=256
-const textarea_len=ref(0)
-const textarea_val=ref()
+const textarea_maxlen = 256;
+const textarea_len = ref(0);
+const textarea_val = ref();
 
 const { t, locale } = useI18n();
-
-function submit_order(){
-
-}
-
-
-function textarea_change(a){
-  //console.log(textarea_val.value.length)
-
-  textarea_len.value=textarea_val.value.length
-
-  // if(a.inputType=="insertText"){
-  //   textarea_len.value+=1;
-  // }
-  // if(a.inputType=="deleteContentBackward"){
-  //   textarea_len.value-=1;
-  // }
-}
-
-function functionupdataTitle() {
-  document.title = "Operations." + t("purchase.add_part");
-}
 
 //货币类型
 const currency_type = reactive({
@@ -109,13 +86,33 @@ function add_cost() {
   //console.log(t);
 }
 
+function submit_order() {
+  console.log("up");
+}
+
+function textarea_change(a) {
+  //console.log(textarea_val.value.length)
+
+  textarea_len.value = textarea_val.value.length;
+
+  // if(a.inputType=="insertText"){
+  //   textarea_len.value+=1;
+  // }
+  // if(a.inputType=="deleteContentBackward"){
+  //   textarea_len.value-=1;
+  // }
+}
+
+function functionupdataTitle() {
+  document.title = "Operations." + t("purchase.add_part");
+}
+
 onMounted(() => {
   functionupdataTitle();
   //sele_init();
   if (!userStore.isLoggedIn) {
     router.push("/login");
   }
-
 });
 // 监听语言变化，更新标题
 watch(locale, () => {
@@ -123,6 +120,20 @@ watch(locale, () => {
   update_cost_type();
   update_order_status();
 });
+
+// 监听 cost 变化，自动限制小数位
+watch(
+  () => cost_sheet.cost,
+  (newVal) => {
+    if (newVal !== null && newVal !== undefined) {
+      // 四舍五入到2位小数
+      const fixed = parseFloat(newVal).toFixed(2);
+      if (parseFloat(fixed) !== newVal) {
+        cost_sheet.cost = parseFloat(fixed);
+      }
+    }
+  }
+);
 </script>
 
 <template>
@@ -160,7 +171,9 @@ watch(locale, () => {
               <div class="mb-3">
                 <label class="form-label"
                   >{{ t("purchase_addorder.remarks") }}
-                  <span class="form-label-description">{{textarea_len}}/{{textarea_maxlen}}</span></label
+                  <span class="form-label-description"
+                    >{{ textarea_len }}/{{ textarea_maxlen }}</span
+                  ></label
                 >
                 <textarea
                   class="form-control mt-2 mb-2"
@@ -171,8 +184,11 @@ watch(locale, () => {
                   @input="textarea_change"
                   v-model="textarea_val"
                 ></textarea>
-                <useDropzone acceptedFiles="image/*" uploadURL="/api/files/upload/image" maxFiles="10"></useDropzone>
-                
+                <useDropzone
+                  acceptedFiles="image/*"
+                  uploadURL="/api/files/upload/image"
+                  maxFiles="10"
+                ></useDropzone>
               </div>
             </div>
 
@@ -193,6 +209,17 @@ watch(locale, () => {
                   placeholder="http"
                   value=""
                 />
+                <div class="mb-3 mt-3">
+                  <label class="form-label">{{
+                    t("purchase_addorder.part_name")
+                  }}</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    name="example-text-input"
+                    :placeholder="t('purchase_addorder.part_name')"
+                  />
+                </div>
                 <div class="mt-3">
                   <label class="form-label">{{
                     t("purchase_addorder.style_remarks")
@@ -368,7 +395,11 @@ watch(locale, () => {
             </div>
             <div class="card-footer text-end">
               <div class="d-flex">
-                <button type="submit" class="btn btn-primary ms-auto" @click="submit_order">
+                <button
+                  type="submit"
+                  class="btn btn-primary ms-auto"
+                  @click="submit_order"
+                >
                   {{ t("purchase_addorder.submit") }}
                 </button>
               </div>

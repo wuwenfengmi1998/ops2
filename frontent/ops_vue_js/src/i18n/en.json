@@ -90,7 +90,8 @@
     "input_tracking_number": "Enter tracking number",
     "order_status": "Order Status",
     "modify_order_status": "Modify Order Status",
-    "submit": "Submit"
+    "submit": "Submit",
+    "part_name":"Parts Name"
   },
   "schedule": {
     "my_schedule": "My Schedule",
