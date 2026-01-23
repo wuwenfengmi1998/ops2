@@ -13,27 +13,27 @@ const lightbox = new FsLightbox();
 const userStore = useUserStore();
 
 const dropzoneElement = ref(null);
-let dropzoneInstance = null;
+var dropzoneInstance = null;
 
 const files = reactive([]);
 
 function get_file_from_uuid(uuid) {
   if (files.length != 0) {
-    for(let i=0;i<files.length;i++){
-      if(files[i].uuid==uuid){
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].uuid == uuid) {
         return i;
       }
-    }  
-  } 
-  return -1;
-  
+    }
+    return -1;
+  }
+  return -2;
 }
 
 function remove_file_from_uuie(uuid) {
-  //delete files[uuid]
-  var id=get_file_from_uuid(uuid)
-  if(id>=0){
-    files.splice(id, 1) 
+  //devare files[uuid]
+  var id = get_file_from_uuid(uuid);
+  if (id >= 0) {
+    files.splice(id, 1);
   }
 }
 
@@ -87,12 +87,12 @@ const initDropzone = () => {
     //addRemoveLinks: true, // 显示移除链接
     dictDefaultMessage: t("dropzone.upload_drop_or_click"),
     dictFallbackMessage: t("dropzone.upload_browser_not_supported"),
-    dictFileTooBig:
+    dictFivarooBig:
       t("dropzone.upload_file_too_big") +
       "({{filesize}}MB). " +
       t("dropzone.upload_max_file_size") +
       "{{maxFilesize}}MB.",
-    dictInvalidFileType: t("dropzone.upload_invalid_file_type"),
+    dictInvalidFivarype: t("dropzone.upload_invalid_file_type"),
     dictResponseError: t("dropzone.upload_server_error") + "{{statusCode}}",
     //dictCancelUpload: t('dropzone.upload_cancel'),
     //dictUploadCanceled: t('dropzone.upload_canceled'),
@@ -106,28 +106,28 @@ const initDropzone = () => {
     // 事件处理
     init: function () {
       this.on("success", (file, response) => {
-        console.log("上传成功:", file, response);
+        //console.log("上传成功:", file, response);
         file.previewElement.addEventListener("click", function (e) {
           e.preventDefault();
           e.stopPropagation();
 
           // 处理点击事件
-          console.log("缩略图被点击", file);
+          //console.log("缩略图被点击", file);
 
           //动态把文件载入灯箱
           //先移除原有数据
-          lightbox.props.sources.splice(0,lightbox.props.sources.length)
+          lightbox.props.sources.splice(0, lightbox.props.sources.length);
 
-          var dis_id=0;
-          var dis_id_t=0;
-          for (let i=0;i<files.length;i++){
-            if(files[i]["is_upload"]==true){
-              lightbox.props.sources.push(files[i]["get_url"])
-              if(files[i]["uuid"]==file.upload.uuid){
-                dis_id=dis_id_t;
+          var dis_id = 0;
+          var dis_id_t = 0;
+          for (var i = 0; i < files.length; i++) {
+            if (files[i]["is_upload"] == true) {
+              lightbox.props.sources.push(files[i]["get_url"]);
+              if (files[i]["uuid"] == file.upload.uuid) {
+                dis_id = dis_id_t;
               }
             }
-            dis_id_t+=1;
+            dis_id_t += 1;
           }
 
           lightbox.open(dis_id);
@@ -148,18 +148,17 @@ const initDropzone = () => {
         //   size: file.size,
         // };
 
-        var file_id=get_file_from_uuid(file.upload.uuid)
-        if(file_id>=0)
-        {
-          files[file_id]["hash"]=response.return.hash;
-          files[file_id]["get_url"]=response.return.get;
-          files[file_id]["download_url"]=response.return.download;
-          files[file_id]["file_name"]=file.name;
-          files[file_id]["file_size"]=file.size;
+        var file_id = get_file_from_uuid(file.upload.uuid);
+        if (file_id >= 0) {
+          files[file_id]["hash"] = response.return.hash;
+          files[file_id]["get_url"] = response.return.get;
+          files[file_id]["download_url"] = response.return.download;
+          files[file_id]["file_name"] = file.name;
+          files[file_id]["file_size"] = file.size;
 
-          files[file_id]["is_upload"]=true;
+          files[file_id]["is_upload"] = true;
 
-          console.log(files)
+          //console.log(files)
         }
 
         //files.push(t)
@@ -173,21 +172,30 @@ const initDropzone = () => {
         console.error("上传失败:", file.name, errorMessage);
       });
       this.on("removedfile", (file) => {
-        console.log("remove:", file);
+        //console.log("remove:", file);
         //files.value = files.value.filter(f => f.name !== file.name)
-         remove_file_from_uuie(file.upload.uuid)
-         console.log(files)
+        remove_file_from_uuie(file.upload.uuid);
+        //console.log(files)
       });
       this.on("addedfile", (file) => {
         //添加文件
-        console.log("addfile", file);
-        //控制排序 需要从添加文件开始操作
-        var t = {
-          uuid: file.upload.uuid,
-          is_upload: false,
-        };
-        files.push(t);
-        console.log(files);
+        console.log(get_file_from_uuid(file.upload.uuid));
+
+        //判断文件是否重复
+        if (get_file_from_uuid(file.upload.uuid) <0) {
+          //   //控制排序 需要从添加文件开始操作
+          var t = {
+            uuid: file.upload.uuid,
+            is_upload: false,
+          };
+          files.push(t);
+          console.log(files);
+          return;
+        }
+
+        //this.removeFile(file)
+
+        
       });
       this.on("sending", function (file, xhr, formData) {
         // 获取表单值并添加到 FormData
@@ -229,6 +237,10 @@ const initDropzone = () => {
 //   }
 // }
 
+function return_files() {
+  return files;
+}
+
 // 组件挂载时初始化
 onMounted(() => {
   initDropzone();
@@ -241,6 +253,10 @@ onUnmounted(() => {
   if (dropzoneInstance) {
     dropzoneInstance.destroy();
   }
+});
+
+defineExpose({
+  return_files,
 });
 </script>
 
@@ -310,15 +326,8 @@ onUnmounted(() => {
         <!-- 移除按钮 -->
       </div>
     </div>
+    <div class="text-end">{{ files.length }}/{{ maxFiles }}</div>
     <div ref="dropzoneElement" class="dropzone"></div>
-    <!-- <div v-if="files.length > 0" class="mt-4">
-      <h3>已选择的文件：</h3>
-      <ul>
-        <li v-for="file in files" :key="file.name">
-          {{ file.name }} ({{ formatBytes(file.size) }})
-        </li>
-      </ul>
-    </div> -->
   </div>
 </template>
 

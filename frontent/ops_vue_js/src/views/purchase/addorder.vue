@@ -2,6 +2,8 @@
 import { onMounted, watch, ref, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 
+import MyOffcanvas from "@/components/MyOffcanvas.vue";
+
 import tagadder from "@/components/tagadder.vue";
 import dateTimePicker from "@/components/dateTimePicker.vue";
 
@@ -18,7 +20,12 @@ import "tom-select/dist/css/tom-select.css";
 
 const textarea_maxlen = 256;
 const textarea_len = ref(0);
-const textarea_val = ref();
+
+const title_input_dom = ref();
+
+const photos_hash = ref();
+
+const mos = ref();
 
 const { t, locale } = useI18n();
 
@@ -44,7 +51,7 @@ const order_status = reactive({
   1: t("order_status.pending_order"),
   2: t("order_status.order_placed"),
   3: t("order_status.in_transit"),
-  4: t("order_status.completed"),
+  4: t("order_status.compvared"),
   5: t("order_status.refund_requested"),
   6: t("order_status.returning"),
   7: t("order_status.refunded"),
@@ -55,7 +62,7 @@ function update_order_status() {
   order_status["1"] = t("order_status.pending_order");
   order_status["2"] = t("order_status.order_placed");
   order_status["3"] = t("order_status.in_transit");
-  order_status["4"] = t("order_status.completed");
+  order_status["4"] = t("order_status.compvared");
   order_status["5"] = t("order_status.refund_requested");
   order_status["6"] = t("order_status.returning");
   order_status["7"] = t("order_status.refunded");
@@ -86,19 +93,50 @@ function add_cost() {
   //console.log(t);
 }
 
+const submit_sheet = reactive({
+  title: "",
+  remark: "",
+  photos: [],
+  link: "",
+  part_name: "",
+  styles: [],
+  costs: [],
+  update_time: "",
+  tracking_number: "",
+  order_status: "1",
+});
+
 function submit_order() {
-  console.log("up");
+  if (submit_sheet.title == "") {
+    title_input_dom.value.classList.add("is-invalid");
+    title_input_dom.value.addEventListener("input", function () {
+      if (this.value.trim() !== "") {
+        this.classList.remove("is-invalid");
+        //this.removeEventListener('input');
+      }
+    });
+
+    mos.value?.showAlert("danger", t("purchase_addorder.title"), 1000);
+    return;
+  }
+  //载入图片哈希列表
+  var photos = photos_hash.value.return_files();
+  for (var i = 0; i < photos.length; i++) {
+    submit_sheet.photos.push(photos[i].hash);
+  }
+
+  console.log(submit_sheet);
 }
 
 function textarea_change(a) {
   //console.log(textarea_val.value.length)
 
-  textarea_len.value = textarea_val.value.length;
+  textarea_len.value = submit_sheet.remark.length;
 
   // if(a.inputType=="insertText"){
   //   textarea_len.value+=1;
   // }
-  // if(a.inputType=="deleteContentBackward"){
+  // if(a.inputType=="devareContentBackward"){
   //   textarea_len.value-=1;
   // }
 }
@@ -132,7 +170,7 @@ watch(
         cost_sheet.cost = parseFloat(fixed);
       }
     }
-  }
+  },
 );
 </script>
 
@@ -166,6 +204,8 @@ watch(
                   class="form-control"
                   name="example-text-input"
                   :placeholder="t('purchase_addorder.title')"
+                  v-model="submit_sheet.title"
+                  ref="title_input_dom"
                 />
               </div>
               <div class="mb-3">
@@ -182,12 +222,13 @@ watch(
                   :placeholder="t('purchase_addorder.remarks_text')"
                   :maxlength="textarea_maxlen"
                   @input="textarea_change"
-                  v-model="textarea_val"
+                  v-model="submit_sheet.remark"
                 ></textarea>
                 <useDropzone
                   acceptedFiles="image/*"
                   uploadURL="/api/files/upload/image"
                   maxFiles="10"
+                  ref="photos_hash"
                 ></useDropzone>
               </div>
             </div>
@@ -202,13 +243,13 @@ watch(
                 <label class="form-label">{{
                   t("purchase_addorder.link")
                 }}</label>
-                <input
+                <textarea
                   name="url"
                   type="url"
                   class="form-control"
                   placeholder="http"
-                  value=""
-                />
+                  v-model="submit_sheet.link"
+                ></textarea>
                 <div class="mb-3 mt-3">
                   <label class="form-label">{{
                     t("purchase_addorder.part_name")
@@ -218,6 +259,7 @@ watch(
                     class="form-control"
                     name="example-text-input"
                     :placeholder="t('purchase_addorder.part_name')"
+                    v-model="submit_sheet.part_name"
                   />
                 </div>
                 <div class="mt-3">
@@ -289,7 +331,7 @@ watch(
                       <select
                         ref="select_type"
                         class="form-control"
-                        autocomplete="off"
+                        autocompvare="off"
                         value="1"
                         v-model="cost_sheet.type"
                       >
@@ -324,7 +366,7 @@ watch(
                       <select
                         ref="select_beast"
                         class="form-control"
-                        autocomplete="off"
+                        autocompvare="off"
                         value="1"
                         v-model="cost_sheet.currency_type"
                       >
@@ -374,7 +416,7 @@ watch(
                       :placeholder="
                         t('purchase_addorder.input_tracking_number')
                       "
-                      value=""
+                      v-model="submit_sheet.tracking_number"
                     />
                   </div>
                   <div class="col-xl-4">
@@ -382,8 +424,8 @@ watch(
                     <select
                       ref="select_beast"
                       class="form-control"
-                      autocomplete="off"
-                      value="1"
+                      autocompvare="off"
+                      v-model="submit_sheet.order_status"
                     >
                       <option v-for="(value, key) in order_status" :value="key">
                         {{ value }}
@@ -409,6 +451,8 @@ watch(
       </div>
     </div>
   </div>
+
+  <MyOffcanvas ref="mos" />
 </template>
 
 <style></style>
