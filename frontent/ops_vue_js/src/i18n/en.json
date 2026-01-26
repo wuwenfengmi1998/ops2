@@ -66,6 +66,7 @@
     "title": "Title",
     "input_title": "Enter order title",
     "remarks": "Remarks",
+    "photo_remarks": "Photos Remarks",
     "remarks_text": "Enter text notes",
     "purchase_channel": "Purchase Channel",
     "link": "Link",

@@ -8,7 +8,7 @@ import "dropzone/dist/dropzone.css";
 import { useUserStore } from "@/stores/user";
 
 import "fslightbox";
-const lightbox = new FsLightbox();
+//var lightbox = new FsLightbox();
 
 const userStore = useUserStore();
 
@@ -108,6 +108,9 @@ const initDropzone = () => {
       this.on("success", (file, response) => {
         //console.log("上传成功:", file, response);
         file.previewElement.addEventListener("click", function (e) {
+          //delete lightbox
+          const lightbox = new FsLightbox();
+          //console.log(files)
           e.preventDefault();
           e.stopPropagation();
 
@@ -116,7 +119,7 @@ const initDropzone = () => {
 
           //动态把文件载入灯箱
           //先移除原有数据
-          lightbox.props.sources.splice(0, lightbox.props.sources.length);
+          //lightbox.props.sources.splice(0, lightbox.props.sources.length);
 
           var dis_id = 0;
           var dis_id_t = 0;
@@ -131,22 +134,7 @@ const initDropzone = () => {
           }
 
           lightbox.open(dis_id);
-
-          // 可以在这里实现：
-          // 1. 预览大图
-          // 2. 显示文件详情
-          // 3. 触发自定义操作
         });
-
-        //将后台接收到的url添加到文件列表
-        // var t = {
-        //   //uuid:file.upload.uuid,
-        //   hash: response.return.hash,
-        //   get_url: response.return.get,
-        //   download_url: response.return.download,
-        //   name: file.name,
-        //   size: file.size,
-        // };
 
         var file_id = get_file_from_uuid(file.upload.uuid);
         if (file_id >= 0) {
@@ -179,23 +167,21 @@ const initDropzone = () => {
       });
       this.on("addedfile", (file) => {
         //添加文件
-        console.log(get_file_from_uuid(file.upload.uuid));
 
-        //判断文件是否重复
-        if (get_file_from_uuid(file.upload.uuid) <0) {
-          //   //控制排序 需要从添加文件开始操作
+        //控制排序 需要从添加文件开始操作
+
+        //限制文件数量
+        if (files.length < prop.maxFiles) {
           var t = {
             uuid: file.upload.uuid,
             is_upload: false,
           };
           files.push(t);
-          console.log(files);
-          return;
+        } else {
+          this.removeFile(file);
         }
 
-        //this.removeFile(file)
-
-        
+        //console.log(files);
       });
       this.on("sending", function (file, xhr, formData) {
         // 获取表单值并添加到 FormData
@@ -326,6 +312,7 @@ defineExpose({
         <!-- 移除按钮 -->
       </div>
     </div>
+    
     <div class="text-end">{{ files.length }}/{{ maxFiles }}</div>
     <div ref="dropzoneElement" class="dropzone"></div>
   </div>

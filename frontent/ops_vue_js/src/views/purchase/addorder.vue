@@ -15,11 +15,10 @@ const userStore = useUserStore();
 import { useRouter } from "vue-router";
 const router = useRouter();
 
-import TomSelect from "tom-select";
 import "tom-select/dist/css/tom-select.css";
+import { my_network_func } from "@/my_network_func";
 
 const textarea_maxlen = 256;
-const textarea_len = ref(0);
 
 const title_input_dom = ref();
 
@@ -75,6 +74,7 @@ const cost_sheet = reactive({
   type: "1",
   int: 1,
   cost: 0.0,
+  cost_t: 0.0,
   currency_type: "1",
 });
 
@@ -82,15 +82,16 @@ function del_cost(key) {
   cost_sheet_tab.splice(key, 1);
 }
 function add_cost() {
+  // 四舍五入到2位小数
+  // const fixed = parseFloat(newVal).toFixed(2);
+  // if (parseFloat(fixed) !== newVal) {
+  //   cost_sheet.cost = parseFloat(fixed);
+  // }
+
+  var t = parseFloat((cost_sheet.int * cost_sheet.cost).toFixed(2));
+  cost_sheet.cost_t = t;
+
   cost_sheet_tab.push(JSON.parse(JSON.stringify(cost_sheet)));
-  // var t = {
-  //   type: cost_type[cost_sheet.type],
-  //   int: cost_sheet.int,
-  //   cost: cost_sheet.cost,
-  //   currency_type: currency_type[cost_sheet.currency_type],
-  // };
-  // cost_sheet_tab.push(t);
-  //console.log(t);
 }
 
 const submit_sheet = reactive({
@@ -99,7 +100,7 @@ const submit_sheet = reactive({
   photos: [],
   link: "",
   part_name: "",
-  styles: [],
+  styles: "",
   costs: [],
   update_time: "",
   tracking_number: "",
@@ -120,25 +121,22 @@ function submit_order() {
     return;
   }
   //载入图片哈希列表
+  submit_sheet.photos = [];
   var photos = photos_hash.value.return_files();
   for (var i = 0; i < photos.length; i++) {
     submit_sheet.photos.push(photos[i].hash);
   }
 
+  //载入价格表
+  submit_sheet.costs = [];
+  for (var i = 0; i < cost_sheet_tab.length; i++) {
+    submit_sheet.costs.push(cost_sheet_tab[i]);
+  }
+
   console.log(submit_sheet);
-}
-
-function textarea_change(a) {
-  //console.log(textarea_val.value.length)
-
-  textarea_len.value = submit_sheet.remark.length;
-
-  // if(a.inputType=="insertText"){
-  //   textarea_len.value+=1;
-  // }
-  // if(a.inputType=="devareContentBackward"){
-  //   textarea_len.value-=1;
-  // }
+  my_network_func.postJson("/purchase/addorder", submit_sheet, (r) => {
+    console.log(r)
+  });
 }
 
 function functionupdataTitle() {
@@ -212,7 +210,9 @@ watch(
                 <label class="form-label"
                   >{{ t("purchase_addorder.remarks") }}
                   <span class="form-label-description"
-                    >{{ textarea_len }}/{{ textarea_maxlen }}</span
+                    >{{ submit_sheet.remark.length }}/{{
+                      textarea_maxlen
+                    }}</span
                   ></label
                 >
                 <textarea
@@ -221,15 +221,8 @@ watch(
                   rows="6"
                   :placeholder="t('purchase_addorder.remarks_text')"
                   :maxlength="textarea_maxlen"
-                  @input="textarea_change"
                   v-model="submit_sheet.remark"
                 ></textarea>
-                <useDropzone
-                  acceptedFiles="image/*"
-                  uploadURL="/api/files/upload/image"
-                  maxFiles="10"
-                  ref="photos_hash"
-                ></useDropzone>
               </div>
             </div>
 
@@ -247,7 +240,7 @@ watch(
                   name="url"
                   type="url"
                   class="form-control"
-                  placeholder="http"
+                  placeholder="https"
                   v-model="submit_sheet.link"
                 ></textarea>
                 <div class="mb-3 mt-3">
@@ -269,7 +262,19 @@ watch(
 
                   <tagadder
                     :placeholder="t('purchase_addorder.add_style')"
+                    v-model="submit_sheet.styles"
                   ></tagadder>
+
+                  <label class="form-label mt-3 mb-0">{{
+                    t("purchase_addorder.photo_remarks")
+                  }}</label>
+
+                  <useDropzone
+                    acceptedFiles="image/*"
+                    uploadURL="/api/files/upload/image"
+                    maxFiles="10"
+                    ref="photos_hash"
+                  ></useDropzone>
                 </div>
 
                 <div class="mt-3">
@@ -299,7 +304,7 @@ watch(
                         <td class="text-secondary">{{ value.int }}</td>
                         <td class="text-secondary">{{ value.cost }}</td>
                         <td class="text-secondary">
-                          {{ value.cost * value.int }}
+                          {{ value.cost_t }}
                         </td>
                         <td class="text-secondary">
                           {{ currency_type[value.currency_type] }}
@@ -404,7 +409,9 @@ watch(
                     <label class="form-label required">{{
                       t("purchase_addorder.update_time")
                     }}</label>
-                    <dateTimePicker></dateTimePicker>
+                    <dateTimePicker
+                      v-model="submit_sheet.update_time"
+                    ></dateTimePicker>
                   </div>
                   <div class="col-xl-4">
                     <label class="form-label">{{

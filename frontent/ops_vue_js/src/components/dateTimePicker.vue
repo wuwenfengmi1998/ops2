@@ -31,6 +31,11 @@ const datatimepack_config = reactive({
 });
 
 const sele_data = reactive();
+const emit = defineEmits(['update:modelValue'])
+const handleChange = (e) => {
+  //console.log(e)
+  emit("update:modelValue", e.target.value);
+};
 
 function getCurrentDateTime() {
   const now = new Date();
@@ -69,6 +74,8 @@ onMounted(() => {
 
   datatimepack_config.locale = locale.value == "zh-CN" ? "zh" : "en";
   flatpickr(datatimepack.value, datatimepack_config);
+
+  emit("update:modelValue", datatimepack_config.defaultDate);
 });
 
 defineExpose({});
@@ -80,6 +87,7 @@ defineExpose({});
     ref="datatimepack"
     type="datetime-local"
     class="form-control"
-    v-model="sele_data"
+   
+    @input="handleChange"
   />
 </template>

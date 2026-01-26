@@ -66,6 +66,7 @@
     "title": "标题",
     "input_title": "输入订单标题",
     "remarks": "备注",
+    "photo_remarks": "图片备注",
     "remarks_text": "输入文字备注",
     "purchase_channel": "采购途径",
     "link": "链接",
