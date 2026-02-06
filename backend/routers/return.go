@@ -1,10 +1,18 @@
 package routers
 
 import (
+	"encoding/json"
+	"fmt"
 	"ops/models"
 
 	"github.com/gin-gonic/gin"
 )
+
+func DebugPrintJson(data map[string]interface{}) {
+	p, _ := json.MarshalIndent(data, "", "    ")
+	fmt.Println("\n", string(p))
+
+}
 
 func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 	var errCode = ErrorCode[errMsg]

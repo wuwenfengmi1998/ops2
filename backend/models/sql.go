@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
+	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -87,6 +88,24 @@ type APIRequestLog_ struct {
 	StatusCode int       `gorm:"column:status_code;index" json:"status_code"`
 	Message    string    `gorm:"column:error_message;type:text" json:"error_message"`
 	CreatedAt  time.Time `gorm:"column:created_at;type:datetime;default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+type TabPurchaseOrder struct {
+	ID             uint           `gorm:"primarykey" json:"id"`
+	Title          string         `gorm:"size:200;comment:标题" json:"title"`
+	Remark         string         `gorm:"type:text;comment:备注" json:"remark"`
+	Photos         datatypes.JSON `gorm:"type:json;comment:照片哈希数组" json:"photos"`
+	Link           string         `gorm:"size:1000;comment:链接" json:"link"`
+	PartName       string         `gorm:"size:200;not null;comment:物品名称" json:"part_name"`
+	Styles         datatypes.JSON `gorm:"type:json;comment:样式数组" json:"styles"`
+	Costs          datatypes.JSON `gorm:"type:json;comment:费用明细数组" json:"costs"`
+	UpdateTime     *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:更新时间" json:"update_time"`
+	TrackingNumber string         `gorm:"size:100;uniqueIndex;comment:快递单号" json:"tracking_number"`
+	OrderStatus    int8           `gorm:"default:1;comment:订单状态" json:"order_status"`
+
+	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime"`
+	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 func DatabaseInit() error {

@@ -135,7 +135,7 @@ function submit_order() {
 
   console.log(submit_sheet);
   my_network_func.postJson("/purchase/addorder", submit_sheet, (r) => {
-    console.log(r)
+    console.log(r);
   });
 }
 
@@ -224,6 +224,16 @@ watch(
                   v-model="submit_sheet.remark"
                 ></textarea>
               </div>
+
+              <label class="form-label mb-0">{{
+                t("purchase_addorder.photo_remarks")
+              }}</label>
+              <useDropzone
+                acceptedFiles="image/*"
+                uploadURL="/api/files/upload/image"
+                maxFiles="10"
+                ref="photos_hash"
+              ></useDropzone>
             </div>
 
             <div class="card-header">
@@ -264,17 +274,6 @@ watch(
                     :placeholder="t('purchase_addorder.add_style')"
                     v-model="submit_sheet.styles"
                   ></tagadder>
-
-                  <label class="form-label mt-3 mb-0">{{
-                    t("purchase_addorder.photo_remarks")
-                  }}</label>
-
-                  <useDropzone
-                    acceptedFiles="image/*"
-                    uploadURL="/api/files/upload/image"
-                    maxFiles="10"
-                    ref="photos_hash"
-                  ></useDropzone>
                 </div>
 
                 <div class="mt-3">
@@ -361,8 +360,8 @@ watch(
                         type="number"
                         class="form-control"
                         step="0.01"
-                        min="0"
-                        value="0"
+                        min="0.0"
+                        value="0.0"
                         v-model="cost_sheet.cost"
                       />
                     </div>
