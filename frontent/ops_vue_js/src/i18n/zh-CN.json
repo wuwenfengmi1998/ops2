@@ -80,6 +80,7 @@
     "currency": "货币",
     "operation": "操作",
     "remove": "移除",
+    "change": "修改",
     "fee_type": "费用类型",
     "input_quantity": "数量",
     "input_fee": "费用",

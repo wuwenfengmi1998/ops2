@@ -79,19 +79,29 @@ const cost_sheet = reactive({
 });
 
 function del_cost(key) {
+  cost_sheet.type = cost_sheet_tab[key].type;
+  cost_sheet.int = cost_sheet_tab[key].int;
+  cost_sheet.cost = cost_sheet_tab[key].cost;
+  cost_sheet.cost_t = cost_sheet_tab[key].cost_t;
+  cost_sheet.currency_type = cost_sheet_tab[key].currency_type;
+
   cost_sheet_tab.splice(key, 1);
 }
 function add_cost() {
-  // 四舍五入到2位小数
-  // const fixed = parseFloat(newVal).toFixed(2);
-  // if (parseFloat(fixed) !== newVal) {
-  //   cost_sheet.cost = parseFloat(fixed);
-  // }
+  if (cost_sheet.cost <= 0) {
+  } else {
+    // 四舍五入到2位小数
+    var t = parseFloat((cost_sheet.int * cost_sheet.cost).toFixed(2));
+    cost_sheet.cost_t = t;
 
-  var t = parseFloat((cost_sheet.int * cost_sheet.cost).toFixed(2));
-  cost_sheet.cost_t = t;
+    cost_sheet_tab.push(JSON.parse(JSON.stringify(cost_sheet)));
 
-  cost_sheet_tab.push(JSON.parse(JSON.stringify(cost_sheet)));
+    cost_sheet.type = "1";
+    cost_sheet.int = 1;
+    cost_sheet.cost = 0.0;
+    cost_sheet.cost_t = 0.0;
+    cost_sheet.currency_type = "1";
+  }
 }
 
 const submit_sheet = reactive({
@@ -99,12 +109,12 @@ const submit_sheet = reactive({
   remark: "",
   photos: [],
   link: "",
-  part_name: "",
+  partname: "",
   styles: "",
   costs: [],
-  update_time: "",
-  tracking_number: "",
-  order_status: "1",
+  updatetime: "",
+  trackingnumber: "",
+  orderstatus: "1",
 });
 
 function submit_order() {
@@ -130,7 +140,14 @@ function submit_order() {
   //载入价格表
   submit_sheet.costs = [];
   for (var i = 0; i < cost_sheet_tab.length; i++) {
-    submit_sheet.costs.push(cost_sheet_tab[i]);
+    //var t=cost_sheet_tab[i]
+    submit_sheet.costs.push(JSON.parse(JSON.stringify(cost_sheet_tab[i])));
+  }
+
+  //修改价格表里的小数，将所有价值*100去掉小数
+  for (var i = 0; i < submit_sheet.costs.length; i++) {
+    submit_sheet.costs[i].cost *= 100;
+    submit_sheet.costs[i].cost_t *= 100;
   }
 
   console.log(submit_sheet);
@@ -262,7 +279,7 @@ watch(
                     class="form-control"
                     name="example-text-input"
                     :placeholder="t('purchase_addorder.part_name')"
-                    v-model="submit_sheet.part_name"
+                    v-model="submit_sheet.partname"
                   />
                 </div>
                 <div class="mt-3">
@@ -313,7 +330,7 @@ watch(
                             class="btn btn-outline-danger"
                             @click="del_cost(key)"
                           >
-                            {{ t("purchase_addorder.remove") }}
+                            {{ t("purchase_addorder.change") }}
                           </button>
                         </td>
                       </tr>
@@ -409,7 +426,7 @@ watch(
                       t("purchase_addorder.update_time")
                     }}</label>
                     <dateTimePicker
-                      v-model="submit_sheet.update_time"
+                      v-model="submit_sheet.updatetime"
                     ></dateTimePicker>
                   </div>
                   <div class="col-xl-4">
@@ -422,7 +439,7 @@ watch(
                       :placeholder="
                         t('purchase_addorder.input_tracking_number')
                       "
-                      v-model="submit_sheet.tracking_number"
+                      v-model="submit_sheet.trackingnumber"
                     />
                   </div>
                   <div class="col-xl-4">
@@ -431,7 +448,7 @@ watch(
                       ref="select_beast"
                       class="form-control"
                       autocompvare="off"
-                      v-model="submit_sheet.order_status"
+                      v-model="submit_sheet.orderstatus"
                     >
                       <option v-for="(value, key) in order_status" :value="key">
                         {{ value }}

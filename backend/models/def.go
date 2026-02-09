@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"regexp"
+	"strings"
 
 	"time"
 )
@@ -21,6 +22,15 @@ func GetCurrentTimeString(format ...string) string {
 	}
 
 	return time.Now().Format(layout)
+}
+
+func StringToTimePtr(str string) (*time.Time, error) {
+	layout := "2006-01-02 15:04"
+	t, err := time.Parse(layout, str)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
 }
 
 func RandStr32() string {
@@ -89,4 +99,10 @@ func IsEmailValid(email string) bool {
 	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 	regex := regexp.MustCompile(pattern)
 	return regex.MatchString(email)
+}
+
+// 判断字符串是否包含标点符号
+func IsContainsSpecialChar(str string) bool {
+	specialChars := "!@#$%^&*()-+={}[]|\\:;\"'<>,.?/"
+	return strings.ContainsAny(str, specialChars)
 }

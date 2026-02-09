@@ -80,6 +80,7 @@
     "currency": "Currency",
     "operation": "Operation",
     "remove": "Remove",
+    "change": "Change",
     "fee_type": "Fee type",
     "input_quantity": "Quantity",
     "input_fee": "Fee",

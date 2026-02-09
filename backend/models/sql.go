@@ -71,7 +71,7 @@ type TabUserInfo_ struct {
 
 type TabCookie_ struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement"`
-	UserID    uint      `gorm:"size:16;not null"`
+	UserID    uint      `gorm:"not null"`
 	Name      string    `gorm:"size:255;not null;index"`
 	Value     string    `gorm:"size:255;not null;index"`
 	ExpiresAt time.Time `gorm:"type:datetime;index"`
@@ -91,21 +91,31 @@ type APIRequestLog_ struct {
 }
 
 type TabPurchaseOrder struct {
-	ID             uint           `gorm:"primarykey" json:"id"`
-	Title          string         `gorm:"size:200;comment:标题" json:"title"`
-	Remark         string         `gorm:"type:text;comment:备注" json:"remark"`
-	Photos         datatypes.JSON `gorm:"type:json;comment:照片哈希数组" json:"photos"`
-	Link           string         `gorm:"size:1000;comment:链接" json:"link"`
-	PartName       string         `gorm:"size:200;not null;comment:物品名称" json:"part_name"`
-	Styles         datatypes.JSON `gorm:"type:json;comment:样式数组" json:"styles"`
-	Costs          datatypes.JSON `gorm:"type:json;comment:费用明细数组" json:"costs"`
-	UpdateTime     *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:更新时间" json:"update_time"`
-	TrackingNumber string         `gorm:"size:100;uniqueIndex;comment:快递单号" json:"tracking_number"`
-	OrderStatus    int8           `gorm:"default:1;comment:订单状态" json:"order_status"`
+	ID       uint           `gorm:"primarykey"`
+	UserID   uint           `gorm:"not null"`
+	Title    string         `gorm:"size:200;comment:标题"`
+	Remark   string         `gorm:"type:text;comment:备注"`
+	Photos   datatypes.JSON `gorm:"type:json;comment:照片哈希数组"`
+	Link     string         `gorm:"size:1000;comment:链接"`
+	PartName string         `gorm:"size:200;not null;comment:物品名称"`
+	Styles   string         `gorm:"type:text;comment:样式数组"`
+	//Costs          datatypes.JSON `gorm:"type:json;comment:费用明细数组"`
+	UpdateTime     *time.Time `gorm:"type:datetime;autoUpdateTime;comment:更新时间"`
+	TrackingNumber string     `gorm:"size:100;Index;comment:快递单号"`
+	OrderStatus    string     `gorm:"default:1;comment:订单状态"`
 
 	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime"`
 	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime"`
 	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+type TabPurchaseCosts struct {
+	ID        uint       `gorm:"primarykey"`
+	OrderID   uint       `gorm:"not null"`
+	UserID    uint       `gorm:"not null"`
+	Price     int        `gorm:"not null"`
+	Quantity  int        `gorm:"not null"`
+	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
 func DatabaseInit() error {
@@ -148,6 +158,10 @@ func DatabaseInit() error {
 	DB.AutoMigrate(&TabFileInfo_{})
 
 	DB.AutoMigrate(&APIRequestLog_{})
+
+	DB.AutoMigrate(&TabPurchaseOrder{})
+
+	DB.AutoMigrate(&TabPurchaseCosts{})
 
 	return nil
 }
