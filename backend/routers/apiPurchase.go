@@ -2,6 +2,7 @@ package routers
 
 import (
 	"encoding/json"
+	"fmt"
 	"ops/models"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,53 @@ type From_purchase_addorder struct {
 }
 
 func ApiPurchase(r *gin.RouterGroup) {
+
+	r.POST("/getorders", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			fmt.Println(user)
+			// DebugPrintJson(data)
+
+			type From_purchase_getorders struct {
+				Search  string
+				Entries int
+				Page    int
+			}
+
+			var jsondata From_purchase_getorders
+			if err := mapstructure.Decode(data, &jsondata); err == nil {
+				//fmt.Println(jsondata)
+
+				is_data_ok := true
+
+				if jsondata.Entries <= 0 {
+					is_data_ok = false
+				}
+				if jsondata.Page <= 0 {
+					is_data_ok = false
+				}
+
+				if is_data_ok {
+
+					//读取有多少条目
+					var count int64
+					models.DB.Model(&models.TabPurchaseOrder{}).Count(&count)
+					fmt.Println(count)
+
+					//读取条目
+
+				} else {
+					ReturnJson(ctx, "jsonErr", nil)
+				}
+
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
 
 	r.POST("/addorder", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
@@ -115,7 +163,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			}
 
 		} else {
-			ReturnJson(ctx, "jsonErr", nil)
+			ReturnJson(ctx, "userCookieError", nil)
 		}
 
 		ReturnJson(ctx, "apiErr", nil)
