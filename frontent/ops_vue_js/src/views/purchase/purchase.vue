@@ -1,23 +1,41 @@
 <script setup>
-import { onMounted, watch, ref } from "vue";
+import { onMounted, watch, ref, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 import MyOffcanvas from "@/components/MyOffcanvas.vue";
 const mos = ref();
 import { my_network_func } from "@/my_network_func";
+import { myfuncs } from "@/myfunc";
 
 const { t, locale } = useI18n();
+
+const all_orders = ref({});
 
 //获取订单列表
 function get_orders() {
   my_network_func.postJson(
     "/purchase/getorders",
     {
-      search:"",
-      entries: 8,
-      page:1,
+      search: "",
+      entries: 10,
+      page: 1,
     },
     (r) => {
       console.log(r);
+      switch (r.statusCode) {
+        case 200:
+          switch (r.data.err_code) {
+            case 0:
+              all_orders.value = r.data.return.all_orders;
+              break;
+            default:
+              mos.value?.showAlert("danger", t("message.server_error"), 5000);
+              break;
+          }
+          break;
+        default:
+          mos.value?.showAlert("danger", t("message.network_err"), 5000);
+          break;
+      }
     },
   );
 }
@@ -47,8 +65,8 @@ watch(locale, () => {
             </div>
             <div class="card-body border-bottom py-3">
               <div class="d-flex">
-                <!-- <div class="text-secondary">
-                  {{ t("purchase.show") }}
+                <div class="text-secondary">
+                  <!-- {{ t("purchase.show") }}
                   <div class="mx-2 d-inline-block">
                     <input
                       type="text"
@@ -58,8 +76,14 @@ watch(locale, () => {
                       aria-label="Invoices count"
                     />
                   </div>
-                  {{ t("purchase.entries") }}
-                </div> -->
+                  {{ t("purchase.entries") }} -->
+                  <router-link to="/purchase/addorder" class="btn btn-info m-1">
+                    {{ t("purchase.add_part") }}
+                  </router-link>
+                  <button class="btn m-1">
+                    {{ t("purchase.exp_report") }}
+                  </button>
+                </div>
 
                 <div class="ms-auto text-secondary">
                   {{ t("purchase.search") }}
@@ -72,15 +96,7 @@ watch(locale, () => {
                   </div>
                 </div>
 
-                <div class="ms-auto text-secondary">
-                  <button class="btn m-1">
-                    {{ t("purchase.exp_report") }}
-                  </button>
-
-                  <router-link to="/purchase/addorder" class="btn btn-info m-1">
-                    {{ t("purchase.add_part") }}
-                  </router-link>
-                </div>
+                <div class="ms-auto text-secondary"></div>
               </div>
             </div>
             <div class="table-responsive">
@@ -115,12 +131,12 @@ watch(locale, () => {
                         <path d="M6 15l6 -6l6 6" />
                       </svg>
                     </th>
-                    <th class="col-5">{{ t("purchase.item_name") }}</th>
-                    <th class="col-1">{{ t("purchase.purpose") }}</th>
-                    <th class="w-1">{{ t("purchase.unit") }}</th>
+                    <th class="col-3">{{ t("purchase.item_name") }}</th>
+                    <th class="col-3">{{ t("purchase.purpose") }}</th>
+                    <!-- <th class="w-1">{{ t("purchase.unit") }}</th> -->
                     <th class="w-1">{{ t("purchase.quantity") }}</th>
-                    <th class="w-1">{{ t("purchase.unit_price") }}</th>
-                    <th class="w-1">{{ t("purchase.total_price") }}</th>
+                    <!-- <th class="w-1">{{ t("purchase.unit_price") }}</th>
+                    <th class="w-1">{{ t("purchase.total_price") }}</th> -->
                     <th class="w-1">{{ t("purchase.created_at") }}</th>
                     <th class="w-1">{{ t("purchase.updated_at") }}</th>
                     <th class="w-1">{{ t("purchase.status") }}</th>
@@ -128,7 +144,27 @@ watch(locale, () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
+                  <tr v-for="value in all_orders">
+                    <td>
+                      <input
+                        class="form-check-input m-0 align-middle"
+                        type="checkbox"
+                        aria-label="Select invoice"
+                      />
+                    </td>
+                    <td>
+                      <span class="text-muted">{{ value.ID }}</span>
+                    </td>
+                    <td>
+                      {{ value.Title }}
+                    </td>
+                    <td>{{ value.Remark }}</td>
+                    <td></td>
+                    <td>{{myfuncs.formatLocalizedDate(value.CreatedAt,locale)  }}</td>
+                    <td>{{ myfuncs.formatLocalizedDate(value.UpdatedAt) }}</td>
+                    <td></td>
+                  </tr>
+                  <!-- <tr>
                     <td>
                       <input
                         class="form-check-input m-0 align-middle"
@@ -147,7 +183,7 @@ watch(locale, () => {
                     <td>2024-06-05</td>
                     <td><span class="badge bg-success me-1"></span> 已完成</td>
                     <td class="text-end"></td>
-                  </tr>
+                  </tr> -->
                 </tbody>
               </table>
             </div>

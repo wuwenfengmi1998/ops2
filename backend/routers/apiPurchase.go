@@ -65,6 +65,13 @@ func ApiPurchase(r *gin.RouterGroup) {
 					fmt.Println(count)
 
 					//读取条目
+					var getorders []models.TabPurchaseOrder
+					models.DB.Order("created_at DESC").Limit(jsondata.Entries).Find(&getorders)
+
+					ReturnJson(ctx, "apiOK", map[string]interface{}{
+						"all_count":  count,
+						"all_orders": getorders,
+					})
 
 				} else {
 					ReturnJson(ctx, "jsonErr", nil)
