@@ -58,7 +58,9 @@
     "entries": "entries",
     "search": "Search",
     "add_part": "Add Order",
-    "exp_report": "Export Report"
+    "exp_report": "Export Report",
+    "There_are_a_total_of": ",There are a total of",
+    "items": "items."
   },
   "purchase_addorder": {
     "add_order": "Add Order",
@@ -93,7 +95,7 @@
     "order_status": "Order Status",
     "modify_order_status": "Modify Order Status",
     "submit": "Submit",
-    "part_name":"Parts Name"
+    "part_name": "Parts Name"
   },
   "schedule": {
     "my_schedule": "My Schedule",

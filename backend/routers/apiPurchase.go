@@ -50,7 +50,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 				is_data_ok := true
 
-				if jsondata.Entries <= 0 {
+				if jsondata.Entries <= 0 || jsondata.Entries > 300 {
 					is_data_ok = false
 				}
 				if jsondata.Page <= 0 {
@@ -62,11 +62,11 @@ func ApiPurchase(r *gin.RouterGroup) {
 					//读取有多少条目
 					var count int64
 					models.DB.Model(&models.TabPurchaseOrder{}).Count(&count)
-					fmt.Println(count)
+					//fmt.Println(count)
 
 					//读取条目
 					var getorders []models.TabPurchaseOrder
-					models.DB.Order("created_at DESC").Limit(jsondata.Entries).Find(&getorders)
+					models.DB.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
 
 					ReturnJson(ctx, "apiOK", map[string]interface{}{
 						"all_count":  count,
