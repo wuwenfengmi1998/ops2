@@ -78,6 +78,11 @@ const router = createRouter({
       name: "purchase/addorder",
       component: () => import("@/views/purchase/addorder.vue"),
     },
+        {
+      path: "/purchase/showorder/:id",
+      name: "purchase/showorder",
+      component: () => import("@/views/purchase/showorder.vue"),
+    },
     {
       path: "/warehouse",
       name: "warehouse",

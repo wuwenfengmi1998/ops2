@@ -1,4 +1,4 @@
-import './assets/main.css'
+
 
 import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
@@ -7,6 +7,8 @@ import App from './App.vue'
 import router from './router'
 
 import '@tabler/core/dist/css/tabler.min.css'
+
+import './assets/main.css'
 
 
 import en from './i18n/en.json'

@@ -6,6 +6,9 @@ const mos = ref();
 import { my_network_func } from "@/my_network_func";
 import { myfuncs } from "@/myfunc";
 
+import { useRouter } from "vue-router";
+const router = useRouter();
+
 const { t, locale } = useI18n();
 
 const all_items = ref(0);
@@ -20,6 +23,17 @@ const page_end = ref(0);
 
 const page_input = ref();
 const page_items_items = ref("10");
+
+function jump_to_order(order_id) {
+  //console.log(order_id);
+
+  var order_str=order_id.toString()
+
+  const resolved = router.resolve({
+    path: "/purchase/showorder/" + order_str,
+  });
+  window.open(resolved.href, "_blank");
+}
 
 //获取订单列表
 function get_orders() {
@@ -138,328 +152,261 @@ watch(locale, () => {
 <template>
   <div class="page-body">
     <div class="container-xl">
-      <div class="row row-cards">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">{{ t("purchase.purchase_list") }}</h3>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t("purchase.purchase_list") }}</h3>
+        </div>
+        <div class="card-body border-bottom py-3">
+          <div class="d-flex">
+            <div class="text-secondary">
+              <router-link to="/purchase/addorder" class="btn btn-info m-1">
+                {{ t("purchase.add_part") }}
+              </router-link>
+              <button class="btn m-1">
+                {{ t("purchase.exp_report") }}
+              </button>
             </div>
-            <div class="card-body border-bottom py-3">
-              <div class="d-flex">
-                <div class="text-secondary">
-                  <!-- {{ t("purchase.show") }}
-                  <div class="mx-2 d-inline-block">
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      value="8"
-                      size="3"
-                      aria-label="Invoices count"
-                    />
-                  </div>
-                  {{ t("purchase.entries") }} -->
-                  <router-link to="/purchase/addorder" class="btn btn-info m-1">
-                    {{ t("purchase.add_part") }}
-                  </router-link>
-                  <button class="btn m-1">
-                    {{ t("purchase.exp_report") }}
-                  </button>
-                </div>
 
-                <div class="ms-auto text-secondary">
-                  {{ t("purchase.search") }}
-                  <div class="ms-2 d-inline-block mr-2">
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      aria-label="Search invoice"
-                    />
-                  </div>
-                </div>
-
-                <div class="ms-auto text-secondary"></div>
-              </div>
-            </div>
-            <div class="table-responsive">
-              <table
-                class="table card-table table-vcenter text-nowrap datatable"
-              >
-                <thead>
-                  <tr>
-                    <th class="w-1">
-                      <input
-                        class="form-check-input m-0 align-middle"
-                        type="checkbox"
-                        aria-label="Select all invoices"
-                      />
-                    </th>
-                    <th class="col-1">
-                      No.
-                      <!-- Download SVG icon from http://tabler-icons.io/i/chevron-up -->
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="icon icon-sm icon-thick"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        stroke-width="2"
-                        stroke="currentColor"
-                        fill="none"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                        <path d="M6 15l6 -6l6 6" />
-                      </svg>
-                    </th>
-                    <th class="col-3">{{ t("purchase.item_name") }}</th>
-                    <th class="col-3">{{ t("purchase.purpose") }}</th>
-                    <!-- <th class="w-1">{{ t("purchase.unit") }}</th> -->
-                    <th class="w-1">{{ t("purchase.quantity") }}</th>
-                    <!-- <th class="w-1">{{ t("purchase.unit_price") }}</th>
-                    <th class="w-1">{{ t("purchase.total_price") }}</th> -->
-                    <th class="w-1">{{ t("purchase.created_at") }}</th>
-                    <th class="w-1">{{ t("purchase.updated_at") }}</th>
-                    <th class="w-1">{{ t("purchase.status") }}</th>
-                    <th class="w-1"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="value in all_orders">
-                    <td>
-                      <input
-                        class="form-check-input m-0 align-middle"
-                        type="checkbox"
-                        aria-label="Select invoice"
-                      />
-                    </td>
-                    <td>
-                      <span class="text-muted">{{ value.ID }}</span>
-                    </td>
-                    <td>
-                      {{ value.Title }}
-                    </td>
-                    <td>{{ value.Remark }}</td>
-                    <td>
-                      <!-- <div class="datagrid-content">
-                        <div class="avatar-list avatar-list-stacked">
-                          <span
-                            class="avatar avatar-xs rounded"
-                            style="
-                              background-image: url(./static/avatars/000m.jpg);
-                            "
-                          ></span>
-                          <span class="avatar avatar-xs rounded">JL</span>
-                          <span
-                            class="avatar avatar-xs rounded"
-                            style="
-                              background-image: url(./static/avatars/002m.jpg);
-                            "
-                          ></span>
-                          <span
-                            class="avatar avatar-xs rounded"
-                            style="
-                              background-image: url(./static/avatars/003m.jpg);
-                            "
-                          ></span>
-                          <span
-                            class="avatar avatar-xs rounded"
-                            style="
-                              background-image: url(./static/avatars/000f.jpg);
-                            "
-                          ></span>
-                          <span class="avatar avatar-xs rounded">+3</span>
-                        </div>
-                      </div> -->
-                    </td>
-                    <td>
-                      {{ myfuncs.formatLocalizedDate(value.CreatedAt, locale) }}
-                    </td>
-                    <td>{{ myfuncs.formatLocalizedDate(value.UpdatedAt) }}</td>
-                    <td></td>
-                  </tr>
-                  <!-- <tr>
-                    <td>
-                      <input
-                        class="form-check-input m-0 align-middle"
-                        type="checkbox"
-                        aria-label="Select invoice"
-                      />
-                    </td>
-                    <td><span class="text-muted">001</span></td>
-                    <td>办公室用纸</td>
-                    <td>办公用品</td>
-                    <td>包</td>
-                    <td>10</td>
-                    <td>15.00</td>
-                    <td>150.00</td>
-                    <td>2024-06-01</td>
-                    <td>2024-06-05</td>
-                    <td><span class="badge bg-success me-1"></span> 已完成</td>
-                    <td class="text-end"></td>
-                  </tr> -->
-                </tbody>
-              </table>
-            </div>
-            <div class="card-footer d-flex align-items-center">
-              <p class="m-0 text-secondary">
-                {{ t("purchase.show") }}
-              </p>
-              <div class="mx-2 d-inline-block">
+            <!-- //搜索dom -->
+            <div class="ms-auto text-secondary">
+              {{ t("purchase.search") }}
+              <div class="ms-2 d-inline-block mr-2">
                 <input
                   type="text"
-                  class="form-control form-control-sm w-6"
-                  v-model="page_items_items"
-                  aria-label="Invoices count"
-                  @change="page_items_input_change"
-                  @input="page_items_input_input"
+                  class="form-control form-control-sm"
+                  aria-label="Search invoice"
                 />
               </div>
-              <p class="m-0 text-secondary">
-                {{ t("purchase.entries") }}
-                {{ t("purchase.There_are_a_total_of") }} {{ all_items }}
-                {{ t("purchase.entries") }}
-              </p>
-
-              <ul class="pagination m-0 ms-auto">
-                <li class="page-item" :class="now_page == 1 ? 'disabled' : ''">
-                  <div
-                    class="page-link"
-                    :tabindex="now_page == 1 ? '-1' : ''"
-                    :aria-disabled="now_page == 1 ? 'true' : ''"
-                    @click="change_page(1)"
-                  >
-                    <!-- Download SVG icon from http://tabler-icons.io/i/chevron-left -->
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="icon icon-tabler icons-tabler-outline icon-tabler-arrow-bar-to-left"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M10 12l10 0" />
-                      <path d="M10 12l4 4" />
-                      <path d="M10 12l4 -4" />
-                      <path d="M4 4l0 16" />
-                    </svg>
-                  </div>
-                </li>
-                <li class="page-item" :class="now_page == 1 ? 'disabled' : ''">
-                  <div
-                    class="page-link"
-                    :tabindex="now_page == 1 ? '-1' : ''"
-                    :aria-disabled="now_page == 1 ? 'true' : ''"
-                    @click="change_page(now_page - 1)"
-                  >
-                    <!-- Download SVG icon from http://tabler-icons.io/i/chevron-left -->
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="icon"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      stroke-width="2"
-                      stroke="currentColor"
-                      fill="none"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M15 6l-6 6l6 6" />
-                    </svg>
-                    <!-- prev -->
-                  </div>
-                </li>
-
-                <li
-                  v-for="value in range(page_start, page_end)"
-                  class="page-item"
-                  :class="value == now_page ? 'active' : ''"
-                >
-                  <div class="page-link" @click="change_page(value)">
-                    {{ value }}
-                  </div>
-                </li>
-
-                <li
-                  class="page-item"
-                  :class="now_page == all_pages ? 'disabled' : ''"
-                >
-                  <div
-                    class="page-link"
-                    :tabindex="now_page == all_pages ? '-1' : ''"
-                    :aria-disabled="now_page == all_pages ? 'true' : ''"
-                    @click="change_page(now_page + 1)"
-                  >
-                    <!-- next -->
-                    <!-- Download SVG icon from http://tabler-icons.io/i/chevron-right -->
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="icon"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      stroke-width="2"
-                      stroke="currentColor"
-                      fill="none"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M9 6l6 6l-6 6" />
-                    </svg>
-                  </div>
-                </li>
-
-                <li
-                  class="page-item"
-                  :class="now_page == all_pages ? 'disabled' : ''"
-                >
-                  <div
-                    class="page-link"
-                    :tabindex="now_page == all_pages ? '-1' : ''"
-                    :aria-disabled="now_page == all_pages ? 'true' : ''"
-                    @click="change_page(all_pages)"
-                  >
-                    <!-- Download SVG icon from http://tabler-icons.io/i/chevron-right -->
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="icon icon-tabler icons-tabler-outline icon-tabler-arrow-bar-to-right"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M14 12l-10 0" />
-                      <path d="M14 12l-4 4" />
-                      <path d="M14 12l-4 -4" />
-                      <path d="M20 4l0 16" />
-                    </svg>
-                  </div>
-                </li>
-                <li>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm w-6"
-                    @change="page_input_change"
-                    @input="page_input_input"
-                    v-model="page_input"
-                  />
-                </li>
-              </ul>
             </div>
+
+            <div class="ms-auto text-secondary"></div>
           </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table card-table table-vcenter text-nowrap datatable">
+            <thead>
+              <tr>
+                <th class="w-1">
+                  <input
+                    class="form-check-input m-0 align-middle"
+                    type="checkbox"
+                    aria-label="Select all invoices"
+                  />
+                </th>
+                <th class="col-1">
+                  No.
+                  <!-- Download SVG icon from http://tabler-icons.io/i/chevron-up -->
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="icon icon-sm icon-thick"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    stroke="currentColor"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M6 15l6 -6l6 6" />
+                  </svg>
+                </th>
+                <th class="col-3">{{ t("purchase.item_name") }}</th>
+                <th class="col-3">{{ t("purchase.purpose") }}</th>
+                <th class="w-1">{{ t("purchase.quantity") }}</th>
+                <th class="w-1">{{ t("purchase.created_at") }}</th>
+                <th class="w-1">{{ t("purchase.updated_at") }}</th>
+                <th class="w-1">{{ t("purchase.status") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="value in all_orders"
+                class="element"
+                @click="jump_to_order(value.ID)"
+              >
+                <td>
+                  <input
+                    class="form-check-input m-0 align-middle"
+                    type="checkbox"
+                    aria-label="Select invoice"
+                  />
+                </td>
+                <td>
+                  <span class="text-muted">{{ value.ID }}</span>
+                </td>
+                <td>
+                  {{ value.Title }}
+                </td>
+                <td>{{ value.Remark }}</td>
+                <td>1</td>
+                <td>
+                  {{ myfuncs.formatLocalizedDate(value.CreatedAt, locale) }}
+                </td>
+                <td>{{ myfuncs.formatLocalizedDate(value.UpdatedAt) }}</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer d-flex align-items-center">
+          <p class="m-0 text-secondary">
+            {{ t("purchase.show") }}
+          </p>
+          <div class="mx-2 d-inline-block">
+            <input
+              type="text"
+              class="form-control form-control-sm w-6"
+              v-model="page_items_items"
+              aria-label="Invoices count"
+              @change="page_items_input_change"
+              @input="page_items_input_input"
+            />
+          </div>
+          <p class="m-0 text-secondary">
+            {{ t("purchase.entries") }}
+            {{ t("purchase.There_are_a_total_of") }} {{ all_items }}
+            {{ t("purchase.entries") }}
+          </p>
+
+          <ul class="pagination m-0 ms-auto">
+            <li class="page-item" :class="now_page == 1 ? 'disabled' : ''">
+              <div
+                class="page-link"
+                :tabindex="now_page == 1 ? '-1' : ''"
+                :aria-disabled="now_page == 1 ? 'true' : ''"
+                @click="change_page(1)"
+              >
+                <!-- Download SVG icon from http://tabler-icons.io/i/chevron-left -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="icon icon-tabler icons-tabler-outline icon-tabler-arrow-bar-to-left"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M10 12l10 0" />
+                  <path d="M10 12l4 4" />
+                  <path d="M10 12l4 -4" />
+                  <path d="M4 4l0 16" />
+                </svg>
+              </div>
+            </li>
+            <li class="page-item" :class="now_page == 1 ? 'disabled' : ''">
+              <div
+                class="page-link"
+                :tabindex="now_page == 1 ? '-1' : ''"
+                :aria-disabled="now_page == 1 ? 'true' : ''"
+                @click="change_page(now_page - 1)"
+              >
+                <!-- Download SVG icon from http://tabler-icons.io/i/chevron-left -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="icon"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M15 6l-6 6l6 6" />
+                </svg>
+                <!-- prev -->
+              </div>
+            </li>
+
+            <li
+              v-for="value in range(page_start, page_end)"
+              class="page-item"
+              :class="value == now_page ? 'active' : ''"
+            >
+              <div class="page-link" @click="change_page(value)">
+                {{ value }}
+              </div>
+            </li>
+
+            <li
+              class="page-item"
+              :class="now_page == all_pages ? 'disabled' : ''"
+            >
+              <div
+                class="page-link"
+                :tabindex="now_page == all_pages ? '-1' : ''"
+                :aria-disabled="now_page == all_pages ? 'true' : ''"
+                @click="change_page(now_page + 1)"
+              >
+                <!-- next -->
+                <!-- Download SVG icon from http://tabler-icons.io/i/chevron-right -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="icon"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M9 6l6 6l-6 6" />
+                </svg>
+              </div>
+            </li>
+
+            <li
+              class="page-item"
+              :class="now_page == all_pages ? 'disabled' : ''"
+            >
+              <div
+                class="page-link"
+                :tabindex="now_page == all_pages ? '-1' : ''"
+                :aria-disabled="now_page == all_pages ? 'true' : ''"
+                @click="change_page(all_pages)"
+              >
+                <!-- Download SVG icon from http://tabler-icons.io/i/chevron-right -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="icon icon-tabler icons-tabler-outline icon-tabler-arrow-bar-to-right"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                  <path d="M14 12l-10 0" />
+                  <path d="M14 12l-4 4" />
+                  <path d="M14 12l-4 -4" />
+                  <path d="M20 4l0 16" />
+                </svg>
+              </div>
+            </li>
+            <li>
+              <input
+                type="text"
+                class="form-control form-control-sm w-6"
+                @change="page_input_change"
+                @input="page_input_input"
+                v-model="page_input"
+              />
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -467,3 +414,9 @@ watch(locale, () => {
 
   <MyOffcanvas ref="mos" />
 </template>
+
+<style lang="scss" scoped>
+.element:hover {
+  background-color: #4299e11c;
+}
+</style>
