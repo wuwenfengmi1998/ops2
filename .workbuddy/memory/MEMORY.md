@@ -76,7 +76,12 @@
 - **已完成前端整体重构**：API 层 async/await、Router 导航守卫、composables、布局分离
 - **已完成 Tabler → Tailwind CSS v4 迁移**
 - **已修复所有字符损坏文件**（20 个 Vue 文件，因批量脚本偏移错误）
-- 所有页面构建通过，6169 modules, 0 errors
+- **已修复国际化翻译缺失问题**：补充 `account_information` 翻译键
+- **已修复头像裁剪功能**：
+  - 修复事件通信问题（`crop_to_canvas` → `crop-data-url`）
+  - 修正坐标计算逻辑，解决预览不正确问题
+  - 添加多层容错机制和详细调试信息
+- 所有页面构建通过，6170+ modules, 0 errors
 - 前端构建产物放在 `backend/dist/` 供后端 serve
 - `frontend/ops_vue/`（TypeScript 版）是旧目录，已弃用
 

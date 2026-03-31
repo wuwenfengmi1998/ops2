@@ -11,7 +11,7 @@ var cor_size_height = 300;
 const is_have_URL = ref(false);
 const reader = new FileReader();
 reader.onload = () => { initCropper(reader.result); };
-const emit = defineEmits(['crop_to_canvas'])
+const emit = defineEmits(['crop-data-url', 'crop-error'])
 onMounted(() => {
   cro_sele.value.$change(0, 0, cor_size_width, cor_size_height);
   cro_canv.value.style.width = cor_size_width.toString() + "px";
@@ -32,7 +32,159 @@ function openFilePicker() {
   fileInput.click();
 }
 function getsele() {
-  cro_canv.value.$toCanvas().then((a) => { emit('crop_to_canvas',a) });
+  console.log('getsele called, checking elements:', {
+    cro_canv: cro_canv.value,
+    cro_sele: cro_sele.value,
+    cro_imag: cro_imag.value,
+  })
+  
+  // 使用async函数处理异步裁剪逻辑
+  const cropImage = async () => {
+    try {
+      console.log('Starting crop process')
+      
+      // 方法1: 尝试调用原生的toCanvas方法（如果可用）
+      if (cro_canv.value && typeof cro_canv.value.$toCanvas === 'function') {
+        console.log('Using $toCanvas method')
+        try {
+          const result = await cro_canv.value.$toCanvas()
+          console.log('$toCanvas result:', result ? 'Received data URL' : 'Empty result')
+          if (result) {
+            emit('crop-data-url', result)
+            return  // 成功，结束函数
+          }
+          console.log('$toCanvas returned empty, falling back to manual crop')
+        } catch (error) {
+          console.warn('$toCanvas failed, using manual crop:', error.message)
+        }
+      }
+      
+      // 方法2: 使用手动裁剪方法
+      console.log('Falling back to manual crop method')
+      
+      // 获取图像元素
+      const img = cro_imag.value
+      if (!img) {
+        console.error('No image element found')
+        emit('crop-error', '未找到图像')
+        return
+      }
+      
+      // 等待图像加载完成
+      if (!img.complete) {
+        console.log('Waiting for image to load...')
+        await new Promise((resolve) => {
+          img.onload = resolve
+          img.onerror = resolve  // 即使加载失败也继续
+          // 设置超时，防止无限等待
+          setTimeout(resolve, 3000)
+        })
+      }
+      
+      if (!img.complete || img.naturalWidth === 0) {
+        console.error('Image failed to load or has 0 dimensions')
+        emit('crop-error', '图像加载失败')
+        return
+      }
+      
+      console.log('Image loaded successfully:', img.naturalWidth, 'x', img.naturalHeight)
+      
+      // 获取canvas的尺寸
+      const canvasRect = cro_canv.value?.getBoundingClientRect?.() || {
+        width: cor_size_width,
+        height: cor_size_height,
+        left: 0,
+        top: 0
+      }
+      
+      console.log('Canvas rectangle:', canvasRect)
+      
+      // 获取选择区域
+      let selectionRect = null
+      if (cro_sele.value && typeof cro_sele.value.$getRect === 'function') {
+        selectionRect = cro_sele.value.$getRect()
+        console.log('Selection rect:', selectionRect)
+      }
+      
+      // 验证选择区域
+      if (!selectionRect || !selectionRect.width || !selectionRect.height) {
+        selectionRect = {
+          left: 0,
+          top: 0,
+          width: canvasRect.width,
+          height: canvasRect.height
+        }
+        console.log('Using entire canvas as selection:', selectionRect)
+      }
+      
+      // 创建输出canvas
+      const outputCanvas = document.createElement('canvas')
+      outputCanvas.width = selectionRect.width
+      outputCanvas.height = selectionRect.height
+      const ctx = outputCanvas.getContext('2d')
+      
+      // 设置白色背景
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height)
+      
+      // 计算图像在canvas中的显示方式
+      const imgAspect = img.naturalWidth / img.naturalHeight
+      const canvasAspect = canvasRect.width / canvasRect.height
+      
+      let drawWidth, drawHeight, drawX, drawY
+      
+      if (imgAspect > canvasAspect) {
+        // 图像更宽，高度适配
+        drawHeight = canvasRect.height
+        drawWidth = canvasRect.height * imgAspect
+        drawX = (canvasRect.width - drawWidth) / 2
+        drawY = 0
+      } else {
+        // 图像更高，宽度适配
+        drawWidth = canvasRect.width
+        drawHeight = canvasRect.width / imgAspect
+        drawX = 0
+        drawY = (canvasRect.height - drawHeight) / 2
+      }
+      
+      console.log('Image display info:', { drawX, drawY, drawWidth, drawHeight })
+      
+      // 计算裁剪区域（将选择区域转换到图像坐标）
+      const cropX = Math.max(0, (selectionRect.left - drawX) / drawWidth * img.naturalWidth)
+      const cropY = Math.max(0, (selectionRect.top - drawY) / drawHeight * img.naturalHeight)
+      const cropWidth = Math.min(
+        (selectionRect.width / drawWidth) * img.naturalWidth,
+        img.naturalWidth - cropX
+      )
+      const cropHeight = Math.min(
+        (selectionRect.height / drawHeight) * img.naturalHeight,
+        img.naturalHeight - cropY
+      )
+      
+      console.log('Final crop coordinates (image space):', {
+        cropX, cropY, cropWidth, cropHeight
+      })
+      
+      // 执行裁剪
+      ctx.drawImage(
+        img,
+        cropX, cropY, cropWidth, cropHeight,      // 源图像裁剪区域
+        0, 0, outputCanvas.width, outputCanvas.height  // 目标canvas区域
+      )
+      
+      // 生成data URL（JPEG格式，质量0.9）
+      const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9)
+      console.log('Generated crop data URL, length:', dataUrl.length)
+      emit('crop-data-url', dataUrl)
+      
+    } catch (error) {
+      console.error('Crop process error:', error)
+      emit('crop-error', '裁剪过程中发生错误：' + error.message)
+    }
+  }
+  
+  // 执行裁剪
+  cropImage()
 }
 </script>
 
