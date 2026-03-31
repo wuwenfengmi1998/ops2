@@ -206,7 +206,9 @@
     "avatar_unsaved": "Avatar changes not saved",
     "optional": "Optional",
     "birthday_help": "Select your birthday for personalized services",
-    "save_notice": "Your personal information will be updated after saving"
+    "save_notice": "Your personal information will be updated after saving",
+    "placeholder_name": "Enter your name",
+    "placeholder_remark": "Personal introduction or remark"
   },
   "button": {
     "submit": "Submit",

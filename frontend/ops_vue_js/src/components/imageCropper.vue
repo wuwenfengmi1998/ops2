@@ -48,12 +48,31 @@ function getsele() {
         console.log('Using $toCanvas method')
         try {
           const result = await cro_canv.value.$toCanvas()
-          console.log('$toCanvas result:', result ? 'Received data URL' : 'Empty result')
+          console.log('$toCanvas result type:', typeof result, 'value:', result)
+          
+          // 检查结果类型，如果是Canvas元素则转换为data URL
           if (result) {
-            emit('crop-data-url', result)
-            return  // 成功，结束函数
+            let dataUrl
+            if (result instanceof HTMLCanvasElement) {
+              // 如果是Canvas对象，转换为data URL
+              console.log('Converting HTMLCanvasElement to data URL')
+              dataUrl = result.toDataURL('image/jpeg', 0.9)
+            } else if (typeof result === 'string' && result.startsWith('data:image/')) {
+              // 如果已经是data URL，直接使用
+              dataUrl = result
+            } else {
+              // 其他情况，不直接发送
+              console.warn('$toCanvas returned unexpected type:', typeof result)
+              throw new Error('Unexpected return type from $toCanvas')
+            }
+            
+            if (dataUrl) {
+              console.log('Generated data URL from $toCanvas, length:', dataUrl.length)
+              emit('crop-data-url', dataUrl)
+              return  // 成功，结束函数
+            }
           }
-          console.log('$toCanvas returned empty, falling back to manual crop')
+          console.log('$toCanvas returned empty or invalid result, falling back to manual crop')
         } catch (error) {
           console.warn('$toCanvas failed, using manual crop:', error.message)
         }
@@ -175,7 +194,14 @@ function getsele() {
       // 生成data URL（JPEG格式，质量0.9）
       const dataUrl = outputCanvas.toDataURL('image/jpeg', 0.9)
       console.log('Generated crop data URL, length:', dataUrl.length)
-      emit('crop-data-url', dataUrl)
+      
+      // 确保我们发送的是有效的data URL字符串
+      if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+        emit('crop-data-url', dataUrl)
+      } else {
+        console.error('Invalid data URL generated:', typeof dataUrl)
+        emit('crop-error', '生成的数据URL无效')
+      }
       
     } catch (error) {
       console.error('Crop process error:', error)

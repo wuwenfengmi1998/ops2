@@ -29,7 +29,9 @@ function toggleTheme() {
 }
 
 function toggleLocale() {
-  locale.value = locale.value === "zh-CN" ? "en" : "zh-CN";
+  const newLocale = locale.value === "zh-CN" ? "en" : "zh-CN";
+  locale.value = newLocale;
+  localStorage.setItem('locale', newLocale);
 }
 
 function isActive(path) {

@@ -206,7 +206,9 @@
     "avatar_unsaved": "头像修改未保存",
     "optional": "选填",
     "birthday_help": "选择您的生日，用于个性化服务",
-    "save_notice": "保存后将更新您的个人信息"
+    "save_notice": "保存后将更新您的个人信息",
+    "placeholder_name": "请输入您的姓名",
+    "placeholder_remark": "个人简介或备注"
   },
   "button": {
     "submit": "提交",

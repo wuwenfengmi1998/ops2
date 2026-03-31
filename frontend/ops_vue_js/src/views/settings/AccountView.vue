@@ -24,14 +24,28 @@ const form = reactive({
 const avatarHasChanged = ref(false)
 const avatarDataUrl = ref('')
 const loading = ref(false)
+const birthdayInput = ref(null)
 
 onMounted(() => {
-  if (userStore.user) {
-    form.username = userStore.user.Username || ''
-    form.remark = userStore.user.FirstName || ''
+  if (userStore.user || userStore.userInfo) {
+    // 姓名从 userInfo.Username 获取
+    form.username = userStore.userInfo?.Username || userStore.user?.Name || ''
+    // 备注从 userInfo.FirstName 获取
+    form.remark = userStore.userInfo?.FirstName || ''
+    // 生日从 userStore.birthday getter 获取（已转换格式）
     form.birthday = userStore.birthday
   }
 })
+
+function openDatePicker() {
+  // 使用showPicker API打开日期选择器
+  if (birthdayInput.value && birthdayInput.value.showPicker) {
+    birthdayInput.value.showPicker()
+  } else {
+    // 对于不支持showPicker的老浏览器，聚焦输入框
+    birthdayInput.value?.focus()
+  }
+}
 
 function handleCrop(dataUrl) {
   avatarHasChanged.value = true
@@ -158,14 +172,14 @@ async function handleSave() {
                   <span class="ml-1 text-red-500">*</span>
                 </label>
                 <div class="relative">
-                  <input
-                    v-model="form.username"
-                    type="text"
-                    placeholder="请输入您的姓名"
-                    class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
-                    :class="errors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
-                  />
-                  <div class="absolute right-3 top-3">
+<input
+                  v-model="form.username"
+                  type="text"
+                  :placeholder="t('settings.placeholder_name')"
+                  class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
+                  :class="errors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
+                />
+                  <div class="absolute right-3 top-3 pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
@@ -177,17 +191,17 @@ async function handleSave() {
               <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   {{ t('settings.remark') }}
-                  <span class="ml-1 text-gray-400">({{ t('settings.optional') }})</span>
+                  <span class="ml-1 text-red-500">*</span>
                 </label>
                 <div class="relative">
-                  <input
-                    v-model="form.remark"
-                    type="text"
-                    placeholder="个人简介或备注"
-                    class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
-                    :class="errors.remark ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
-                  />
-                  <div class="absolute right-3 top-3">
+<input
+                  v-model="form.remark"
+                  type="text"
+                  :placeholder="t('settings.placeholder_remark')"
+                  class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
+                  :class="errors.remark ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
+                />
+                  <div class="absolute right-3 top-3 pointer-events-none">
                     <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
@@ -207,13 +221,15 @@ async function handleSave() {
                 <input
                   v-model="form.birthday"
                   type="date"
-                  class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
+                  class="w-full cursor-pointer rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
                   :class="errors.birthday ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
+                  @click="openDatePicker"
+                  ref="birthdayInput"
                 />
-                <div class="absolute right-3 top-3">
-                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="absolute right-3 top-3 pointer-events-none">
+                  <!-- <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  </svg> -->
                 </div>
               </div>
               <span v-if="errors.birthday" class="block text-xs text-red-500">{{ errors.birthday }}</span>

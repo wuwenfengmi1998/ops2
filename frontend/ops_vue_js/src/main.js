@@ -6,8 +6,9 @@ import router from './router'
 
 import './assets/main.css'
 
-// Initialize theme
+// Initialize theme and locale from localStorage
 const savedTheme = localStorage.getItem('theme') // 改用 'theme' key
+const savedLocale = localStorage.getItem('locale')
 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
 if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
@@ -21,7 +22,7 @@ import zhCN from './i18n/zh-CN.json'
 
 const i18n = createI18n({
   legacy: false,
-  locale: 'en',
+  locale: savedLocale || 'en', // 使用已保存的语言或默认英文
   fallbackLocale: 'en',
   messages: {
     en,
