@@ -1,105 +1,129 @@
-import {
-  createRouter,
-  createWebHistory,
-  createWebHashHistory,
-} from "vue-router";
-import HomeView from "../views/HomeView.vue";
+import { createRouter, createWebHashHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
+    // ── 需要登录的页面（带 DefaultLayout） ──
     {
-      path: "/",
-      name: "home",
-      component: HomeView,
-    },
-    
-    {
-      path: "/settings/account",
-      name: "settings account",
-      component: () => import("@/views/settings/account.vue"),
-    },
-    {
-      path: "/settings/contact",
-      name: "settings contact",
-      component: () => import("@/views/settings/contact.vue"),
-    },
-    {
-      path: "/settings/security",
-      name: "settings security",
-      component: () => import("@/views/settings/security.vue"),
-    },
-    {
-      path: "/about",
-      name: "about",
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import("@/views/AboutView.vue"),
-    },
-    {
-      path: "/test",
-      name: "test",
-      component: () => import("@/views/test.vue"),
-    },
-    {
-      path: "/login",
-      name: "login",
-      component: () => import("@/views/loginView.vue"),
-    },
-    {
-      path: "/forgot_password",
-      name: "forgot password",
-      component: () => import("@/views/forgotPassword.vue"),
-    },
-    {
-      path: "/register",
-      name: "Register",
-      component: () => import("@/views/registerView.vue"),
-    },
-    {
-      path: "/admin",
-      name: "admin",
-      component: () => import("@/views/adminView.vue"),
+      path: '/',
+      component: () => import('@/layouts/DefaultLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: () => import('@/views/HomeView.vue'),
+        },
+        {
+          path: 'settings/account',
+          name: 'settings-account',
+          component: () => import('@/views/settings/AccountView.vue'),
+        },
+        {
+          path: 'settings/contact',
+          name: 'settings-contact',
+          component: () => import('@/views/settings/ContactView.vue'),
+        },
+        {
+          path: 'settings/security',
+          name: 'settings-security',
+          component: () => import('@/views/settings/SecurityView.vue'),
+        },
+        {
+          path: 'schedule',
+          name: 'schedule',
+          component: () => import('@/views/ScheduleView.vue'),
+        },
+        {
+          path: 'purchase',
+          name: 'purchase',
+          component: () => import('@/views/purchase/PurchaseList.vue'),
+        },
+        {
+          path: 'purchase/addorder',
+          name: 'purchase-add',
+          component: () => import('@/views/purchase/AddOrder.vue'),
+        },
+        {
+          path: 'purchase/showorder/:id',
+          name: 'purchase-show',
+          component: () => import('@/views/purchase/ShowOrder.vue'),
+        },
+        {
+          path: 'warehouse',
+          name: 'warehouse',
+          component: () => import('@/views/WarehouseView.vue'),
+        },
+        {
+          path: 'admin',
+          name: 'admin',
+          component: () => import('@/views/AdminView.vue'),
+        },
+      ],
     },
 
+    // ── 认证页面（AuthLayout，全屏居中） ──
     {
-      path: "/schedule",
-      name: "schedule",
-      component: () => import("@/views/scheduleView.vue"),
-    },
-    {
-      path: "/purchase",
-      name: "purchase",
-      component: () => import("@/views/purchase/purchase.vue"),
-    },
-    {
-      path: "/purchase/addorder",
-      name: "purchase/addorder",
-      component: () => import("@/views/purchase/addorder.vue"),
-    },
+      path: '/login',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      children: [
         {
-      path: "/purchase/showorder/:id",
-      name: "purchase/showorder",
-      component: () => import("@/views/purchase/showorder.vue"),
+          path: '',
+          name: 'login',
+          component: () => import('@/views/LoginView.vue'),
+        },
+      ],
     },
     {
-      path: "/warehouse",
-      name: "warehouse",
-      component: () => import("@/views/warehouse.vue"),
+      path: '/register',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'register',
+          component: () => import('@/views/RegisterView.vue'),
+        },
+      ],
     },
     {
-      path: "/404",
-      name: "404",
-      component: () => import("@/views/404.vue"),
+      path: '/forgot_password',
+      component: () => import('@/layouts/AuthLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'forgot-password',
+          component: () => import('@/views/ForgotPasswordView.vue'),
+        },
+      ],
     },
-    // 404 页面 - 放在最后
+
+    // ── 404 ──
     {
-      path: "/:pathMatch(.*)*", // 通配符，匹配所有路由
-      name: "NotFound",
-      component: () => import("@/views/404.vue"),
+      path: '/404',
+      name: '404',
+      component: () => import('@/views/NotFoundView.vue'),
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/404',
     },
   ],
-});
+})
 
-export default router;
+// ── 全局前置守卫 ──
+router.beforeEach((to) => {
+  const userStore = useUserStore()
+
+  // 不需要登录的页面
+  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule','/warehouse', '/404']
+  if (publicPages.includes(to.path)) return true
+
+  // 未登录 → 跳转登录
+  if (!userStore.isLoggedIn) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  return true
+})
+
+export default router

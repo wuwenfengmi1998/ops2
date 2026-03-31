@@ -1,129 +1,128 @@
-// stores/user.js
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import { myfuncs } from "@/myfunc.js";
-import { my_network_func } from "@/my_network_func";
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { authApi } from '@/api/auth'
 
-// 组合式 API 写法 (推荐)
-export const useUserStore = defineStore("user", () => {
-  // 状态 (State)
-  const userInfo = ref(null);
-  const user = ref(null);
-  const userCookie = ref(null);
-  const isLoggedIn = ref(false);
+const STORAGE_KEY_COOKIE = 'userCookie'
 
-  const cookiesQualified = () => {
-    //返回一个合格的cookie 就是没过期的cookie
-    //如果cookie没过期直接返回，如果过期 顺便logout
-    var cookieTimeout = userCookie.value.ExpiresAt;
-    if (new Date(cookieTimeout) < new Date()) {
-      //过期了
-      logout();
+function loadJson(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function loadJsonSession(key) {
+  try {
+    const raw = sessionStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveJson(key, data) {
+  localStorage.setItem(key, JSON.stringify(data))
+}
+
+function saveJsonSession(key, data) {
+  sessionStorage.setItem(key, JSON.stringify(data))
+}
+
+function removeStorage(key) {
+  localStorage.removeItem(key)
+  sessionStorage.removeItem(key)
+}
+
+export const useUserStore = defineStore('user', () => {
+  // ── State ──
+  const user = ref(null)        // TabUser_ 基本信息
+  const userInfo = ref(null)    // TabUserInfo_ 详情
+  const userCookie = ref(null)  // Cookie session
+  const isLoggedIn = ref(false)
+
+  // ── Getters ──
+  const cookieValue = computed(() => userCookie.value?.Value ?? '')
+
+  const avatarUrl = computed(() => {
+    if (userInfo.value?.AvatarPath) {
+      return `/api/static/avatar/${userInfo.value.AvatarPath}`
     }
-    return userCookie.value;
-  };
+    return '/ava.svg'
+  })
 
-  const getUserBirthday = () => {
-    if (userInfo.value != null) {
-      const date = new Date(userInfo.value.Birthdate);
+  const birthday = computed(() => {
+    if (!userInfo.value?.Birthdate) return ''
+    const d = new Date(userInfo.value.Birthdate)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  })
 
-      // 获取年月日并格式化
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-
-      const formattedDate = `${year}-${month}-${day}`;
-      return formattedDate;
-    }
-    return "";
-  };
-
-  const getUserAvatarPath = () => {
-    if (userInfo.value != null) {
-      if (userInfo.value.AvatarPath != "") {
-        return "/api/static/avatar/"+userInfo.value.AvatarPath;
-      }
-    }
-    return "/ava.svg";
-  };
-
-  const getUserInfoFromCookie = () => {
-    my_network_func.postJson("/users/getinfo", {}, (r) => {
-      //console.log(r);
-      switch (r.statusCode) {
-        case 200:
-          switch (r.data.err_code) {
-            case 0:
-              user.value = r.data.return.user;
-              if (r.data.return.userInfo) {
-                userInfo.value = r.data.return.userInfo;
-              } else {
-                userInfo.value = null;
-              }
-              break;
-            default:
-              break;
-          }
-          break;
-        default:
-          break;
-      }
-    });
-  };
-
-  const logout = () => {
-    userCookie.value = null;
-    isLoggedIn.value = false;
-    myfuncs.dele("userCookie");
-    myfuncs.deleT("userCookie");
-  };
-  const login = (cookie) => {
-    userCookie.value = cookie;
-    isLoggedIn.value = true;
-    //这里应该判读cookie的实效性
-    userCookie.value = cookiesQualified();
-    //到这里cookie应该是有效的，尝试获取用户info,因为有的info可能是隐藏的 所以用post携带当前cookie去请求用户info
-    getUserInfoFromCookie();
-  };
-
- 
-
-  const cookieUpdata = (cookie) => {
-    userCookie.value = cookie;
-    myfuncs.saveJsonT("userCookie", cookie);
+  // ── Actions ──
+  function login(cookie) {
+    userCookie.value = cookie
+    isLoggedIn.value = true
+    // 保存 cookie
+    saveJsonSession(STORAGE_KEY_COOKIE, cookie)
     if (cookie.Remember) {
-      //长期保存cookie
-      myfuncs.saveJson("userCookie", cookie);
+      saveJson(STORAGE_KEY_COOKIE, cookie)
     }
-  };
+    // 检查 cookie 是否过期
+    if (cookie.ExpiresAt && new Date(cookie.ExpiresAt) < new Date()) {
+      logout()
+      return
+    }
+    // 获取用户信息
+    fetchUserInfo()
+  }
 
-  const loginFromStoreCookie = () => {
-    //从store获取cookie
+  function logout() {
+    userCookie.value = null
+    user.value = null
+    userInfo.value = null
+    isLoggedIn.value = false
+    removeStorage(STORAGE_KEY_COOKIE)
+  }
 
-    var cookie = myfuncs.loadJsonT("userCookie");
-    if (cookie) {
-      login(cookie);
-    } else {
-      cookie = myfuncs.loadJson("userCookie");
-      if (cookie) {
-        login(cookie);
-      } else {
-        logout();
+  async function fetchUserInfo() {
+    try {
+      const { errCode, data } = await authApi.getUserInfo()
+      if (errCode === 0) {
+        user.value = data.user ?? null
+        userInfo.value = data.userInfo ?? null
       }
+    } catch {
+      // 拦截器已处理错误提示
     }
-  };
+  }
+
+  /** 应用启动时尝试从存储恢复登录状态 */
+  function restoreSession() {
+    let cookie = loadJsonSession(STORAGE_KEY_COOKIE)
+    if (!cookie) {
+      cookie = loadJson(STORAGE_KEY_COOKIE)
+    }
+    if (cookie) {
+      login(cookie)
+    } else {
+      logout()
+    }
+  }
 
   return {
     user,
     userInfo,
     userCookie,
     isLoggedIn,
-    getUserAvatarPath,
-    getUserBirthday,
-    getUserInfoFromCookie,
-    logout,
+    cookieValue,
+    avatarUrl,
+    birthday,
     login,
-    loginFromStoreCookie,
-    cookieUpdata,
-  };
-});
+    logout,
+    fetchUserInfo,
+    restoreSession,
+  }
+})

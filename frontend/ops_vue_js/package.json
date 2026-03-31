@@ -29,10 +29,8 @@
     "@fullcalendar/list": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
     "@fullcalendar/vue3": "^6.1.19",
-    "@tabler/core": "^1.4.0",
     "@tabler/icons-vue": "^3.35.0",
     "axios": "^1.13.2",
-    "bootstrap": "^5.3.8",
     "cropperjs": "^2.1.0",
     "dropzone": "^6.0.0-beta.2",
     "filepond": "^4.32.11",
@@ -55,8 +53,10 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "sass-embedded": "^1.93.3",
+    "tailwindcss": "^4.2.2",
     "vite": "^7.1.11",
     "vite-plugin-vue-devtools": "^8.0.3"
   }

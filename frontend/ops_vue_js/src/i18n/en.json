@@ -204,6 +204,8 @@
     "doc": "Documentation",
     "license": "License",
     "source_code": "Source Code",
+    "github": "GitHub",
+    "author_home": "Author",
     "copy": "Copyright © 2025 Operations. All rights reserved."
   },
   "cost_type": {

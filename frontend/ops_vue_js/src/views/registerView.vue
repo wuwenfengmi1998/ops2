@@ -1,243 +1,146 @@
-<script setup>
-import { onMounted, watch, ref } from "vue";
-import { useRouter } from "vue-router";
-import MyOffcanvas from "@/components/MyOffcanvas.vue";
-import { myfuncs } from "@/myfunc.js";
-import { my_network_func } from "@/my_network_func";
-import { useI18n } from "vue-i18n";
-// 使用 vue-i18n 的 Composition API
-const { t, locale } = useI18n();
-const mos = ref();
-const isShowPassword = ref(false);
-const username = ref();
-const useremail = ref();
-const userpassword = ref();
-const router = useRouter();
+﻿<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
-function functionupdataTitle() {
-  document.title = "Operations." + t("appname.register");
+const { t, locale } = useI18n()
+
+function toggleLocale() {
+  locale.value = locale.value === 'zh-CN' ? 'en' : 'zh-CN'
 }
-function togglePasswordVisibility() {
-  isShowPassword.value = !isShowPassword.value;
-}
-function createAccount() {
-  // 在这里处理创建新账户的逻辑
-  const user = username.value?.value;
-  const email = useremail.value?.value;
-  const pass = userpassword.value?.value;
+import { useToastStore } from '@/stores/toast'
+import { usePageTitle } from '@/composables/usePageTitle'
+import { useValidation, isValidEmail } from '@/composables'
+import { authApi } from '@/api/auth'
+import { IconEye, IconEyeOff } from '@tabler/icons-vue'
 
-  username.value?.classList.remove("is-invalid");
-  useremail.value?.classList.remove("is-invalid");
-  userpassword.value?.classList.remove("is-invalid");
+usePageTitle('appname.register')
+const router = useRouter()
+const toast = useToastStore()
+const { validate, errors, clearErrors } = useValidation()
 
-  let isDataErr = false;
+const form = ref({
+  username: '',
+  email: '',
+  password: '',
+})
+const showPassword = ref(false)
+const loading = ref(false)
 
-  if (!user) {
-    isDataErr = true;
-    username.value?.classList.add("is-invalid");
-  }
-  if (!email) {
-    isDataErr = true;
-    useremail.value?.classList.add("is-invalid");
-  }
-  if (!pass) {
-    isDataErr = true;
-    userpassword.value?.classList.add("is-invalid");
-  }
+async function handleRegister() {
+  clearErrors()
 
-  if (isDataErr) {
-    mos.value?.showAlert(
-      "info",
-      t("message.please_enter_username_and_password"),
-      5000
-    );
-    return;
-  }
+  const err1 = validate('username', form.value.username, t('message.please_enter_username_and_password'))
+  const err2 = validate('email', form.value.email, t('message.please_enter_your_email'), isValidEmail)
+  const err3 = validate('password', form.value.password, t('message.please_enter_username_and_password'))
 
-  //判断长度
+  if (!err1 || !err2 || !err3) return
 
-  if (!myfuncs.isValidEmail(email)) {
-    useremail.value?.classList.add("is-invalid");
-    mos.value?.showAlert("warning", t("message.this_not_email"), 5000);
-    return;
-  }
-  // console.log("创建新账户信息:", {
-  //   user: username.value?.value,
-  //   email: useremail.value?.value,
-  //   pass: userpassword.value?.value,
-  // });
+  loading.value = true
+  try {
+    const { errCode } = await authApi.register(form.value.username, form.value.email, form.value.password)
 
-  my_network_func.postJson(
-    "/users/register",
-    {
-      username: username.value?.value,
-      useremail: useremail.value?.value,
-      userpass: userpassword.value?.value,
-    },
-    (r) => {
-      //console.log(r);
-      switch (r.statusCode) {
-        case 200:
-          switch (r.data.err_code) {
-            case -4:
-              username.value?.classList.add("is-invalid");
-              mos.value?.showAlert("warning", t("message.username_dup"), 5000);
-              break;
-            case 0:
-              mos.value?.showAlert(
-                "success",
-                t("message.registration_successful"),
-                1000,
-                () => {
-                  router.push("/login");
-                }
-              );
-              break;
-            default:
-              mos.value?.showAlert("danger", t("message.server_error"), 5000);
-              break;
-          }
-          break;
-        default:
-          mos.value?.showAlert("danger", t("message.network_err"), 5000);
-          break;
-      }
+    switch (errCode) {
+      case 0:
+        toast.success(t('message.registration_successful'), 1500)
+        setTimeout(() => router.push('/login'), 1500)
+        break
+      case -4:
+        toast.warning(t('message.username_dup'))
+        errors.username = t('message.username_dup')
+        break
+      default:
+        toast.error(t('message.server_error'))
     }
-  );
+  } catch {
+    // 拦截器已处理
+  } finally {
+    loading.value = false
+  }
 }
-
-onMounted(() => {
-  functionupdataTitle();
-});
-// 监听语言变化，更新标题
-watch(locale, () => {
-  functionupdataTitle();
-});
 </script>
 
 <template>
-  <div class="page page-center">
-    <div class="container container-tight py-4">
-      <div class="text-center mb-4">
-        <router-link to="/" class="navbar-brand navbar-brand-autodark">
-          <img
-            src="/static/logo.svg"
-            width="110"
-            height="32"
-            alt="Tabler"
-            class="navbar-brand-image"
-          />
-        </router-link>
-      </div>
-      <div class="card card-md">
-        <div class="card-body">
-          <h2 class="card-title text-center mb-4">
-            {{ t("message.create_new_account") }}
-          </h2>
-          <div class="mb-3">
-            <label class="form-label">{{ t("message.user_name") }}</label>
-            <input
-              ref="username"
-              type="text"
-              maxlength="64"
-              class="form-control"
-              :placeholder="t('message.your_user_name')"
-            />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t("message.email_address") }}</label>
-            <input
-              ref="useremail"
-              type="email"
-              maxlength="250"
-              class="form-control"
-              :placeholder="t('message.your_email_address')"
-            />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">{{ t("message.password") }}</label>
-            <div class="input-group input-group-flat">
-              <input
-                ref="userpassword"
-                :type="isShowPassword ? 'text' : 'password'"
-                class="form-control"
-                :placeholder="t('message.your_password')"
-                autocomplete="off"
-              />
-              <span class="input-group-text">
-                <div
-                  class="link-secondary"
-                  :title="
-                    isShowPassword
-                      ? t('message.hidden_Password')
-                      : t('message.show_password')
-                  "
-                  data-bs-toggle="tooltip"
-                >
-                  <!-- Download SVG icon from http://tabler-icons.io/i/eye -->
-                  <svg
-                    v-if="!isShowPassword"
-                    @click="togglePasswordVisibility"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="icon"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    stroke="currentColor"
-                    fill="none"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                    <path
-                      d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"
-                    />
-                  </svg>
-                  <svg
-                    v-if="isShowPassword"
-                    @click="togglePasswordVisibility"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="icon"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                    <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" />
-                    <path
-                      d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"
-                    />
-                    <path d="M3 3l18 18" />
-                  </svg>
-                </div>
-              </span>
-            </div>
-          </div>
-          <!-- <div class="mb-3">
-              <label class="form-check">
-                <input type="checkbox" class="form-check-input"/>
-                <span class="form-check-label">Agree the <a href="./terms-of-service.html" tabindex="-1">terms and policy</a>.</span>
-              </label>
-            </div> -->
-          <div class="form-footer">
-            <button @click="createAccount" class="btn btn-primary w-100">
-              {{ t("message.create_new_account") }}
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="text-center text-secondary mt-3">
-        {{ t("message.already_have_an_account") }}
-        <router-link to="/login">{{ t("message.back_to_login") }}</router-link>
-      </div>
+  <div class="mx-auto max-w-sm px-8">
+    <div class="mb-8 flex items-start justify-between">
+      <RouterLink to="/" class="inline-flex items-center">
+        <img src="/logo.svg" class="h-10 w-10 rounded-lg" alt="Operations" />
+        <span class="ml-2.5 text-2xl font-bold text-gray-800 dark:text-dk-text">Operations</span>
+      </RouterLink>
+      <button class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold uppercase text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-dk-muted dark:text-gray-400 dark:hover:bg-dk-card dark:hover:text-dk-text" @click="toggleLocale">
+        {{ locale === 'zh-CN' ? 'EN' : '中' }}
+      </button>
     </div>
+
+    <div class="rounded-xl border border-gray-200 bg-white px-8 py-8 shadow-lg dark:border-dk-muted dark:bg-dk-card">
+      <h2 class="mb-6 text-center text-xl font-bold text-gray-900 dark:text-white">{{ t('message.create_new_account') }}</h2>
+
+      <!-- Username -->
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('message.user_name') }}</label>
+        <input
+          v-model="form.username"
+          type="text"
+          maxlength="64"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+          :class="errors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'"
+          :placeholder="t('message.your_user_name')"
+        />
+        <span v-if="errors.username" class="mt-1 block text-xs text-red-500">{{ errors.username }}</span>
+      </div>
+
+      <!-- Email -->
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('message.your_email_address') }}</label>
+        <input
+          v-model="form.email"
+          type="email"
+          maxlength="250"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+          :class="errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'"
+          :placeholder="t('message.your_email_address')"
+        />
+        <span v-if="errors.email" class="mt-1 block text-xs text-red-500">{{ errors.email }}</span>
+      </div>
+
+      <!-- Password -->
+      <div class="mb-6">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('message.password') }}</label>
+        <div class="relative">
+          <input
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+            :class="errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'"
+            :placeholder="t('message.your_password')"
+            autocomplete="new-password"
+            @keydown.enter="handleRegister"
+          />
+          <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" @click="showPassword = !showPassword">
+            <IconEye v-if="!showPassword" :size="18" />
+            <IconEyeOff v-else :size="18" />
+          </button>
+        </div>
+        <span v-if="errors.password" class="mt-1 block text-xs text-red-500">{{ errors.password }}</span>
+      </div>
+
+      <!-- Submit -->
+      <button
+        class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:active:scale-100"
+        :disabled="loading"
+        @click="handleRegister"
+      >
+        <svg v-if="loading" class="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        {{ t('message.create_new_account') }}
+      </button>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-gray-500">
+      {{ t('message.already_have_an_account') }}
+      <RouterLink to="/login" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">{{ t('message.back_to_login') }}</RouterLink>
+    </p>
   </div>
-  <MyOffcanvas ref="mos" />
 </template>

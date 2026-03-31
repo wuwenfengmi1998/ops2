@@ -1,11 +1,12 @@
-html, body, #app {
-  height: 100%;
-  margin: 0,0,0,0;
-}
+@import "tailwindcss";
 
-@media (min-width: 992px) {
-    :host, :root {
-        margin-left: 0;
-        margin-right: 0;
-    }
+@variant dark (&:where(.dark, .dark *));
+
+/* ── Custom dark theme palette ── */
+@theme {
+  --color-dk-base: #171A1E;
+  --color-dk-card: #353D45;
+  --color-dk-muted: #5D6770;
+  --color-dk-subtle: #939AA0;
+  --color-dk-text: #F0F4F4;
 }

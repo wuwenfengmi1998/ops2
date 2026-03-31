@@ -1,20 +1,15 @@
-<script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import HeardMain from './components/HeardMain.vue';
-import FooterMain from './components/FooterMain.vue';
+﻿<script setup>
+import { onMounted } from 'vue'
+import { RouterView } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
-
+// Restore login state from localStorage/sessionStorage
+onMounted(() => {
+  const userStore = useUserStore()
+  userStore.restoreSession()
+})
 </script>
 
 <template>
-
- <div class="page">
-
-<HeardMain />
-
   <RouterView />
-
-  <FooterMain />
-
-  </div>
 </template>

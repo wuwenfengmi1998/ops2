@@ -1,267 +1,140 @@
-<script setup>
-import { onMounted, watch, ref } from "vue";
-import { useRouter } from "vue-router";
-import { useUserStore } from "@/stores/user";
+﻿<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
-import { my_network_func } from "@/my_network_func";
-import { myfuncs } from "@/myfunc.js";
-import MyOffcanvas from "@/components/MyOffcanvas.vue";
-import { useI18n } from "vue-i18n";
-// 使用 vue-i18n 的 Composition API
-const { t, locale } = useI18n();
-const router = useRouter();
-const userStore = useUserStore();
+const { t, locale } = useI18n()
 
-const mos = ref();
-
-const username = ref();
-const password = ref();
-const isRemember = ref();
-
-
-const isShowPassword = ref(false);
-function togglePasswordVisibility() {
-  isShowPassword.value = !isShowPassword.value;
+function toggleLocale() {
+  locale.value = locale.value === 'zh-CN' ? 'en' : 'zh-CN'
 }
+import { useUserStore } from '@/stores/user'
+import { useToastStore } from '@/stores/toast'
+import { usePageTitle } from '@/composables/usePageTitle'
+import { useValidation } from '@/composables'
+import { authApi } from '@/api/auth'
+import { IconEye, IconEyeOff } from '@tabler/icons-vue'
 
-function login() {
-  // 在这里处理登录逻辑
+usePageTitle('appname.login')
+const router = useRouter()
+const userStore = useUserStore()
+const toast = useToastStore()
+const { validate, errors, clearErrors } = useValidation()
 
-  const user = username.value?.value;
-  const pass = password.value?.value;
-  const remember = isRemember.value?.checked;
+const form = ref({
+  username: '',
+  password: '',
+  remember: false,
+})
+const showPassword = ref(false)
+const loading = ref(false)
 
-  username.value?.classList.remove("is-invalid");
-  password.value?.classList.remove("is-invalid");
+async function handleLogin() {
+  clearErrors()
 
-  if (!user || !pass) {
-    if (!user) {
-      username.value?.classList.add("is-invalid");
+  const err1 = validate('username', form.value.username, t('message.please_enter_username_and_password'))
+  const err2 = validate('password', form.value.password, t('message.please_enter_username_and_password'))
+
+  if (!err1 || !err2) return
+
+  loading.value = true
+  try {
+    const { errCode, data } = await authApi.login(form.value.username, form.value.password, form.value.remember)
+
+    switch (errCode) {
+      case 0:
+        userStore.login(data.cookie)
+        toast.success(t('message.login_successful'))
+        const redirectPath = router.query.redirect || '/'
+        router.push(redirectPath)
+        break
+      case -42:
+        toast.danger(t('message.username_or_password_incorrect'))
+        break
+      default:
+        toast.error(t('message.server_error'))
     }
-    if (!pass) {
-      password.value?.classList.add("is-invalid");
-    }
-
-    mos.value?.showAlert(
-      "info",
-      t("message.please_enter_username_and_password"),
-      5000
-    );
-    return;
+  } catch {
+    // 拦截器已处理
+  } finally {
+    loading.value = false
   }
-
-  //console.log("登录信息:", { user, pass, remember });
-
-  my_network_func.postJson(
-    "/users/login",
-    {
-      username: user,
-      userpass: pass,
-      remember: remember,
-    },
-    (r) => {
-      //console.log(r)
-      switch (r.statusCode) {
-        case 200:
-          switch (r.data.err_code) {
-            case -41:
-              username.value?.classList.add("is-invalid");
-              mos.value?.showAlert(
-                "warning",
-                t("message.user_not_found"),
-                5000
-              );
-              break;
-            case -42:
-              username.value?.classList.add("is-invalid");
-              password.value?.classList.add("is-invalid");
-              mos.value?.showAlert(
-                "warning",
-                t("message.username_or_password_incorrect"),
-                5000
-              );
-              break;
-            case 0:
-              //登录成功，载入cookie
-              //临时保存cookie
-              userStore.cookieUpdata(r.data.return.cookie)
-
-              //更新用户信息
-              userStore.login(r.data.return.cookie)
-              
-
-              mos.value?.showAlert(
-                "success",
-                t("message.login_successful"),
-                1000,
-                () => {
-                  router.back()
-                }
-              );
-              break;
-            default:
-              mos.value?.showAlert("danger", t("message.server_error"), 5000);
-              break;
-          }
-          break;
-        default:
-          mos.value?.showAlert("danger", t("message.network_err"), 5000);
-          break;
-      }
-    }
-  );
 }
-onMounted(() => {
-  functionupdataTitle();
-  if (userStore.isLoggedIn) {
-    router.push("/");
-  }
-});
-
-function functionupdataTitle() {
-  document.title = "Operations." + t("appname.login");
-}
-
-// 监听语言变化，更新标题
-watch(locale, () => {
-  functionupdataTitle();
-});
 </script>
 
 <template>
-  <div class="page page-center">
-    <div class="container container-normal py-6">
-      <div class="row align-items-center g-4">
-        <div class="col-lg">
-          <div class="container-tight">
-            <div class="card card-md">
-              <div class="card-body">
-                <h2 class="h2 text-center mb-4">
-                  {{ t("message.login_to_your_account") }}
-                </h2>
-
-                <div class="mb-3">
-                  <label class="form-label">{{ t("message.user_name") }}</label>
-                  <input
-                    ref="username"
-                    type="text"
-                    maxlength="64"
-                    class="form-control"
-                    :placeholder="t('message.your_user_name')"
-                    autocomplete="off"
-                  />
-                </div>
-                <div class="mb-2">
-                  <label class="form-label">
-                    {{ t("message.password") }}
-                    <span class="form-label-description">
-                      <router-link to="/forgot_password">{{
-                        t("message.i_forgot_password")
-                      }}</router-link>
-                    </span>
-                  </label>
-                  <div class="input-group input-group-flat">
-                    <input
-                      ref="password"
-                      :type="isShowPassword ? 'text' : 'password'"
-                      class="form-control"
-                      :placeholder="t('message.your_password')"
-                      autocomplete="off"
-                    />
-                    <span class="input-group-text">
-                      <div
-                        class="link-secondary"
-                        :title="
-                          isShowPassword
-                            ? t('message.hidden_Password')
-                            : t('message.show_password')
-                        "
-                        data-bs-toggle="tooltip"
-                      >
-                        <!-- Download SVG icon from http://tabler-icons.io/i/eye -->
-                        <svg
-                          v-if="!isShowPassword"
-                          @click="togglePasswordVisibility"
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="icon"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          stroke-width="2"
-                          stroke="currentColor"
-                          fill="none"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                          <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                          <path
-                            d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"
-                          />
-                        </svg>
-                        <svg
-                          v-if="isShowPassword"
-                          @click="togglePasswordVisibility"
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="icon"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                          <path d="M10.585 10.587a2 2 0 0 0 2.829 2.828" />
-                          <path
-                            d="M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87"
-                          />
-                          <path d="M3 3l18 18" />
-                        </svg>
-                      </div>
-                    </span>
-                  </div>
-                </div>
-                <div class="mb-2">
-                  <label class="form-check">
-                    <input
-                      ref="isRemember"
-                      type="checkbox"
-                      class="form-check-input"
-                    />
-                    <span class="form-check-label">{{
-                      t("message.remember_me_on_this_device")
-                    }}</span>
-                  </label>
-                </div>
-                <div class="form-footer">
-                  <button @click="login" class="btn btn-primary w-100">
-                    {{ t("button.sign_in") }}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="text-center text-secondary mt-3">
-              {{ t("message.dont_have_account_yet") }}
-              <router-link to="/register">{{
-                t("message.register_now")
-              }}</router-link>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg d-none d-lg-block">
-          <img
-            src="/static/illustrations/undraw_secure_login_pdn4.svg"
-            height="300"
-            class="d-block mx-auto"
-            alt=""
-          />
-        </div>
-      </div>
+  <div class="mx-auto max-w-sm px-8">
+    <div class="mb-8 flex items-start justify-between">
+      <RouterLink to="/" class="inline-flex items-center">
+        <img src="/logo.svg" class="h-10 w-10 rounded-lg" alt="Operations" />
+        <span class="ml-2.5 text-2xl font-bold text-gray-800 dark:text-dk-text">Operations</span>
+      </RouterLink>
+      <button class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold uppercase text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-dk-muted dark:text-gray-400 dark:hover:bg-dk-card dark:hover:text-dk-text" @click="toggleLocale">
+        {{ locale === 'zh-CN' ? 'EN' : '中' }}
+      </button>
     </div>
-  </div>
 
-  <MyOffcanvas ref="mos" />
+    <div class="rounded-xl border border-gray-200 bg-white px-8 py-8 shadow-lg dark:border-dk-muted dark:bg-dk-card">
+      <h2 class="mb-6 text-center text-xl font-bold text-gray-900 dark:text-white">{{ t('message.login_to_your_account') }}</h2>
+
+      <!-- Username -->
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('message.user_name') }}</label>
+        <input
+          v-model="form.username"
+          type="text"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+          :class="errors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'"
+          :placeholder="t('message.your_user_name')"
+          @keydown.enter="handleLogin"
+        />
+        <span v-if="errors.username" class="mt-1 block text-xs text-red-500">{{ errors.username }}</span>
+      </div>
+
+      <!-- Password -->
+      <div class="mb-4">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('message.password') }}</label>
+        <div class="relative">
+          <input
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+            :class="errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300'"
+            :placeholder="t('message.your_password')"
+            autocomplete="current-password"
+            @keydown.enter="handleLogin"
+          />
+          <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" @click="showPassword = !showPassword">
+            <IconEye v-if="!showPassword" :size="18" />
+            <IconEyeOff v-else :size="18" />
+          </button>
+        </div>
+        <span v-if="errors.password" class="mt-1 block text-xs text-red-500">{{ errors.password }}</span>
+      </div>
+
+      <!-- Remember -->
+      <label class="mb-6 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <input v-model="form.remember" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        {{ t('message.remember_me_on_this_device') }}
+      </label>
+
+      <!-- Submit -->
+      <button
+        class="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:active:scale-100"
+        :disabled="loading"
+        @click="handleLogin"
+      >
+        <svg v-if="loading" class="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        {{ t('button.sign_in') }}
+      </button>
+    </div>
+
+    <p class="mt-6 text-center text-sm text-gray-500">
+      {{ t('message.dont_have_account_yet') }}
+      <RouterLink to="/register" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">{{ t('message.register_now') }}</RouterLink>
+    </p>
+  </div>
 </template>

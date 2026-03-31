@@ -204,6 +204,8 @@
     "doc": "文档",
     "license": "协议",
     "source_code": "源码",
+    "github": "GitHub",
+    "author_home": "作者主页",
     "copy": "版权 © 2025 Operations. 保留所有权利。"
   },
   "cost_type": {

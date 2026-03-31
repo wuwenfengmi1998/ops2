@@ -19,23 +19,24 @@
 - **框架**：Vue 3 + JavaScript（非 TypeScript）
 - **路由**：Vue Router（Hash 模式）
 - **构建工具**：Vite 7
-- **UI 框架**：Tabler（Bootstrap 5 + @tabler/core）
+- **CSS 框架**：Tailwind CSS v4（@tailwindcss/vite 插件）
 - **图标**：@tabler/icons-vue
 - **状态管理**：Pinia
 - **国际化**：vue-i18n
 - **日期选择**：flatpickr / litepicker
 - **文件上传**：FilePond
-- **图片裁剪**：CropperJS / @cropper/*
+- **图片裁剪**：CropperJS（@cropper/elements）
 - **日历**：FullCalendar（含 daygrid/timegrid/list/interaction）
-- **其他组件**：MyOffcanvas、imageCropper、datePicker、dateTimePicker、tagadder、useDropzone 等
+- **其他组件**：imageCropper、tagadder、dateTimePicker、useDropzone 等
+- ~~**UI 框架**：Tabler（Bootstrap 5 + @tabler/core）~~ 已弃用（2026-03-31 迁移至 Tailwind）
 
 > 注意：`frontend/ops_vue/`（TypeScript 版）是旧目录，已弃用
 
 ### 前端页面路由（ops_vue_js）
 - `/` — 首页（HomeView）
-- `/login` — 登录
-- `/register` — 注册
-- `/forgot_password` — 找回密码
+- `/login` — 登录（AuthLayout）
+- `/register` — 注册（AuthLayout）
+- `/forgot_password` — 找回密码（AuthLayout）
 - `/admin` — 管理后台
 - `/schedule` — 日程/排班（FullCalendar）
 - `/purchase` — 采购订单列表
@@ -71,11 +72,25 @@
 
 ## 项目现状（2026-03-31）
 - 后端基础架构完整，采购模块已有基础实现
-- 前端 `ops_vue_js` 目录是主力开发目录（JS 版 Vue3，Tabler UI）
-- 已有页面：登录/注册/采购/日程/仓库/设置等
+- 前端 `ops_vue_js` 目录是主力开发目录（Vue 3 + Tailwind CSS v4）
+- **已完成前端整体重构**：API 层 async/await、Router 导航守卫、composables、布局分离
+- **已完成 Tabler → Tailwind CSS v4 迁移**
+- **已修复所有字符损坏文件**（20 个 Vue 文件，因批量脚本偏移错误）
+- 所有页面构建通过，6169 modules, 0 errors
 - 前端构建产物放在 `backend/dist/` 供后端 serve
 - `frontend/ops_vue/`（TypeScript 版）是旧目录，已弃用
-- 目录名原为 `frontent`（拼写错误），实际文件系统路径为 `frontend`
+
+## 经验教训
+- **批量字符替换脚本危险**：需在源码上使用前先备份，并限定替换范围
+- **`@tabler/icons-vue` 不包含所有图标**：如 `IconFileTypeText` 不存在，使用前需确认
+
+## 前端重构后架构（2026-03-31）
+- **API 层**：`src/api/` — axios 实例 + 拦截器，async/await 封装
+- **Composables**：`src/composables/` — usePageTitle、useValidation、isValidEmail
+- **Stores**：`src/stores/user.js`（精简）、`src/stores/toast.js`（全局通知）
+- **布局**：`src/layouts/DefaultLayout.vue`（主站）、`AuthLayout.vue`（认证页）
+- **公共组件**：AppHeader、AppFooter、AppToast、SettingNav
+- **命名规范**：PascalCase 文件名，camelCase 函数名
 
 ## 开发规范
 - API 请求统一携带 `userCookieValue` 做身份验证
