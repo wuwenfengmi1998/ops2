@@ -14,7 +14,8 @@ const { t, locale } = useI18n()
 const calendarRef = ref(null)
 
 const calendarOptions = ref({
-  height: 'auto',
+  height: '100%',
+  contentHeight: 'auto',
   locale: locale.value,
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
   nowIndicator: true,
@@ -25,6 +26,8 @@ const calendarOptions = ref({
   dayMaxEvents: true,
   navLinks: true,
   firstDay: 1,
+  expandRows: true,
+  stickyHeaderDates: true,
 
   dayCellDidMount(info) {
     if (info.date.getDay() === 0 || info.date.getDay() === 6) {
@@ -80,10 +83,11 @@ watch(locale, () => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl px-6 py-6">
-    <h2 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">{{ t('schedule.my_schedule') }}</h2>
-    <div class="rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-lg dark:border-dk-muted dark:bg-dk-card">
-      <FullCalendar ref="calendarRef" :options="calendarOptions" />
+  <div class="flex h-[calc(100vh-3.5rem)] w-full flex-col">
+    <div class="flex-1 rounded-lg border border-gray-200 bg-white p-0.5 shadow dark:border-dk-muted dark:bg-dk-card">
+      <div class="h-full w-full overflow-hidden rounded-md">
+        <FullCalendar ref="calendarRef" :options="calendarOptions" />
+      </div>
     </div>
   </div>
 </template>
