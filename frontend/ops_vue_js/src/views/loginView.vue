@@ -45,14 +45,15 @@ async function handleLogin() {
       case 0:
         userStore.login(data.cookie)
         toast.success(t('message.login_successful'))
-        const redirectPath = router.query.redirect || '/'
-        router.push(redirectPath)
+        // 有 redirect 则跳转到原页面，否则去首页
+        const redirect = router.currentRoute.value.query.redirect
+        router.replace(redirect || '/')
         break
       case -42:
-        toast.danger(t('message.username_or_password_incorrect'))
+        toast.warning(t('message.username_or_password_incorrect'))
         break
       default:
-        toast.error(t('message.server_error'))
+        toast.danger(t('message.server_error'))
     }
   } catch {
     // 拦截器已处理

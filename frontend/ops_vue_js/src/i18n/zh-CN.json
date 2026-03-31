@@ -39,7 +39,12 @@
     "select_File": "选择文件",
     "crop_image": "裁剪图片",
     "cancel": "取消",
-    "closs": "关闭"
+    "closs": "关闭",
+    "upload_image": "上传图片",
+    "supported_formats": "支持JPG、PNG、GIF格式",
+    "drag_to_resize": "可拖动调整大小与位置",
+    "ready_to_upload": "准备上传头像",
+    "click_button_or_drag": "点击上传按钮或拖放图片文件"
   },
   "purchase": {
     "purchase_list": "采购列表",
@@ -169,12 +174,14 @@
   },
   "settings": {
     "cancel": "取消",
+    "cancel_changes": "取消更改",
     "basic_information": "基本信息",
     "contact_information": "联系信息",
     "security_settings": "安全设置",
     "account_settings": "个人设置",
     "my_account": "我的账户",
     "profile_information": "个人信息",
+    "profile_picture": "个人头像",
     "change_avatar": "更改头像",
     "change_email": "更改邮箱",
     "name": "姓名",
@@ -191,8 +198,14 @@
     "site_description": "网站描述",
     "site_keywords": "网站关键词",
     "save_changes": "保存更改",
+    "saving": "保存中...",
     "password": "密码",
-    "set_new_password": "设置新密码"
+    "set_new_password": "设置新密码",
+    "avatar_description": "上传一张清晰的头像照片，支持JPG、PNG格式，建议尺寸不少于256×256像素。",
+    "avatar_unsaved": "头像修改未保存",
+    "optional": "选填",
+    "birthday_help": "选择您的生日，用于个性化服务",
+    "save_notice": "保存后将更新您的个人信息"
   },
   "button": {
     "submit": "提交",

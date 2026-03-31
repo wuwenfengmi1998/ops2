@@ -95,67 +95,156 @@ async function handleSave() {
     <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
       <SettingNav />
       <div class="flex-1 space-y-6">
-        <!-- Avatar -->
-        <div class="mb-6 flex items-center gap-4">
-          <div>
-            <img
-              :src="avatarHasChanged ? avatarDataUrl : userStore.avatarUrl"
-              alt="Avatar"
-              class="h-16 w-16 rounded-full border-2 border-gray-200 object-cover dark:border-dk-muted"
-            />
-          </div>
-          <div>
-            <ImageCropper @crop-data-url="handleCrop" />
-            <button v-if="avatarHasChanged" class="mt-2 rounded-lg border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-50 dark:border-dk-muted dark:text-gray-400 dark:hover:bg-dk-card" @click="cancelAvatar">
-              {{ t('settings.cancel') }}
-            </button>
-          </div>
-        </div>
-
-        <h3 class="mb-4 text-sm font-semibold uppercase text-gray-400 tracking-wider dark:text-gray-500">Profile</h3>
-
-        <!-- Form -->
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('settings.name') }}</label>
-            <input
-              v-model="form.username"
-              type="text"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              :class="errors.username ? 'border-red-500' : 'border-gray-300'"
-            />
-            <span v-if="errors.username" class="mt-1 block text-xs text-red-500">{{ errors.username }}</span>
-          </div>
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('settings.remark') }}</label>
-            <input
-              v-model="form.remark"
-              type="text"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              :class="errors.remark ? 'border-red-500' : 'border-gray-300'"
-            />
-            <span v-if="errors.remark" class="mt-1 block text-xs text-red-500">{{ errors.remark }}</span>
-          </div>
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('settings.birthday') }}</label>
-            <input
-              v-model="form.birthday"
-              type="date"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              :class="errors.birthday ? 'border-red-500' : 'border-gray-300'"
-            />
-            <span v-if="errors.birthday" class="mt-1 block text-xs text-red-500">{{ errors.birthday }}</span>
+        <!-- Avatar Section -->
+        <div class="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/50">
+          <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">{{ t('settings.profile_picture') }}</h3>
+          <div class="flex flex-col items-start gap-6 md:flex-row md:items-center">
+            <!-- Avatar Preview -->
+            <div class="relative">
+              <img
+                :src="avatarHasChanged ? avatarDataUrl : userStore.avatarUrl"
+                alt="Avatar"
+                class="h-24 w-24 rounded-full border-4 border-white shadow-lg dark:border-gray-800"
+              />
+              <div class="absolute -right-1 -top-1 h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
+                <div class="h-full w-full rounded-full bg-white dark:bg-gray-900"></div>
+              </div>
+            </div>
+            
+            <!-- Avatar Actions -->
+            <div class="flex-1 space-y-4">
+              <div class="space-y-3">
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                  {{ t('settings.avatar_description') }}
+                </p>
+                
+                <!-- Image Cropper Component -->
+                <ImageCropper @crop-data-url="handleCrop" />
+                
+                <!-- Cancel Button (when avatar changed) -->
+                <div v-if="avatarHasChanged" class="flex items-center gap-3 pt-2">
+                  <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <div class="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    {{ t('settings.avatar_unsaved') }}
+                  </div>
+                  <button 
+                    class="ml-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:border-gray-600"
+                    @click="cancelAvatar"
+                  >
+                    {{ t('settings.cancel_changes') }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="mt-6">
-          <button
-            class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:active:scale-100"
-            :disabled="loading"
-            @click="handleSave"
-          >
-            {{ t('settings.save_changes') }}
-          </button>
+        <!-- Profile Information Form -->
+        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/50">
+          <div class="mb-6">
+            <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{{ t('settings.profile_information') }}</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {{ t('settings.basic_information') }}
+            </p>
+          </div>
+
+          <!-- Form Grid -->
+          <div class="space-y-6">
+            <!-- Name and Remark Row -->
+            <div class="grid gap-6 md:grid-cols-2">
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('settings.name') }}
+                  <span class="ml-1 text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input
+                    v-model="form.username"
+                    type="text"
+                    placeholder="请输入您的姓名"
+                    class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
+                    :class="errors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
+                  />
+                  <div class="absolute right-3 top-3">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <span v-if="errors.username" class="block text-xs text-red-500">{{ errors.username }}</span>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('settings.remark') }}
+                  <span class="ml-1 text-gray-400">({{ t('settings.optional') }})</span>
+                </label>
+                <div class="relative">
+                  <input
+                    v-model="form.remark"
+                    type="text"
+                    placeholder="个人简介或备注"
+                    class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
+                    :class="errors.remark ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
+                  />
+                  <div class="absolute right-3 top-3">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                  </div>
+                </div>
+                <span v-if="errors.remark" class="block text-xs text-red-500">{{ errors.remark }}</span>
+              </div>
+            </div>
+
+            <!-- Birthday Row -->
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ t('settings.birthday') }}
+                <span class="ml-1 text-gray-400">({{ t('settings.optional') }})</span>
+              </label>
+              <div class="relative">
+                <input
+                  v-model="form.birthday"
+                  type="date"
+                  class="w-full rounded-lg border bg-white px-4 py-3 text-sm outline-none transition-all focus:ring-2 dark:bg-gray-900 dark:text-white"
+                  :class="errors.birthday ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-gray-700'"
+                />
+                <div class="absolute right-3 top-3">
+                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+              <span v-if="errors.birthday" class="block text-xs text-red-500">{{ errors.birthday }}</span>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('settings.birthday_help') }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="mt-8 border-t border-gray-100 pt-6 dark:border-gray-800">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-gray-600 dark:text-gray-400">
+                {{ t('settings.save_notice') }}
+              </div>
+              <button
+                class="group flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-blue-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                :disabled="loading"
+                @click="handleSave"
+              >
+                <svg v-if="!loading" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <svg v-else class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {{ loading ? t('settings.saving') : t('settings.save_changes') }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

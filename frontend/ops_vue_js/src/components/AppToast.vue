@@ -23,18 +23,18 @@ const icons = {
   >
     <div
       v-if="toastStore.visible"
-      class="fixed left-1/2 top-5 z-[9999] flex max-w-sm -translate-x-1/2 transform items-start gap-3 rounded-lg border-0 bg-white px-4 py-3 shadow-lg dark:bg-dk-card dark:text-dk-text"
+      class="fixed left-1/2 top-5 z-[9999] flex max-w-sm -translate-x-1/2 transform items-start gap-3 rounded-lg border-0 px-4 py-3 shadow-lg text-white"
       :class="{
-        'text-green-700': toastStore.type === 'success',
-        'text-blue-700': toastStore.type === 'warning',
-        'text-red-700': toastStore.type === 'error',
-        'text-gray-700': toastStore.type === 'info',
+        'bg-green-600': toastStore.type === 'success',
+        'bg-yellow-600': toastStore.type === 'warning',
+        'bg-red-600': toastStore.type === 'danger',
+        'bg-slate-700': toastStore.type === 'info',
       }"
       role="alert"
     >
       <component :is="icons[toastStore.type] || IconInfoCircle" :size="20" class="mt-0.5 shrink-0" />
       <span class="flex-1 text-sm">{{ toastStore.message }}</span>
-      <button class="ml-1 text-white/70 hover:text-white" @click="toastStore.hide()">×</button>
+      <button class="ml-1 opacity-70 hover:opacity-100" @click="toastStore.hide()">×</button>
     </div>
   </Transition>
 </template>

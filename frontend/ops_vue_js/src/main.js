@@ -6,9 +6,11 @@ import router from './router'
 
 import './assets/main.css'
 
-// Restore saved theme before app mounts
-const savedTheme = localStorage.getItem('tablerTheme')
-if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+// Initialize theme
+const savedTheme = localStorage.getItem('theme') // 改用 'theme' key
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+
+if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
   document.documentElement.classList.add('dark')
 } else {
   document.documentElement.classList.remove('dark')

@@ -70,8 +70,8 @@
 ## 前端页面
 - 见上方"前端页面路由"章节
 
-## 项目现状（2026-03-31）
-- 后端基础架构完整，采购模块已有基础实现
+## 项目现状（2026-03-31 更新）
+### 前端
 - 前端 `ops_vue_js` 目录是主力开发目录（Vue 3 + Tailwind CSS v4）
 - **已完成前端整体重构**：API 层 async/await、Router 导航守卫、composables、布局分离
 - **已完成 Tabler → Tailwind CSS v4 迁移**
@@ -79,6 +79,67 @@
 - 所有页面构建通过，6169 modules, 0 errors
 - 前端构建产物放在 `backend/dist/` 供后端 serve
 - `frontend/ops_vue/`（TypeScript 版）是旧目录，已弃用
+
+### 后端（重构完成 ✅）
+- **已完成基础架构重构**：cmd/internal/pkg 三层架构
+- **用户认证模块重构完成**：Handler → Service → Repository 分层
+- **采购订单模块重构完成**：新增分层架构，兼容现有前端API
+- **新增中间件系统**：认证、日志、CORS、恢复中间件
+- **统一API响应**：标准错误码映射和响应格式
+- **模块化路由系统**：API v1 版本路由定义清晰分离
+- **新目录结构**：
+  - `cmd/ops-server/main.go` - 应用入口
+  - `internal/config/` - 配置管理
+  - `internal/database/` - 数据库连接和迁移
+  - `internal/handler/` - HTTP处理器（auth_handler.go, purchase_handler.go）
+  - `internal/service/` - 业务逻辑层（auth_service.go, purchase_service.go）
+  - `internal/repository/` - 数据访问层（user_repository.go, purchase_repository.go）
+  - `internal/middleware/` - 中间件系统（auth.go, logging.go, cors.go）
+  - `api/v1/` - API定义（routes.go）
+  - `pkg/response/` - 统一响应处理
+
+### 重构进展总结
+- ✅ **用户认证模块**：完整迁移到分层架构
+- ✅ **采购订单模块**：完整迁移，同时支持原始POST路由和RESTful API
+- ✅ **文件管理模块**：完整迁移，支持分层架构
+- ✅ **基础架构**：所有中间件、配置、数据库连接已完成
+- ✅ **路由和中间件系统**：已完成统一管理和配置（2026-03-31）
+- ✅ **编译状态**：项目编译成功（需要CGO_ENABLED=1以支持SQLite）
+
+### 新路由架构（2026-03-31）
+- **主入口**：`cmd/ops-server/main.go` - 现代化主入口，支持优雅关机
+- **路由配置**：`api/`包统一管理所有路由
+- **兼容性**：完全兼容现有前端API `/api/*`
+- **新增API**：RESTful API v1 `/api/v1/*`
+- **中间件系统**：环境感知的日志、CORS、认证、恢复中间件
+- **静态文件**：智能SPA支持，支持Vue Router history模式
+
+### 中间件系统
+- **CORS中间件**：完整跨域支持
+- **日志中间件**：开发环境用简易日志，生产环境用详细日志
+- **认证中间件**：支持多种认证方式（Bearer令牌、userCookieValue）
+- **恢复中间件**：Panic恢复和错误处理
+
+### 已完成模块
+1. 文件管理模块的分层重构 ✅
+2. 静态文件服务整合 ✅
+3. API请求日志模块 ✅
+4. 管理员权限控制 ⏳
+5. 系统配置管理 ✅
+
+### 技术架构升级
+1. **分层架构完成**：Handler → Service → Repository
+2. **统一错误处理**：标准错误码和响应格式
+3. **路由系统整合**：兼容性路由 + RESTful API v1
+4. **中间件规范化**：统一的中间件加载和配置
+5. **开发工具完善**：run-dev.bat启动脚本，配置文档
+
+### 技术规范
+- **认证方式**：兼容前端 `userCookieValue` POST字段、Authorization头、Cookie头
+- **响应格式**：统一使用 `pkg/response` 包的标准响应
+- **错误码**："0"成功、"-1"内部错误、"-2"参数错误、"-3"未登录、"-4"用户存在、"-5"用户不存在、"-42"凭证错误
+- **数据库**：支持SQLite/MySQL/PostgreSQL切换
+- **API版本**：v1 API统一在 `/api/v1/` 路径下
 
 ## 经验教训
 - **批量字符替换脚本危险**：需在源码上使用前先备份，并限定替换范围
@@ -93,6 +154,30 @@
 - **命名规范**：PascalCase 文件名，camelCase 函数名
 
 ## 开发规范
+
+### 后端架构规范
+- **分层架构**：Handler → Service → Repository → Database
+- **认证方式**：
+  - 兼容现有前端：POST JSON中的 `userCookieValue` 字段
+  - 标准方式：Authorization: Bearer token 或 Cookie header
+- **响应格式**：
+  ```json
+  {
+    "code": "0",          // 错误码，0表示成功
+    "message": "Success", // 人类可读的消息
+    "data": {}            // 实际数据
+  }
+  ```
+- **错误码系统**：
+  - "0": 成功
+  - "-1": 内部错误
+  - "-2": 参数错误
+  - "-3": 用户未登录
+  - "-4": 用户已存在
+  - "-5": 用户不存在
+  - "-42": 用户名或密码错误
+- **依赖注入**：Handler通过Service，Service通过Repository访问数据库
+
+### 前端规范（保持不变）
 - API 请求统一携带 `userCookieValue` 做身份验证
-- 响应统一用 `ReturnJson(ctx, errorCode, data)` 格式
 - 错误码定义在 `./defConfig/errorCodes.json`

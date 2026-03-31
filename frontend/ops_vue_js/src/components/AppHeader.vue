@@ -25,7 +25,7 @@ const userDropdownOpen = ref(false);
 function toggleTheme() {
   isDark.value = !isDark.value;
   document.documentElement.classList.toggle("dark", isDark.value);
-  localStorage.setItem("tablerTheme", isDark.value ? "dark" : "light");
+  localStorage.setItem("theme", isDark.value ? "dark" : "light"); // 使用统一的'theme' key
 }
 
 function toggleLocale() {
@@ -114,7 +114,11 @@ const navItems = computed(() => [
             class="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-card"
             @click="userDropdownOpen = !userDropdownOpen"
           >
-            <IconUser :size="20" />
+            <img
+              :src="userStore.avatarUrl"
+              class="h-6 w-6 rounded-full object-cover"
+              alt="avatar"
+            />
             <span class="max-w-24 truncate">{{
               userStore.user?.Name || ""
             }}</span>

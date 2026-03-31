@@ -39,7 +39,12 @@
     "select_File": "Select File",
     "crop_image": "Crop Image",
     "cancel": "Cancel",
-    "closs": "Closs"
+    "closs": "Close",
+    "upload_image": "Upload Image",
+    "supported_formats": "Supports JPG, PNG, GIF formats",
+    "drag_to_resize": "Drag to resize and reposition",
+    "ready_to_upload": "Ready to upload avatar",
+    "click_button_or_drag": "Click upload button or drag & drop image file"
   },
   "purchase": {
     "purchase_list": "Purchase List",
@@ -169,12 +174,14 @@
   },
   "settings": {
     "cancel": "Cancel",
+    "cancel_changes": "Cancel Changes",
     "basic_information": "Basic Information",
     "contact_information": "Contact Information",
     "security_settings": "Security Settings",
     "account_settings": "Account Settings",
     "my_account": "My Account",
     "profile_information": "Profile Information",
+    "profile_picture": "Profile Picture",
     "change_avatar": "Change Avatar",
     "change_email": "Change Email",
     "name": "Name",
@@ -191,8 +198,14 @@
     "site_description": "Site Description",
     "site_keywords": "Site Keywords",
     "save_changes": "Save Changes",
+    "saving": "Saving...",
     "password": "Password",
-    "set_new_password": "Set New Password"
+    "set_new_password": "Set New Password",
+    "avatar_description": "Upload a clear profile picture. Supports JPG, PNG formats. Recommended size is at least 256×256 pixels.",
+    "avatar_unsaved": "Avatar changes not saved",
+    "optional": "Optional",
+    "birthday_help": "Select your birthday for personalized services",
+    "save_notice": "Your personal information will be updated after saving"
   },
   "button": {
     "submit": "Submit",

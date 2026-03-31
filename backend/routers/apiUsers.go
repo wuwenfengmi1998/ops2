@@ -63,7 +63,7 @@ type From_user_add struct {
 
 type From_user_login struct {
 	Username string `json:"username"`
-	Userpass string `json:"userpass"`
+	Password string `json:"password"`
 	Remember bool   `json:"remember"`
 }
 
@@ -426,7 +426,7 @@ func ApiUser(r *gin.RouterGroup) {
 		data, _ := SeparateData(ctx)
 		if data != nil {
 			if err := mapstructure.Decode(data, &loginuser); err == nil {
-				if loginuser.Username != "" && loginuser.Userpass != "" {
+				if loginuser.Username != "" && loginuser.Password != "" {
 					//传入的数据都ok，获取用户信息
 
 					getuser := models.TabUser_{
@@ -436,7 +436,7 @@ func ApiUser(r *gin.RouterGroup) {
 					if models.DB.Where(&getuser).First(&getuser).Error == nil {
 						//倒入数据
 						user := models.TabUser_{
-							Pass: loginuser.Userpass, //密码明文
+							Pass: loginuser.Password, //密码明文
 							Salt: getuser.Salt,       //保存的盐制
 						}
 						//哈希密
@@ -469,10 +469,10 @@ func ApiUser(r *gin.RouterGroup) {
 					}
 
 				} else {
-					ReturnJson(ctx, "jsonErr", nil)
+					ReturnJson(ctx, "jsonErr", map[string]interface{}{"errcode": "2"})
 				}
 			} else {
-				ReturnJson(ctx, "jsonErr", nil)
+				ReturnJson(ctx, "jsonErr", map[string]interface{}{"errcode": "1"})
 			}
 
 		} else {
