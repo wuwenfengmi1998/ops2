@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, defineProps, onMounted } from "vue";
+import { ref, watch, defineProps } from "vue";
 
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
@@ -20,6 +20,8 @@ import { useI18n } from "vue-i18n";
 // 获取国际化翻译函数和当前语言
 const { t, locale } = useI18n();
 
+const isShow = ref(false);
+
 // 定义props：从父组件接收日期数据
 const props = defineProps({
   startDate: {
@@ -32,26 +34,13 @@ const props = defineProps({
     required: false,
     default: "",
   },
-  title: {
-    type: String,
-    required: false,
-    default: "",
-  },
-  color: {
-    type: String,
-    required: false,
-    default: "",
-  },
 });
 
 const eventData = ref({
-  id: "0",
-  title: props.title,
-  start: props.startDate,
-  end: props.endDate,
-  backgroundColor: props.color,
-  allDay: true,
-  editable: true,
+  title: "",
+  startDate: props.startDate,
+  endDate: props.endDate,
+  color: "#066FD1", // 默认蓝色工作事件
 });
 
 // 监听props变化，更新本地eventData
@@ -66,20 +55,6 @@ watch(
   () => props.endDate,
   (newVal) => {
     eventData.value.endDate = newVal;
-  },
-);
-
-watch(
-  () => props.title,
-  (newVal) => {
-    eventData.value.title = newVal;
-  },
-);
-
-watch(
-  () => props.color,
-  (newVal) => {
-    eventData.value.color = newVal;
   },
 );
 
@@ -111,20 +86,6 @@ watch(
   },
 );
 
-watch(
-  () => eventData.value.title,
-  (newVal) => {
-    emit("update:title", newVal);
-  },
-);
-
-watch(
-  () => eventData.value.color,
-  (newVal) => {
-    emit("update:color", newVal);
-  },
-);
-
 function passing_date_characters(startDate, endDate) {
   eventData.value.startDate = startDate;
   eventData.value.endDate = endDate;
@@ -132,26 +93,10 @@ function passing_date_characters(startDate, endDate) {
 
 // 日历配置选项
 const calendarOptions = ref({
-    
-  // 日历整体高度：固定在300px
-  height: "300px",
+  // 日历高度：占满可用空间
+  //height: "300px",
   // 内容高度自适应
-  contentHeight: "auto",
-  // 固定头部高度
-  headerToolbar: {
-    // 左侧：年份和月份导航按钮
-    left: "prevYear,prev,today,next,nextYear",
-    // 中间：标题（显示当前月份/年份）
-    center: "title",
-    // 右侧：留空（可通过 customButtons 扩展）
-    right: "",
-  },
-  // 日期格子高度：300px高度下，5-6行，每行约45-55px
-  dayCellMinHeight: 40,
-  // 自动展开行高以均匀分布
-  expandRows: true,
-  // 不使用周号
-  weekNumbers: false,
+  //contentHeight: "auto",
   // 使用当前应用语言
   locale: locale.value,
   // 注册使用的插件
@@ -167,7 +112,7 @@ const calendarOptions = ref({
   // 允许拖拽调整事件
   editable: true,
   // 日期格中事件过多时显示"+N more"
-  //dayMaxEvents: true,
+  dayMaxEvents: true,
 
   // 日期标题可点击跳转 //不跳转
   //navLinks: true,
@@ -183,16 +128,20 @@ const calendarOptions = ref({
   dayCellDidMount(info) {
     // 周六周日显示灰色背景
     if (info.date.getDay() === 0 || info.date.getDay() === 6) {
-      info.el.style.backgroundColor = "#f9fafb";
+      info.el.style.backgroundColor = "#f5f5f5";
     }
     // 添加边框样式
     info.el.style.border = "1px solid #e5e7eb";
-    // 确保格子有最小高度并均匀分布
-    info.el.style.minHeight = "40px";
-    info.el.style.height = "100%";
-    info.el.style.display = "flex";
-    info.el.style.alignItems = "center";
-    info.el.style.justifyContent = "center";
+  },
+
+  // 顶部工具栏配置
+  headerToolbar: {
+    // 左侧：年份和月份导航按钮
+    left: "prevYear,prev,today,next,nextYear",
+    // 中间：标题（显示当前月份/年份）
+    center: "title",
+    // 右侧：留空（可通过 customButtons 扩展）
+    right: "",
   },
 
   // 自定义按钮：扩展工具栏功能
@@ -294,16 +243,20 @@ const calendarOptions = ref({
   eventDrop(info) {},
 });
 
-onMounted(() => {
-  calendarOptions.value.events.push(eventData.value);
-  console.log(eventData.value);
-});
+function switchShow(){
+  if(isShow.value)
+  {
+    isShow.value=false;
+  }else{
+    isShow.value=true;
+  }
+}
 </script>
 <template>
-  <!-- 容器：整体高度限制为300px，包含日历部分 -->
-  <div class="mb-4 h-[350px]">
+  <div class="mb-4">
     <div
-      class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm bg-white mb-2"
+    @click="switchShow"
+      class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm bg-white mb-4"
     >
       <!-- 日历图标 -->
       <div class="date-icon">
@@ -339,17 +292,19 @@ onMounted(() => {
       <!-- 日期显示 -->
       <div class="date-display flex items-center justify-between gap-2 flex-1">
         <div class="start-date text-gray-700 font-medium">
-          {{ eventData.start }}
+          {{ eventData.startDate }}
         </div>
         <div class="text-gray-500">{{ t("schedule.to") }}</div>
         <div class="end-date text-gray-700 font-medium">
-          {{ eventData.end }}
+          {{ eventData.endDate }}
         </div>
       </div>
     </div>
-    <!-- 日历区域：高度固定为300px，为每个格子设置合适高度 -->
-    <div class="calendar-container h-[300px] overflow-hidden rounded-lg border border-gray-200">
-      <FullCalendar ref="calendarRef" :options="calendarOptions" class="h-full w-full" />
-    </div>
+    
+    <FullCalendar
+      v-if="isShow"
+      ref="calendarRef"
+      :options="calendarOptions"
+    />
   </div>
 </template>

@@ -376,144 +376,145 @@ onMounted(() => {
 
 <template>
   <!-- 日历容器：占满视口高度减去顶部导航高度 -->
-  <div class="flex h-[calc(100vh-3.5rem)] w-full flex-col relative">
+  <div class="flex w-full flex-col relative">
     <!-- 事件编辑模态框 -->
+<div
+  v-if="showModal"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/20"
+>
+  <!-- 👇 最关键：给外层加最大高度 + 溢出隐藏 -->
+  <div class="modal-content bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[95vh] flex flex-col">
+    <!-- 模态框头部 -->
     <div
-      v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/20"
+      class="modal-header border-b p-4 flex justify-between items-center flex-shrink-0"
     >
-      <div class="modal-content bg-white rounded-lg shadow-lg w-full max-w-2xl">
-        <!-- 模态框头部 -->
-        <div
-          class="modal-header border-b p-4 flex justify-between items-center"
+      <h5 class="modal-title text-lg font-semibold">
+        {{ t("schedule.add_event") }}
+      </h5>
+      <button
+        @click="closeEventModal"
+        class="btn-close text-gray-500 hover:text-gray-700"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="icon icon-tabler icons-tabler-outline icon-tabler-x"
         >
-          <h5 class="modal-title text-lg font-semibold">
-            {{ t("schedule.add_event") }}
-          </h5>
-          <button
-            @click="closeEventModal"
-            class="btn-close text-gray-500 hover:text-gray-700"
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+          <path d="M18 6l-12 12"></path>
+          <path d="M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 👇 主体区域：允许内部滚动 -->
+    <div class="modal-body p-4 flex-1 overflow-y-auto">
+      <!-- 日期选择区域 -->
+      <DatatimePickerForFullCalendar
+        :start-date="eventData.startDate"
+        :end-date="eventData.endDate"
+        :color="eventData.color"
+        :title="eventData.title"
+      />
+
+      <!-- 内容输入区域 -->
+      <div class="mb-4">
+        <div class="uni-easyinput input relative">
+          <div
+            class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="icon icon-tabler icons-tabler-outline icon-tabler-x"
-            >
-              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-              <path d="M18 6l-12 12"></path>
-              <path d="M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        <!-- 模态框主体 -->
-        <div class="modal-body p-4">
-          <!-- 日期选择区域 -->
-          <DatatimePickerForFullCalendar
-            :start-date="eventData.startDate"
-            :end-date="eventData.endDate"
-            :color="eventData.color"
-            :title="eventData.title"
-          />
-
-          <!-- 内容输入区域 -->
-          <div class="mb-4">
-            <div class="uni-easyinput input relative">
-              <div
-                class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
-              >
-                <input
-                  v-model="eventData.title"
-                  type="text"
-                  maxlength="140"
-                  class="uni-easyinput__content-input w-full px-3 py-2 outline-none"
-                  :placeholder="t('schedule.event_title_placeholder')"
-                  @keyup.enter="saveEvent"
-                />
-              </div>
-            </div>
+            <input
+              v-model="eventData.title"
+              type="text"
+              maxlength="140"
+              class="uni-easyinput__content-input w-full px-3 py-2 outline-none"
+              :placeholder="t('schedule.event_title_placeholder')"
+              @keyup.enter="saveEvent"
+            />
           </div>
+        </div>
+      </div>
 
-          <!-- 颜色选择区域 -->
-          <div class="mb-4">
-            <div class="color_box grid grid-cols-3 gap-2">
-              <div
-                v-for="color in colorOptions"
-                :key="color.value"
-                class="color_box_item"
-              >
-                <label
-                  class="uni-label-pointer form-colorinput flex items-center gap-2 cursor-pointer"
-                  @click="selectColor(color.value)"
+      <!-- 颜色选择区域 -->
+      <div class="mb-4">
+        <div class="color_box grid grid-cols-3 gap-2">
+          <div
+            v-for="color in colorOptions"
+            :key="color.value"
+            class="color_box_item"
+          >
+            <label
+              class="uni-label-pointer form-colorinput flex items-center gap-2 cursor-pointer"
+              @click="selectColor(color.value)"
+            >
+              <div class="uni-radio-wrapper">
+                <div
+                  class="uni-radio-input flex items-center justify-center w-6 h-6 rounded-full transition-all"
+                  :style="{
+                    backgroundColor: color.value,
+                    borderColor: color.value,
+                  }"
                 >
-                  <div class="uni-radio-wrapper">
-                    <div
-                      class="uni-radio-input flex items-center justify-center w-6 h-6 rounded-full transition-all"
-                      :style="{
-                        backgroundColor: color.value,
-                        borderColor: color.value,
-                      }"
-                    >
-                      <svg
-                        v-if="eventData.color === color.value"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 32 32"
-                      >
-                        <path
-                          d="M1.952 18.080q-0.32-0.352-0.416-0.88t0.128-0.976l0.16-0.352q0.224-0.416 0.64-0.528t0.8 0.176l6.496 4.704q0.384 0.288 0.912 0.272t0.88-0.336l17.312-14.272q0.352-0.288 0.848-0.256t0.848 0.352l-0.416-0.416q0.32 0.352 0.32 0.816t-0.32 0.816l-18.656 18.912q-0.32 0.352-0.8 0.352t-0.8-0.32l-7.936-8.064z"
-                          fill="#ffffff"
-                        ></path>
-                      </svg>
-                    </div>
-                  </div>
-                  <span class="text-gray-700">{{ color.label }}</span>
-                </label>
+                  <svg
+                    v-if="eventData.color === color.value"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 32 32"
+                  >
+                    <path
+                      d="M1.952 18.080q-0.32-0.352-0.416-0.88t0.128-0.976l0.16-0.352q0.224-0.416 0.64-0.528t0.8 0.176l6.496 4.704q0.384 0.288 0.912 0.272t0.88-0.336l17.312-14.272q0.352-0.288 0.848-0.256t0.848 0.352l-0.416-0.416q0.32 0.352 0.32 0.816t-0.32 0.816l-18.656 18.912q-0.32 0.352-0.8 0.352t-0.8-0.32l-7.936-8.064z"
+                      fill="#ffffff"
+                    ></path>
+                  </svg>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 模态框底部 -->
-        <div
-          class="modal-footer border-t p-4 flex justify-between items-center"
-        >
-          <button
-            @click="closeEventModal"
-            class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-          >
-            {{ t("schedule.close") }}
-          </button>
-          <div class="flex gap-2">
-            <button
-              class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-              disabled
-            >
-              {{ t("schedule.copy") }}
-            </button>
-            <button
-              class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-              disabled
-            >
-              {{ t("schedule.paste") }}
-            </button>
-            <button
-              @click="saveEvent"
-              class="btn btn-primary px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md"
-            >
-              {{ t("schedule.add_event_button") }}
-            </button>
+              <span class="text-gray-700">{{ color.label }}</span>
+            </label>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 👇 底部固定：不被滚动、不压缩 -->
+    <div
+      class="modal-footer border-t p-4 flex justify-between items-center flex-shrink-0"
+    >
+      <button
+        @click="closeEventModal"
+        class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+      >
+        {{ t("schedule.close") }}
+      </button>
+      <div class="flex gap-2">
+        <button
+          class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+          disabled
+        >
+          {{ t("schedule.copy") }}
+        </button>
+        <button
+          class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+          disabled
+        >
+          {{ t("schedule.paste") }}
+        </button>
+        <button
+          @click="saveEvent"
+          class="btn btn-primary px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md"
+        >
+          {{ t("schedule.add_event_button") }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
     <!-- 日历主体区域，带边框和阴影 -->
     <div
