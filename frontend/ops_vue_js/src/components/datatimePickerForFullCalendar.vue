@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch,defineProps } from "vue";
+import { ref, watch, defineProps, onMounted } from "vue";
 
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
@@ -25,67 +25,133 @@ const props = defineProps({
   startDate: {
     type: String,
     required: false,
-    default: ""
+    default: "",
   },
   endDate: {
     type: String,
     required: false,
-    default: ""
-  }
+    default: "",
+  },
+  title: {
+    type: String,
+    required: false,
+    default: "",
+  },
+  color: {
+    type: String,
+    required: false,
+    default: "",
+  },
 });
 
 const eventData = ref({
-  title: "",
-  startDate: props.startDate,
-  endDate: props.endDate,
-  color: "#066FD1", // 默认蓝色工作事件
+  id: "0",
+  title: props.title,
+  start: props.startDate,
+  end: props.endDate,
+  backgroundColor: props.color,
+  allDay: true,
+  editable: true,
 });
 
 // 监听props变化，更新本地eventData
-watch(() => props.startDate, (newVal) => {
-  eventData.value.startDate = newVal;
-});
+watch(
+  () => props.startDate,
+  (newVal) => {
+    eventData.value.startDate = newVal;
+  },
+);
 
-watch(() => props.endDate, (newVal) => {
-  eventData.value.endDate = newVal;
-});
+watch(
+  () => props.endDate,
+  (newVal) => {
+    eventData.value.endDate = newVal;
+  },
+);
+
+watch(
+  () => props.title,
+  (newVal) => {
+    eventData.value.title = newVal;
+  },
+);
+
+watch(
+  () => props.color,
+  (newVal) => {
+    eventData.value.color = newVal;
+  },
+);
 
 // 定义事件发射：通知父组件日期变化
-const emit = defineEmits(['update:startDate', 'update:endDate', 'clearDates']);
+const emit = defineEmits(["update:startDate", "update:endDate", "clearDates"]);
 
 // 清除日期函数
 function clearDates() {
   eventData.value.startDate = "";
   eventData.value.endDate = "";
-  emit('clearDates'); // 通知父组件日期已清除
-  emit('update:startDate', ""); // 更新父组件的startDate
-  emit('update:endDate', ""); // 更新父组件的endDate
+  emit("clearDates"); // 通知父组件日期已清除
+  emit("update:startDate", ""); // 更新父组件的startDate
+  emit("update:endDate", ""); // 更新父组件的endDate
   console.log("日期已清除");
 }
 
 // 监听本地eventData变化，同步更新到父组件
-watch(() => eventData.value.startDate, (newVal) => {
-  emit('update:startDate', newVal);
-});
+watch(
+  () => eventData.value.startDate,
+  (newVal) => {
+    emit("update:startDate", newVal);
+  },
+);
 
-watch(() => eventData.value.endDate, (newVal) => {
-  emit('update:endDate', newVal);
-});
+watch(
+  () => eventData.value.endDate,
+  (newVal) => {
+    emit("update:endDate", newVal);
+  },
+);
 
+watch(
+  () => eventData.value.title,
+  (newVal) => {
+    emit("update:title", newVal);
+  },
+);
 
-function passing_date_characters(startDate,endDate){
+watch(
+  () => eventData.value.color,
+  (newVal) => {
+    emit("update:color", newVal);
+  },
+);
 
-    eventData.value.startDate=startDate;
-    eventData.value.endDate=endDate;
+function passing_date_characters(startDate, endDate) {
+  eventData.value.startDate = startDate;
+  eventData.value.endDate = endDate;
 }
-
 
 // 日历配置选项
 const calendarOptions = ref({
-  // 日历高度：占满可用空间
+    
+  // 日历整体高度：固定在300px
   height: "300px",
   // 内容高度自适应
-  //contentHeight: "auto",
+  contentHeight: "auto",
+  // 固定头部高度
+  headerToolbar: {
+    // 左侧：年份和月份导航按钮
+    left: "prevYear,prev,today,next,nextYear",
+    // 中间：标题（显示当前月份/年份）
+    center: "title",
+    // 右侧：留空（可通过 customButtons 扩展）
+    right: "",
+  },
+  // 日期格子高度：300px高度下，5-6行，每行约45-55px
+  dayCellMinHeight: 40,
+  // 自动展开行高以均匀分布
+  expandRows: true,
+  // 不使用周号
+  weekNumbers: false,
   // 使用当前应用语言
   locale: locale.value,
   // 注册使用的插件
@@ -101,7 +167,7 @@ const calendarOptions = ref({
   // 允许拖拽调整事件
   editable: true,
   // 日期格中事件过多时显示"+N more"
-  dayMaxEvents: true,
+  //dayMaxEvents: true,
 
   // 日期标题可点击跳转 //不跳转
   //navLinks: true,
@@ -117,20 +183,16 @@ const calendarOptions = ref({
   dayCellDidMount(info) {
     // 周六周日显示灰色背景
     if (info.date.getDay() === 0 || info.date.getDay() === 6) {
-      info.el.style.backgroundColor = "#f5f5f5";
+      info.el.style.backgroundColor = "#f9fafb";
     }
     // 添加边框样式
     info.el.style.border = "1px solid #e5e7eb";
-  },
-
-  // 顶部工具栏配置
-  headerToolbar: {
-    // 左侧：年份和月份导航按钮
-    left: "prevYear,prev,today,next,nextYear",
-    // 中间：标题（显示当前月份/年份）
-    center: "title",
-    // 右侧：留空（可通过 customButtons 扩展）
-    right: "",
+    // 确保格子有最小高度并均匀分布
+    info.el.style.minHeight = "40px";
+    info.el.style.height = "100%";
+    info.el.style.display = "flex";
+    info.el.style.alignItems = "center";
+    info.el.style.justifyContent = "center";
   },
 
   // 自定义按钮：扩展工具栏功能
@@ -191,11 +253,9 @@ const calendarOptions = ref({
     if (timeDifference < 400 && timeDifference > 0) {
       console.log("双击日期:", info.dateStr);
       // 双击功能：快速添加事件
-      
     } else {
       console.log("单击日期:", info.dateStr);
       // 单击功能：显示日期详情
-      
     }
 
     // 更新上次点击时间
@@ -234,46 +294,62 @@ const calendarOptions = ref({
   eventDrop(info) {},
 });
 
+onMounted(() => {
+  calendarOptions.value.events.push(eventData.value);
+  console.log(eventData.value);
+});
 </script>
 <template>
-  <div class="mb-4">
- <div class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm bg-white mb-4">
-  <!-- 日历图标 -->
-  <div class="date-icon">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="icon icon-tabler icons-tabler-outline icon-tabler-calendar-week"
+  <!-- 容器：整体高度限制为300px，包含日历部分 -->
+  <div class="mb-4 h-[350px]">
+    <div
+      class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm bg-white mb-2"
     >
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-      <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"></path>
-      <path d="M16 3v4"></path>
-      <path d="M8 3v4"></path>
-      <path d="M4 11h16"></path>
-      <path d="M7 14h.013"></path>
-      <path d="M10.01 14h.005"></path>
-      <path d="M13.01 14h.005"></path>
-      <path d="M16.015 14h.005"></path>
-      <path d="M13.015 17h.005"></path>
-      <path d="M7.01 17h.005"></path>
-      <path d="M10.01 17h.005"></path>
-    </svg>
-  </div>
+      <!-- 日历图标 -->
+      <div class="date-icon">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="icon icon-tabler icons-tabler-outline icon-tabler-calendar-week"
+        >
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+          <path
+            d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z"
+          ></path>
+          <path d="M16 3v4"></path>
+          <path d="M8 3v4"></path>
+          <path d="M4 11h16"></path>
+          <path d="M7 14h.013"></path>
+          <path d="M10.01 14h.005"></path>
+          <path d="M13.01 14h.005"></path>
+          <path d="M16.015 14h.005"></path>
+          <path d="M13.015 17h.005"></path>
+          <path d="M7.01 17h.005"></path>
+          <path d="M10.01 17h.005"></path>
+        </svg>
+      </div>
 
-  <!-- 日期显示 -->
-  <div class="date-display flex items-center justify-between gap-2 flex-1">
-    <div class="start-date text-gray-700 font-medium">{{ eventData.startDate }}</div>
-    <div class="text-gray-500">{{ t("schedule.to") }}</div>
-    <div class="end-date text-gray-700 font-medium">{{ eventData.endDate }}</div>
-  </div>
-</div>
-    <FullCalendar ref="calendarRef" :options="calendarOptions" />
+      <!-- 日期显示 -->
+      <div class="date-display flex items-center justify-between gap-2 flex-1">
+        <div class="start-date text-gray-700 font-medium">
+          {{ eventData.start }}
+        </div>
+        <div class="text-gray-500">{{ t("schedule.to") }}</div>
+        <div class="end-date text-gray-700 font-medium">
+          {{ eventData.end }}
+        </div>
+      </div>
+    </div>
+    <!-- 日历区域：高度固定为300px，为每个格子设置合适高度 -->
+    <div class="calendar-container h-[300px] overflow-hidden rounded-lg border border-gray-200">
+      <FullCalendar ref="calendarRef" :options="calendarOptions" class="h-full w-full" />
+    </div>
   </div>
 </template>

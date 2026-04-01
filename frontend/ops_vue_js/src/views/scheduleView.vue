@@ -419,6 +419,8 @@ onMounted(() => {
           <DatatimePickerForFullCalendar
             :start-date="eventData.startDate"
             :end-date="eventData.endDate"
+            :color="eventData.color"
+            :title="eventData.title"
           />
 
           <!-- 内容输入区域 -->
