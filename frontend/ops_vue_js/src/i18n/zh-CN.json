@@ -64,8 +64,8 @@
     "search": "搜索",
     "add_part": "添加订单",
     "exp_report": "生成报告",
-    "There_are_a_total_of":"，一共",
-    "items":"个物件"
+    "There_are_a_total_of": "，一共",
+    "items": "个物件"
   },
   "purchase_addorder": {
     "add_order": "添加订单",
@@ -100,11 +100,10 @@
     "order_status": "订单状态",
     "modify_order_status": "修改订单状态",
     "submit": "提交",
-    "part_name":"物件名称"
+    "part_name": "物件名称"
   },
   "schedule": {
     "my_schedule": "我的日程",
-    "add_event": "添加事件",
     "event_title": "事件标题",
     "event_date": "事件日期",
     "event_time": "事件时间",
@@ -119,7 +118,24 @@
     "previous_month": "上月",
     "next_month": "下月",
     "previous_year": "上年",
-    "next_year": "下年"
+    "next_year": "下年",
+    "add_event": "添加日程",
+    "event_title_placeholder": "输入日程内容",
+    "work": "工作",
+    "duty": "值班",
+    "exam": "考试",
+    "standby": "备用",
+    "personal_holiday": "个人假期",
+    "public_holiday": "公众假期",
+    "to": "至",
+    "close": "关闭",
+    "copy": "复制",
+    "paste": "粘贴",
+    "add_event_button": "添加日程",
+    "event_title_required": "请输入日程内容",
+    "date_required": "请选择日期",
+    "clear_dates": "清除日期",
+    "event_added_successfully":"日程添加成功"
   },
   "message": {
     "functionality_not_yet_developed": "功能未开发",

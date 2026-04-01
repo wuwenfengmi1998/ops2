@@ -104,7 +104,6 @@
   },
   "schedule": {
     "my_schedule": "My Schedule",
-    "add_event": "Add Event",
     "event_title": "Event Title",
     "event_date": "Event Date",
     "event_time": "Event Time",
@@ -119,7 +118,24 @@
     "previous_month": "Prev Month",
     "next_month": "Next Month",
     "previous_year": "Prev Year",
-    "next_year": "Next Year"
+    "next_year": "Next Year",
+    "add_event": "Add Event",
+    "event_title_placeholder": "Enter event content",
+    "work": "Work",
+    "duty": "Duty",
+    "exam": "Exam",
+    "standby": "Standby",
+    "personal_holiday": "Personal Holiday",
+    "public_holiday": "Public Holiday",
+    "to": "To",
+    "close": "Close",
+    "copy": "Copy",
+    "paste": "Paste",
+    "add_event_button": "Add Event",
+    "event_title_required": "Please enter event content",
+    "date_required": "Please select date",
+    "clear_dates": "Clear dates",
+    "event_added_successfully":"Event added successfully"
   },
   "message": {
     "functionality_not_yet_developed": "Functionality not yet developed",
