@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "../../backend/dist",
+    outDir: "../../backend/my_work/dist",
     assetsDir: "assets",
   },
   server: {

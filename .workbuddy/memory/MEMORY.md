@@ -93,7 +93,7 @@
 - **统一API响应**：标准错误码映射和响应格式
 - **模块化路由系统**：API v1 版本路由定义清晰分离
 - **新目录结构**：
-  - `cmd/ops-server/main.go` - 应用入口
+  - `main.go` - 应用入口（已从 cmd/ops-server/main.go 合并至根目录，2026-04-01）
   - `internal/config/` - 配置管理
   - `internal/database/` - 数据库连接和迁移
   - `internal/handler/` - HTTP处理器（auth_handler.go, purchase_handler.go）
@@ -112,7 +112,7 @@
 - ✅ **编译状态**：项目编译成功（需要CGO_ENABLED=1以支持SQLite）
 
 ### 新路由架构（2026-03-31）
-- **主入口**：`cmd/ops-server/main.go` - 现代化主入口，支持优雅关机
+- **主入口**：`main.go`（根目录）- 现代化主入口，支持优雅关机
 - **路由配置**：`api/`包统一管理所有路由
 - **兼容性**：完全兼容现有前端API `/api/*`
 - **新增API**：RESTful API v1 `/api/v1/*`

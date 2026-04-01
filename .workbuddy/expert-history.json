@@ -3,6 +3,15 @@
   "sessions": {
     "c9d5673cc5a442d4afa0a2e7805acb2d": [
       {
+        "expertId": "BackendArchitect",
+        "name": "Joy",
+        "profession": "后端架构师",
+        "avatarUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/avatars/02-Engineering/BackendArchitect/BackendArchitect.png",
+        "promptUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/workbuddy/experts/experts/02-Engineering/BackendArchitect/BackendArchitect_zh.md",
+        "usedAt": 1775015316468,
+        "industryId": "all"
+      },
+      {
         "expertId": "SeniorDeveloper",
         "name": "Will",
         "profession": "高级开发工程师",
@@ -13,5 +22,5 @@
       }
     ]
   },
-  "lastUpdated": 1774965668803
+  "lastUpdated": 1775015525304
 }

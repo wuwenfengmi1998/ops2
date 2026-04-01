@@ -8,9 +8,12 @@ if not exist "./dist" (
     echo.
 )
 
+REM SQLite 需要 CGO
+set CGO_ENABLED=1
+
 REM 运行新的重构版本
 echo Running new refactored backend...
 echo.
-go run ./cmd/ops-server/main.go
+go run .
 
 pause

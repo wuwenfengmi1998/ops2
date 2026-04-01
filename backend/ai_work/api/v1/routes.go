@@ -38,27 +38,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	// 静态文件路由 - 保持兼容性
 	r.StaticFS("/static", http.Dir("./dist"))
 	
-	// 兼容旧版文件路由（保持前端兼容性）
-	r.GET("/files/:mode/:hash", func(c *gin.Context) {
-		mode := c.Param("mode")
-		
-		if mode == "get" || mode == "download" {
-			download := (mode == "download")
-			// 直接调用handler的GetFile/DownloadFile方法
-			if download {
-				fileHandler.DownloadFile(c)
-			} else {
-				fileHandler.GetFile(c)
-			}
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    "-2",
-				"message": "无效的文件模式",
-				"data":    nil,
-			})
-		}
-	})
-
 	// 用户认证相关路由
 	userGroup := r.Group("/users")
 	{
@@ -81,20 +60,13 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	}
 
 	// 文件上传管理 - v1 API
-	fileGroup := r.Group("/files")
-	{
-		// 上传文件
-		fileGroup.POST("/upload", middleware.AuthToken(), fileHandler.UploadFile)
-		
-		// 文件列表管理
-		fileGroup.GET("/list", middleware.AuthToken(), fileHandler.GetFileList)
-		fileGroup.GET("/:id", middleware.AuthToken(), fileHandler.GetFileByID)
-		fileGroup.DELETE("/:id", middleware.AuthToken(), fileHandler.DeleteFile)
-		
-		// 文件访问
-		fileGroup.GET("/download/:hash", fileHandler.DownloadFile)
-		fileGroup.GET("/get/:hash", fileHandler.GetFile)
-	}
+	// 注意：具体路由必须放在通配路由之前
+	r.POST("/files/upload", middleware.AuthToken(), fileHandler.UploadFile)
+	r.GET("/files/list", middleware.AuthToken(), fileHandler.GetFileList)
+	r.GET("/files/:id", middleware.AuthToken(), fileHandler.GetFileByID)
+	r.DELETE("/files/:id", middleware.AuthToken(), fileHandler.DeleteFile)
+	r.GET("/files/download/:hash", fileHandler.DownloadFile)
+	r.GET("/files/get/:hash", fileHandler.GetFile)
 
 	// 采购订单管理
 	purchaseGroup := r.Group("/purchase")

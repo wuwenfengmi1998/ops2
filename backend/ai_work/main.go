@@ -51,36 +51,45 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 创建Gin实例（使用自定义logger）
+	// 创建Gin实例
 	r := gin.New()
 
 	// 注册中间件
 	r.Use(middleware.CORS())
-	
+
 	// 根据环境选择日志中间件
 	if config.Current.Web.Host == "127.0.0.1" || config.Current.Web.Host == "localhost" {
-		// 开发环境使用简易日志
 		r.Use(middleware.SimpleLogger())
 	} else {
-		// 生产环境使用高级日志
 		r.Use(middleware.Logger(logger))
 	}
-	
+
 	r.Use(middleware.Recovery(logger))
 
 	// 注册API路由
-	registerRoutes(r, logger)
+	api.RegisterAllRoutes(r)
 
-	// 静态文件服务中间件（由api.CreateRouter处理）
-	// 这里仅创建dist目录（如果不存在）
+	// 健康检查端点
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"code":    "0",
+			"message": "Server is healthy",
+			"data": gin.H{
+				"timestamp": time.Now().Unix(),
+				"status":    "running",
+				"version":   "1.0.0",
+			},
+		})
+	})
+
+	// 确保dist目录存在
 	ensureDistDirectory(logger)
 
 	// 启动HTTP服务器
 	addr := fmt.Sprintf("%s:%s", config.Current.Web.Host, config.Current.Web.Port)
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
-		// 优化服务器配置
+		Addr:         addr,
+		Handler:      r,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -110,40 +119,11 @@ func main() {
 	logger.Info("Server exited")
 }
 
-// 注册API路由
-func registerRoutes(r *gin.Engine, logger *zap.Logger) {
-	// 使用我们的路由配置
-	api.RegisterAllRoutes(r)
-	
-	// 健康检查端点（额外添加）
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"code":    "0",
-			"message": "Server is healthy",
-			"data": gin.H{
-				"timestamp": time.Now().Unix(),
-				"status":    "running",
-				"version":   "1.0.0",
-			},
-		})
-	})
-}
-
-// 兼容性路由，保持原有API结构
-// 注意：此函数现在由api包统一处理，此函数保留作为参考
-func compatRoutes(api *gin.RouterGroup, logger *zap.Logger) {
-	logger.Info("兼容性路由由api包统一管理")
-}
-
-// 静态文件服务（已迁移到api包）
-
-// 创建日志记录器
+// createLogger 创建日志记录器
 func createLogger() (*zap.Logger, error) {
-	// 开发环境使用开发配置
 	if gin.Mode() == gin.DebugMode {
 		return zap.NewDevelopment()
 	}
-	// 生产环境使用生产配置
 	return zap.NewProduction()
 }
 
@@ -157,4 +137,3 @@ func ensureDistDirectory(logger *zap.Logger) {
 		}
 	}
 }
-
