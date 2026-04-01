@@ -63,7 +63,7 @@ type From_user_add struct {
 
 type From_user_login struct {
 	Username string `json:"username"`
-	Userpass string `json:"userpass"`
+	Password string `json:"password"`
 	Remember bool   `json:"remember"`
 }
 
@@ -261,17 +261,25 @@ func ApiUser(r *gin.RouterGroup) {
 											}
 
 										}
-										if is_save_ok {
-											//修改数据库内容
-											var user_info_fund models.TabUserInfo_
-											user_info_fund.UserID = user.ID
+									if is_save_ok {
+										//修改数据库内容
+										var user_info_fund models.TabUserInfo_
+										user_info_fund.UserID = user.ID
 
-											var user_update_avatar models.TabUserInfo_
-											user_update_avatar.AvatarPath = file_hashi_name + file_extname
+										var user_update_avatar models.TabUserInfo_
+										user_update_avatar.AvatarPath = file_hashi_name + file_extname
 
-											models.DB.Where(&user_info_fund).Updates(&user_update_avatar)
-
+										//先查找是否有记录
+										if models.DB.Where(&user_info_fund).First(&user_info_fund).Error == nil {
+											//有记录，更新
+											models.DB.Model(&user_info_fund).Updates(&user_update_avatar)
+										} else {
+											//无记录，创建
+											user_update_avatar.UserID = user.ID
+											models.DB.Create(&user_update_avatar)
 										}
+
+									}
 
 									} else {
 										ReturnJson(ctx, "postErr", nil)
@@ -371,54 +379,6 @@ func ApiUser(r *gin.RouterGroup) {
 			ReturnJson(ctx, "apiOK", redata)
 
 		}
-		// _, cookieval := SeparateData(ctx)
-		// //fmt.Println("cookieis" + cookieval)
-		// if cookieval != "" {
-		// 	cookie := models.TabCookie_{
-		// 		Value: cookieval,
-		// 	}
-		// 	if models.DB.Where(&cookie).First(&cookie).Error == nil {
-		// 		//找到cookie，验证cookie有效性，以及更新cookie
-		// 		if models.CheckCookiesAndUpdate(&cookie) {
-		// 			//cookie有效
-		// 			//返回最新cookie
-		// 			redata := map[string]interface{}{
-		// 				"cookie": cookie,
-		// 			}
-		// 			//载入用户info
-		// 			userInfo := models.TabFileInfo_{
-		// 				UserID: cookie.UserID,
-		// 			}
-		// 			if models.DB.Where(&userInfo).First(&userInfo).Error == nil {
-		// 				redata["userInfo"] = userInfo
-		// 			} else {
-		// 				redata["userInfo"] = nil
-		// 			}
-
-		// 			//载入user
-		// 			user := models.TabUser_{
-		// 				ID: cookie.UserID,
-		// 			}
-		// 			models.DB.Where(&user).First(&user)
-		// 			user.Pass = ""
-		// 			user.Salt = ""
-
-		// 			redata["user"] = user
-
-		// 			ReturnJson(ctx, "apiOK", redata)
-
-		// 		} else {
-		// 			ReturnJson(ctx, "userCookieExpired", nil)
-		// 		}
-
-		// 	} else {
-		// 		ReturnJson(ctx, "userCookieNotFund", nil)
-		// 	}
-
-		// } else {
-		// 	ReturnJson(ctx, "userCookieError", nil)
-		// }
-
 	})
 	//用户登陆
 	r.POST("/login", func(ctx *gin.Context) {
@@ -426,7 +386,7 @@ func ApiUser(r *gin.RouterGroup) {
 		data, _ := SeparateData(ctx)
 		if data != nil {
 			if err := mapstructure.Decode(data, &loginuser); err == nil {
-				if loginuser.Username != "" && loginuser.Userpass != "" {
+				if loginuser.Username != "" && loginuser.Password != "" {
 					//传入的数据都ok，获取用户信息
 
 					getuser := models.TabUser_{
@@ -436,7 +396,7 @@ func ApiUser(r *gin.RouterGroup) {
 					if models.DB.Where(&getuser).First(&getuser).Error == nil {
 						//倒入数据
 						user := models.TabUser_{
-							Pass: loginuser.Userpass, //密码明文
+							Pass: loginuser.Password, //密码明文
 							Salt: getuser.Salt,       //保存的盐制
 						}
 						//哈希密

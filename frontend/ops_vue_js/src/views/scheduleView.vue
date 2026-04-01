@@ -37,7 +37,7 @@ const calendarOptions = ref({
   },
 
   headerToolbar: {
-    left: 'prevYear,prev,next,nextYear',
+    left: 'prevYear,prev,today,next,nextYear',
     center: 'title',
     right: '',
   },
@@ -51,13 +51,17 @@ const calendarOptions = ref({
       text: t('schedule.next_year'),
       click() { calendarRef.value.getApi().nextYear() },
     },
-    prevMonth: {
+    prev: {
       text: t('schedule.previous_month'),
       click() { calendarRef.value.getApi().prev() },
     },
-    nextMonth: {
+    next: {
       text: t('schedule.next_month'),
       click() { calendarRef.value.getApi().next() },
+    },
+    today: {
+      text: t('schedule.today'),
+      click() { calendarRef.value.getApi().today() },
     },
     week: {
       text: t('schedule.week'),
@@ -66,19 +70,18 @@ const calendarOptions = ref({
   },
 
   events: [
-    { title: 'Event1', date: '2025-11-10' },
-    { title: 'Event2', date: '2025-11-15', end: '2025-11-17' },
-    { title: 'Event3', date: '2025-11-20T10:30:00', end: '2025-11-20T12:30:00' },
+
   ],
 })
 
 watch(locale, () => {
   calendarOptions.value.locale = locale.value
-  calendarOptions.value.headerToolbar.customButtons.prevYear.text = t('schedule.previous_year')
-  calendarOptions.value.headerToolbar.customButtons.nextYear.text = t('schedule.next_year')
-  calendarOptions.value.headerToolbar.customButtons.prevMonth.text = t('schedule.previous_month')
-  calendarOptions.value.headerToolbar.customButtons.nextMonth.text = t('schedule.next_month')
-  calendarOptions.value.headerToolbar.customButtons.week.text = t('schedule.week')
+  calendarOptions.value.customButtons.prevYear.text = t('schedule.previous_year')
+  calendarOptions.value.customButtons.nextYear.text = t('schedule.next_year')
+  calendarOptions.value.customButtons.prev.text = t('schedule.previous_month')
+  calendarOptions.value.customButtons.next.text = t('schedule.next_month')
+  calendarOptions.value.customButtons.today.text = t('schedule.today')
+  calendarOptions.value.customButtons.week.text = t('schedule.week')
 })
 </script>
 
