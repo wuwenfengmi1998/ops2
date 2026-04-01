@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, defineProps } from "vue";
+import { ref, watch, defineProps,onMounted } from "vue";
 
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
@@ -10,10 +10,12 @@ import interactionPlugin from "@fullcalendar/interaction";
 
 // FullCalendar 组件的引用，用于调用日历 API
 const calendarRef = ref(null);
-// 用于跟踪上次点击时间的响应式变量
-const lastClickTime = ref(0);
+
 // 用于跟踪上次点击event时间的响应式变量
 const lastEventClickTime = ref(0);
+
+var firstClickOnDate=false;
+var dataStartTemp=""
 
 // 国际化 hook
 import { useI18n } from "vue-i18n";
@@ -34,14 +36,34 @@ const props = defineProps({
     required: false,
     default: "",
   },
+  title: {
+    type: String,
+    required: false,
+    default: "",
+  },
+  color: {
+    type: String,
+    required: false,
+    default: "",
+  },
+
 });
 
 const eventData = ref({
-  title: "",
-  startDate: props.startDate,
-  endDate: props.endDate,
-  color: "#066FD1", // 默认蓝色工作事件
+  id: "0",
+  title: props.title,
+  start: props.startDate,
+  end: props.endDate,
+  Color: props.color,
+  allDay: true,
+  editable: true,
 });
+
+function passing_date_characters(startDate, endDate) {
+  eventData.value.start = startDate;
+  eventData.value.end = endDate;
+}
+
 
 // 监听props变化，更新本地eventData
 watch(
@@ -57,6 +79,21 @@ watch(
     eventData.value.endDate = newVal;
   },
 );
+
+watch(
+  () => props.title,
+  (newVal) => {
+    eventData.value.title = newVal;
+  },
+);
+
+watch(
+  () => props.color,
+  (newVal) => {
+    eventData.value.color = newVal;
+  },
+);
+
 
 // 定义事件发射：通知父组件日期变化
 const emit = defineEmits(["update:startDate", "update:endDate", "clearDates"]);
@@ -86,10 +123,7 @@ watch(
   },
 );
 
-function passing_date_characters(startDate, endDate) {
-  eventData.value.startDate = startDate;
-  eventData.value.endDate = endDate;
-}
+
 
 // 日历配置选项
 const calendarOptions = ref({
@@ -137,7 +171,7 @@ const calendarOptions = ref({
   // 顶部工具栏配置
   headerToolbar: {
     // 左侧：年份和月份导航按钮
-    left: "prevYear,prev,today,next,nextYear",
+    left: "prev,today,next",
     // 中间：标题（显示当前月份/年份）
     center: "title",
     // 右侧：留空（可通过 customButtons 扩展）
@@ -195,20 +229,19 @@ const calendarOptions = ref({
 
   // 日期点击事件处理函数
   dateClick(info) {
-    const nowTime = new Date().getTime();
-    const timeDifference = nowTime - lastClickTime.value;
+    console.log(info);
 
-    // 判断是否为双击（400ms 内连续点击）
-    if (timeDifference < 400 && timeDifference > 0) {
-      console.log("双击日期:", info.dateStr);
-      // 双击功能：快速添加事件
-    } else {
-      console.log("单击日期:", info.dateStr);
-      // 单击功能：显示日期详情
-    }
+  if(firstClickOnDate)
+  {
+    firstClickOnDate=false;
+    passing_date_characters(dataStartTemp,info.dateStr);
+  }else{
+    firstClickOnDate=true;
+    dataStartTemp=info.dateStr;
+  }
 
-    // 更新上次点击时间
-    lastClickTime.value = nowTime;
+    
+
   },
 
   //选择日期
@@ -251,6 +284,10 @@ function switchShow(){
     isShow.value=true;
   }
 }
+
+onMounted(()=>{
+  calendarOptions.value.events.push(eventData.value);
+});
 </script>
 <template>
   <div class="mb-4">
@@ -292,11 +329,11 @@ function switchShow(){
       <!-- 日期显示 -->
       <div class="date-display flex items-center justify-between gap-2 flex-1">
         <div class="start-date text-gray-700 font-medium">
-          {{ eventData.startDate }}
+          {{ eventData.start }}
         </div>
         <div class="text-gray-500">{{ t("schedule.to") }}</div>
         <div class="end-date text-gray-700 font-medium">
-          {{ eventData.endDate }}
+          {{ eventData.end }}
         </div>
       </div>
     </div>
