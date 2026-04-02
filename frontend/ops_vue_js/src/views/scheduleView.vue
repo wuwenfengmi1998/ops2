@@ -20,6 +20,22 @@ import DatatimePickerForFullCalendar from "@/components/datatimePickerForFullCal
 
 import { useToastStore } from "@/stores/toast";
 
+// 用户状态管理
+import { useUserStore } from "@/stores/user";
+
+import { useRouter } from "vue-router";
+
+import { scheduleApi } from "@/api/schedule";
+
+import { useDateUtils } from "@/composables/useDateUtils";
+
+const DateUtils = useDateUtils();
+
+const router = useRouter();
+
+// 获取用户 store 实例，用于访问和更新用户信息
+const userStore = useUserStore();
+
 const toast = useToastStore();
 
 // 设置页面标题
@@ -30,6 +46,9 @@ const { t, locale } = useI18n();
 
 // FullCalendar 组件的引用，用于调用日历 API
 const calendarRef = ref(null);
+// 当前视图的年份
+const calendarNowShow = ref();
+
 // 用于跟踪上次点击时间的响应式变量
 const lastClickTime = ref(0);
 // 用于跟踪上次点击event时间的响应式变量
@@ -127,6 +146,7 @@ const calendarOptions = ref({
       text: t("schedule.previous_year"),
       click() {
         calendarRef.value.getApi().prevYear();
+        getEvents();
       },
     },
     // 下一年按钮
@@ -134,6 +154,7 @@ const calendarOptions = ref({
       text: t("schedule.next_year"),
       click() {
         calendarRef.value.getApi().nextYear();
+        getEvents();
       },
     },
     // 上一个月按钮
@@ -141,6 +162,7 @@ const calendarOptions = ref({
       text: t("schedule.previous_month"),
       click() {
         calendarRef.value.getApi().prev();
+        getEvents();
       },
     },
     // 下一个月按钮
@@ -148,6 +170,7 @@ const calendarOptions = ref({
       text: t("schedule.next_month"),
       click() {
         calendarRef.value.getApi().next();
+        getEvents();
       },
     },
     // 今天按钮：跳转到今天
@@ -155,6 +178,7 @@ const calendarOptions = ref({
       text: t("schedule.today"),
       click() {
         calendarRef.value.getApi().today();
+        getEvents();
       },
     },
     // 周视图按钮：切换到周视图
@@ -168,6 +192,12 @@ const calendarOptions = ref({
 
   // 日历事件列表（目前为空，后续可接入数据源）
   events: [],
+
+  // 👇 加这个！日历渲染完成 / 切换年月都会触发
+  datesSet(info) {
+    calendarNowShow.value = info;
+    //console.log(info);
+  },
 
   // 日期点击事件处理函数
   dateClick(info) {
@@ -194,7 +224,7 @@ const calendarOptions = ref({
     if (info.end - info.start > 86400000) {
       //选择了多日
       console.log("选择了多日:", info);
-      openEventModal(info.startStr,info.endStr);
+      openEventModal(info.startStr, info.endStr);
     } else {
       //选择单日 无功能
       //console.log("选择单日:", info);
@@ -223,7 +253,7 @@ const calendarOptions = ref({
 });
 
 // 打开模态框
-const openEventModal = (dateStr,dataEnd) => {
+const openEventModal = (dateStr, dataEnd) => {
   eventData.value = {
     title: "",
     startDate: dateStr,
@@ -241,7 +271,13 @@ const closeEventModal = () => {
 
 // 处理双击事件：打开模态框添加事件
 const handleDoubleClick = (info) => {
-  openEventModal(info.dateStr,info.dateStr);
+  //先判断是否登录
+  if (userStore.isLoggedIn) {
+    openEventModal(info.dateStr, info.dateStr);
+  } else {
+    toast.warning(t("message.login_to_your_account"));
+    router.replace("/login?redirect=/schedule");
+  }
 };
 
 // 处理单机事件：显示日期详情
@@ -293,15 +329,77 @@ const saveEvent = () => {
   };
 
   // 添加到日历事件列表
-  calendarOptions.value.events.push(newEvent);
+  //提交到后端
 
-  console.log("事件添加成功:", newEvent);
-  toast.success(t("schedule.event_added_successfully"));
-
-  // 关闭模态框
-  closeEventModal();
+  scheduleApi
+    .addEvent({
+      title: newEvent.title,
+      start: newEvent.start,
+      end: DateUtils.toRealEnd(newEvent.end),
+      color: newEvent.backgroundColor,
+    })
+    .then((r) => {
+      //console.log(r);
+      if (r.errCode == 0) {
+        //前端提交是否错误
+        switch (
+          r.raw.err_code //后端返回是否错误
+        ) {
+          case 0:
+            //calendarOptions.value.events.push(newEvent);
+            toast.success(t("schedule.event_added_successfully"));
+            // 关闭模态框
+            closeEventModal();
+            getEvents();
+            break;
+          default:
+            toast.danger(t("message.server_error"));
+            break;
+        }
+      }
+    });
 };
 
+//从后端获取events
+const getEvents = () => {
+  //console.log(calendarNowShow.value)
+  scheduleApi
+    .getEvents({
+      start: DateUtils.dateToStr(calendarNowShow.value.start),
+      end: DateUtils.toRealEnd(calendarNowShow.value.end),
+    })
+    .then((r) => {
+      console.log(r);
+      if (r.errCode == 0) {
+        //前端提交是否错误
+        switch (
+          r.raw.err_code //后端返回是否错误
+        ) {
+          case 0:
+            calendarOptions.value.events=[];
+            var events = r.raw.return.list;
+            console.log(events);
+            var eventstemp = [];
+            events.forEach((item) => {
+              
+              calendarOptions.value.events.push({
+                id: item.ID, // 后端 ID
+                title: item.Title, // 标题
+                start: item.StartDate, // 开始日期
+                end: DateUtils.toCalendarEnd(item.EndDate), // 结束日期
+                backgroundColor: item.BgColor, // 背景色
+                allDay: true, // 全天事件
+              });
+            });
+
+            break;
+          default:
+            toast.danger(t("message.server_error"));
+            break;
+        }
+      }
+    });
+};
 // 清除日期选择
 const clearDates = () => {
   eventData.value.startDate = "";
@@ -350,32 +448,31 @@ watch(locale, () => {
 });
 
 onMounted(() => {
-  const handleKeydown = (event) => {
-    // Ctrl+C 事件
-    if (event.ctrlKey && event.key === "c") {
-      event.preventDefault(); // 可选：阻止默认复制行为
-      console.log("Ctrl+C 被按下");
-      // 你的业务逻辑
-    }
-
-    // Ctrl+V 事件
-    if (event.ctrlKey && event.key === "v") {
-      event.preventDefault(); // 可选：阻止默认粘贴行为
-      console.log("Ctrl+V 被按下");
-      // 你的业务逻辑
-    }
-  };
-
-  document.addEventListener("keydown", handleKeydown);
-
-  // 清理事件监听器
-  onBeforeUnmount(() => {
-    document.removeEventListener("keydown", handleKeydown);
-  });
+  getEvents();
+  // const handleKeydown = (event) => {
+  //   // Ctrl+C 事件
+  //   if (event.ctrlKey && event.key === "c") {
+  //     event.preventDefault(); // 可选：阻止默认复制行为
+  //     console.log("Ctrl+C 被按下");
+  //     // 你的业务逻辑
+  //   }
+  //   // Ctrl+V 事件
+  //   if (event.ctrlKey && event.key === "v") {
+  //     event.preventDefault(); // 可选：阻止默认粘贴行为
+  //     console.log("Ctrl+V 被按下");
+  //     // 你的业务逻辑
+  //   }
+  // };
+  // document.addEventListener("keydown", handleKeydown);
+  // // 清理事件监听器
+  // onBeforeUnmount(() => {
+  //   document.removeEventListener("keydown", handleKeydown);
+  // });
 });
 </script>
 
 <template>
+  <!-- {{userStore.userCookie.Value}} -->
   <!-- 日历容器：占满视口高度减去顶部导航高度 -->
   <div class="flex w-full flex-col relative">
     <!-- 事件编辑模态框 -->

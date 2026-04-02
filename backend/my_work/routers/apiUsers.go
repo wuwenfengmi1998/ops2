@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func ApiInit() {
+func ApiUserInit() {
 	//用户模块初始化init
 	fmt.Println("users init")
 
@@ -110,33 +110,16 @@ func AuthenticationAuthorityFromCookie(c string) (*models.TabUser_, error) {
 }
 
 func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[string]interface{}) {
-	var user models.TabUser_
 
 	data, cookieval := SeparateData(ctx)
 	//fmt.Println("cookieis" + cookieval)
+	var user models.TabUser_
 	if cookieval != "" {
-		cookie := models.TabCookie_{
-			Value: cookieval,
-		}
-		if models.DB.Where(&cookie).First(&cookie).Error == nil {
-			//找到cookie，验证cookie有效性，以及更新cookie
-			if models.CheckCookiesAndUpdate(&cookie) {
-				//cookie有效
-				//载入user
-				user := models.TabUser_{
-					ID: cookie.UserID,
-				}
-				models.DB.Where(&user).First(&user)
-
-				return true, user, data
-
-			} else {
-				ReturnJson(ctx, "userCookieExpired", nil)
-				return false, user, nil
-			}
-
+		user_, error := AuthenticationAuthorityFromCookie(cookieval)
+		if error == nil {
+			user = *user_
+			return true, user, data
 		} else {
-			ReturnJson(ctx, "userCookieNotFund", nil)
 			return false, user, nil
 		}
 
@@ -145,7 +128,6 @@ func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[strin
 		return false, user, nil
 	}
 
-	//return false, user
 }
 
 func ApiUser(r *gin.RouterGroup) {
@@ -261,25 +243,25 @@ func ApiUser(r *gin.RouterGroup) {
 											}
 
 										}
-									if is_save_ok {
-										//修改数据库内容
-										var user_info_fund models.TabUserInfo_
-										user_info_fund.UserID = user.ID
+										if is_save_ok {
+											//修改数据库内容
+											var user_info_fund models.TabUserInfo_
+											user_info_fund.UserID = user.ID
 
-										var user_update_avatar models.TabUserInfo_
-										user_update_avatar.AvatarPath = file_hashi_name + file_extname
+											var user_update_avatar models.TabUserInfo_
+											user_update_avatar.AvatarPath = file_hashi_name + file_extname
 
-										//先查找是否有记录
-										if models.DB.Where(&user_info_fund).First(&user_info_fund).Error == nil {
-											//有记录，更新
-											models.DB.Model(&user_info_fund).Updates(&user_update_avatar)
-										} else {
-											//无记录，创建
-											user_update_avatar.UserID = user.ID
-											models.DB.Create(&user_update_avatar)
+											//先查找是否有记录
+											if models.DB.Where(&user_info_fund).First(&user_info_fund).Error == nil {
+												//有记录，更新
+												models.DB.Model(&user_info_fund).Updates(&user_update_avatar)
+											} else {
+												//无记录，创建
+												user_update_avatar.UserID = user.ID
+												models.DB.Create(&user_update_avatar)
+											}
+
 										}
-
-									}
 
 									} else {
 										ReturnJson(ctx, "postErr", nil)

@@ -54,7 +54,7 @@ func ApiRoot(r *gin.RouterGroup) {
 	ApiUser(r.Group("/users"))
 	ApiFiles(r.Group("/files"))
 	ApiPurchase(r.Group("/purchase"))
-
+	ApiSchedule(r.Group("/schedule"))
 	r.GET("/", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
