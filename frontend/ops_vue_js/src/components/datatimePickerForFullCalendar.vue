@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, defineProps,onMounted } from "vue";
+import { ref, watch, defineProps, onMounted } from "vue";
 
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
@@ -8,17 +8,22 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 // FullCalendar 插件：交互功能（拖拽、点击等）
 import interactionPlugin from "@fullcalendar/interaction";
 
+import { useDateUtils } from "@/composables/useDateUtils";
+
+const DateUtils = useDateUtils();
+
 // FullCalendar 组件的引用，用于调用日历 API
 const calendarRef = ref(null);
 
 // 用于跟踪上次点击event时间的响应式变量
 const lastEventClickTime = ref(0);
 
-var firstClickOnDate=false;
-var dataStartTemp=""
+var firstClickOnDate = false;
+var dataStartTemp = "";
 
 // 国际化 hook
 import { useI18n } from "vue-i18n";
+import Component from "vue-flatpickr-component";
 // 获取国际化翻译函数和当前语言
 const { t, locale } = useI18n();
 
@@ -46,7 +51,6 @@ const props = defineProps({
     required: false,
     default: "",
   },
-
 });
 
 const eventData = ref({
@@ -60,23 +64,41 @@ const eventData = ref({
 });
 
 function passing_date_characters(startDate, endDate) {
+  //需要先判断大小确定哪个是开始日期哪个是结束日期
+  var tempStart = DateUtils.strToDate(startDate);
+  var tempEnd = DateUtils.strToDate(endDate);
+
+  if (tempStart > tempEnd) {
+    //反了
+    eventData.value.start = endDate;
+    //end 需要加一天
+    eventData.value.end = DateUtils.dateToStr(
+      DateUtils.toCalendarEnd(startDate),
+    );
+  } else {
+    eventData.value.start = startDate;
+    //end 需要加一天
+    eventData.value.end = DateUtils.dateToStr(DateUtils.toCalendarEnd(endDate));
+  }
+}
+function passing_date_characters_Select(startDate, endDate) {
+  //滑动选择日期的参数来自FullCalendar，不需要加一天也不需要判断大小，而且直接就是字符串类型
   eventData.value.start = startDate;
   eventData.value.end = endDate;
 }
 
-
 // 监听props变化，更新本地eventData
 watch(
-  () => props.startDate,
+  () => props.start,
   (newVal) => {
-    eventData.value.startDate = newVal;
+    eventData.value.start = newVal;
   },
 );
 
 watch(
-  () => props.endDate,
+  () => props.end,
   (newVal) => {
-    eventData.value.endDate = newVal;
+    eventData.value.end = newVal;
   },
 );
 
@@ -94,7 +116,6 @@ watch(
   },
 );
 
-
 // 定义事件发射：通知父组件日期变化
 const emit = defineEmits(["update:startDate", "update:endDate", "clearDates"]);
 
@@ -110,20 +131,18 @@ function clearDates() {
 
 // 监听本地eventData变化，同步更新到父组件
 watch(
-  () => eventData.value.startDate,
+  () => eventData.value.start,
   (newVal) => {
     emit("update:startDate", newVal);
   },
 );
 
 watch(
-  () => eventData.value.endDate,
+  () => eventData.value.end,
   (newVal) => {
     emit("update:endDate", newVal);
   },
 );
-
-
 
 // 日历配置选项
 const calendarOptions = ref({
@@ -229,71 +248,74 @@ const calendarOptions = ref({
 
   // 日期点击事件处理函数
   dateClick(info) {
-    console.log(info);
+    //console.log(info);
 
-  if(firstClickOnDate)
-  {
-    firstClickOnDate=false;
-    passing_date_characters(dataStartTemp,info.dateStr);
-  }else{
-    firstClickOnDate=true;
-    dataStartTemp=info.dateStr;
-  }
-
-    
-
+    if (firstClickOnDate) {
+      firstClickOnDate = false;
+      passing_date_characters(dataStartTemp, info.dateStr);
+    } else {
+      firstClickOnDate = true;
+      dataStartTemp = info.dateStr;
+    }
   },
 
   //选择日期
   select(info) {
     if (info.end - info.start > 86400000) {
       //选择了多日
-      console.log("选择了多日:", info);
+      //console.log("选择了多日:", info);
+      passing_date_characters_Select(info.startStr, info.endStr);
     } else {
       //选择单日
-      console.log("选择单日:", info);
+      //console.log("选择单日:", info);
     }
   },
 
   //事件event点击处理函数
-  eventClick(info) {
-    const nowTime = new Date().getTime();
-    const timeDifference = nowTime - lastEventClickTime.value;
+  // eventClick(info) {
+  //   const nowTime = new Date().getTime();
+  //   const timeDifference = nowTime - lastEventClickTime.value;
 
-    // 判断是否为双击（400ms 内连续点击）
-    if (timeDifference < 400 && timeDifference > 0) {
-      console.log("双击事件:", info);
-      // 双击功能：快速添加事件
-    } else {
-      console.log("单击事件:", info);
-      // 单击功能：显示日期详情
-    }
-    // 更新上次点击时间
-    lastEventClickTime.value = nowTime;
-  },
+  //   // 判断是否为双击（400ms 内连续点击）
+  //   if (timeDifference < 400 && timeDifference > 0) {
+  //     console.log("双击事件:", info);
+  //     // 双击功能：快速添加事件
+  //   } else {
+  //     console.log("单击事件:", info);
+  //     // 单击功能：显示日期详情
+  //   }
+  //   // 更新上次点击时间
+  //   lastEventClickTime.value = nowTime;
+  // },
 
   //event拖动处理
-  eventDrop(info) {},
+  eventDrop(info) {
+    //console.log(info);
+    passing_date_characters_Select(info.event.startStr, info.event.endStr);
+  },
 });
 
-function switchShow(){
-  if(isShow.value)
-  {
-    isShow.value=false;
-  }else{
-    isShow.value=true;
+function switchShow() {
+  if (isShow.value) {
+    isShow.value = false;
+  } else {
+    isShow.value = true;
   }
 }
 
-onMounted(()=>{
+function splicingDataWeek(data) {
+  return data + " " + DateUtils.getI18nWeekday(data);
+}
+
+onMounted(() => {
   calendarOptions.value.events.push(eventData.value);
 });
 </script>
 <template>
   <div class="mb-4">
     <div
-    @click="switchShow"
-      class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm bg-white mb-4"
+      @click="switchShow"
+      class="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm bg-white mb-4 sticky top-0 z-50"
     >
       <!-- 日历图标 -->
       <div class="date-icon">
@@ -329,19 +351,21 @@ onMounted(()=>{
       <!-- 日期显示 -->
       <div class="date-display flex items-center justify-between gap-2 flex-1">
         <div class="start-date text-gray-700 font-medium">
-          {{ eventData.start }}
+          {{ splicingDataWeek(eventData.start) }}
         </div>
         <div class="text-gray-500">{{ t("schedule.to") }}</div>
         <div class="end-date text-gray-700 font-medium">
-          {{ eventData.end }}
+          {{
+            splicingDataWeek(
+              eventData.start === eventData.end
+                ? eventData.end
+                : DateUtils.toRealEnd(eventData.end),
+            )
+          }}
         </div>
       </div>
     </div>
-    
-    <FullCalendar
-      v-if="isShow"
-      ref="calendarRef"
-      :options="calendarOptions"
-    />
+
+    <FullCalendar v-if="isShow" ref="calendarRef" :options="calendarOptions" />
   </div>
 </template>

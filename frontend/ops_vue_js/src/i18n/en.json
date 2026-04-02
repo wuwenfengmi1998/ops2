@@ -1,4 +1,13 @@
 {
+    "week": {
+    "sun": "Sunday",
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday"
+  },
   "errorpage": {
     "404_title": "404 Resource Not Found",
     "404_msg_title": "Oops… You just found an error page",

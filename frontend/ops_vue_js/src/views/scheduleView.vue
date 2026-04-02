@@ -181,7 +181,7 @@ const calendarOptions = ref({
       handleDoubleClick(info);
     } else {
       console.log("单击日期:", info.dateStr);
-      // 单击功能：显示日期详情
+      // 单击功能：
       handleSingleClick(info);
     }
 
@@ -194,9 +194,10 @@ const calendarOptions = ref({
     if (info.end - info.start > 86400000) {
       //选择了多日
       console.log("选择了多日:", info);
+      openEventModal(info.startStr,info.endStr);
     } else {
-      //选择单日
-      console.log("选择单日:", info);
+      //选择单日 无功能
+      //console.log("选择单日:", info);
     }
   },
 
@@ -222,11 +223,11 @@ const calendarOptions = ref({
 });
 
 // 打开模态框
-const openEventModal = (dateStr) => {
+const openEventModal = (dateStr,dataEnd) => {
   eventData.value = {
     title: "",
     startDate: dateStr,
-    endDate: dateStr,
+    endDate: dataEnd,
     color: "#066FD1",
   };
 
@@ -240,7 +241,7 @@ const closeEventModal = () => {
 
 // 处理双击事件：打开模态框添加事件
 const handleDoubleClick = (info) => {
-  openEventModal(info.dateStr);
+  openEventModal(info.dateStr,info.dateStr);
 };
 
 // 处理单机事件：显示日期详情
@@ -420,8 +421,8 @@ onMounted(() => {
         <div class="modal-body p-4 flex-1 overflow-y-auto">
           <!-- 日期选择区域 -->
           <DatatimePickerForFullCalendar
-            :start-date="eventData.startDate"
-            :end-date="eventData.endDate"
+            v-model:startDate="eventData.startDate"
+            v-model:endDate="eventData.endDate"
             :color="eventData.color"
             :title="eventData.title"
           />
