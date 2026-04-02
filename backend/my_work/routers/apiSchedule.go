@@ -94,7 +94,7 @@ func ApiSchedule(r *gin.RouterGroup) {
 						temp["edit"] = true
 					}
 					user_group_find := models.TabUserGroupBinds_{}
-					if models.DB.Where("user_id = ? AND group_id = ?", user.ID, userGroup.ID).Limit(1).Find(&user_group_find).Error == nil { //是应用管理员
+					if models.DB.Where("user_id = ? AND group_id = ?", user.ID, userGroup.ID).First(&user_group_find).Error == nil { //是应用管理员
 						temp["edit"] = true
 					}
 				} else {
