@@ -5,6 +5,7 @@ package routers
 import (
 	"encoding/json"
 	"ops/models"
+	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -52,18 +53,40 @@ type fromGetEvents struct {
 
 var (
 	userGroup models.TabUserGroups_
+	scheduleAdmins []uint
 )
+
+//更新管理员成员缓存
+func updateAdminsCash(){
+//先清空切片
+scheduleAdmins=nil
+
+//获取管理员用户组id
+//id 1是系统管理员 直接appen
+	scheduleAdmins=append(scheduleAdmins, 1)
+	//读取所有绑定了这个用户组的用户id
+	var usergroupbind []models.TabUserGroupBinds_
+	usergroupbindfind:= models.TabUserGroupBinds_{
+		GroupID: userGroup.ID,
+	}
+	models.DB.Where(&usergroupbindfind).Find(&usergroupbind)
+	for _ , item:= range usergroupbind{
+		if !slices.Contains(scheduleAdmins,item.UserID){
+			scheduleAdmins=append(scheduleAdmins, item.UserID)
+		}
+	}
+
+}
 
 func ApiScheduleInit() {
 	//先初始化数据表
 	models.DB.AutoMigrate(&TabSchedule{})
 	models.DB.AutoMigrate(&TabScheduleLog{})
-	//获取管理员用户组id
+	
 	//先检查用户组有没有这个key
 	userGroup.Name = "schedule_admin"
-
 	if models.DB.Where(&userGroup).First(&userGroup).Error == nil {
-
+		updateAdminsCash()
 	} else {
 		userGroup.Type = "usergroup"
 		models.DB.Create(&userGroup)
@@ -90,13 +113,18 @@ func ApiSchedule(r *gin.RouterGroup) {
 				if er == nil {
 					//已登录 进一步判断编辑权限
 					temp["edit"] = false
-					if item.UserID == user.ID || item.UserID == 1 {
+
+					if slices.Contains(scheduleAdmins,user.ID){
 						temp["edit"] = true
 					}
-					user_group_find := models.TabUserGroupBinds_{}
-					if models.DB.Where("user_id = ? AND group_id = ?", user.ID, userGroup.ID).First(&user_group_find).Error == nil { //是应用管理员
-						temp["edit"] = true
-					}
+					// if item.UserID == user.ID || item.UserID == 1 {
+					// 	temp["edit"] = true
+					// }
+
+					// user_group_find := models.TabUserGroupBinds_{}
+					// if models.DB.Where("user_id = ? AND group_id = ?", user.ID, userGroup.ID).First(&user_group_find).Error == nil { //是应用管理员
+					// 	temp["edit"] = true
+					// }
 				} else {
 					temp["edit"] = false
 				}
