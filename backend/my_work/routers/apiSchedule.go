@@ -4,7 +4,6 @@ package routers
 
 import (
 	"encoding/json"
-	"fmt"
 	"ops/models"
 	"time"
 
@@ -73,17 +72,41 @@ func ApiScheduleInit() {
 
 func ApiSchedule(r *gin.RouterGroup) {
 	r.POST("/getevents", func(ctx *gin.Context) {
-		data, _ := SeparateData(ctx)
-		//fmt.Println(cookieval, data)
+		data, cookie := SeparateData(ctx)
+		user, er := AuthenticationAuthorityFromCookie(cookie)
+
 		var from fromGetEvents
 		if err := mapstructure.Decode(data, &from); err == nil {
 			//fmt.Println(from)
 			//从数据库获取相关数据
 			var list []TabSchedule
 			models.DB.Where("start_date <= ? AND end_date >= ?", from.End, from.Start).Where("deleted_at IS NULL").Find(&list)
-			fmt.Println(list)
+			var relist []map[string]interface{}
+			for _, item := range list {
+				data, _ := json.Marshal(item)
+				var temp map[string]interface{}
+				json.Unmarshal(data, &temp)
+				// 加自定义字段
+				if er == nil {
+					//已登录 进一步判断编辑权限
+					temp["edit"] = false
+					if item.UserID == user.ID || item.UserID == 1 {
+						temp["edit"] = true
+					}
+					user_group_find := models.TabUserGroupBinds_{}
+					if models.DB.Where("user_id = ? AND group_id = ?", user.ID, userGroup.ID).Limit(1).Find(&user_group_find).Error == nil { //是应用管理员
+						temp["edit"] = true
+					}
+				} else {
+					temp["edit"] = false
+				}
+
+				relist = append(relist, temp)
+
+			}
+
 			//ReturnJson(ctx, "ApiOK", list)
-			ReturnJson(ctx, "apiOK", gin.H{"list": list})
+			ReturnJson(ctx, "apiOK", gin.H{"list": relist})
 
 		} else {
 			ReturnJson(ctx, "jsonErr", nil)

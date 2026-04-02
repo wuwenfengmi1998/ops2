@@ -388,7 +388,9 @@ const getEvents = () => {
                 start: item.StartDate, // 开始日期
                 end: DateUtils.toCalendarEnd(item.EndDate), // 结束日期
                 backgroundColor: item.BgColor, // 背景色
+                borderColor: item.BgColor,      // 边框色（一般和背景一样）
                 allDay: true, // 全天事件
+                editable:item.edit,
               });
             });
 
