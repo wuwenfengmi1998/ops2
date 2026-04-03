@@ -88,6 +88,8 @@ const pageData =reactive({//本页全局变量
   lastEventClickID:0,
 
   submitChecked:false,
+
+  editMode:false,
 })
 
 
@@ -232,6 +234,16 @@ const calendarOptions = ref({
   // 日历事件列表（目前为空，后续可接入数据源）
   events: [],
 
+
+  eventDidMount(info) {
+    const titleEl = info.el.querySelector('.fc-event-title')
+    if (titleEl && titleEl.scrollWidth > titleEl.clientWidth) {
+      //titleEl.setAttribute('data-truncated', 'true')
+      //日程过长 需要特殊处理
+      //console.log("--",info)
+    }
+  },
+
   // 👇 加这个！日历渲染完成 / 切换年月都会触发
   datesSet(info) {
     calendarNowShow.value = info;
@@ -242,6 +254,8 @@ const calendarOptions = ref({
   dateClick(info) {
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastClickTime;
+
+    unseleEventAll();//点击了日期就取消event的选择
 
     //判断和上次点击的是不是同一天
     if(info.dateStr===pageData.lastClickTimeStr){
@@ -270,10 +284,18 @@ const calendarOptions = ref({
     }
   },
 
+  
   //事件event点击处理函数
   eventClick(info) {
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastEventClickTime;
+
+    //判断event的title是否过长，如果是被截断的 就toast.info弹窗显示
+    const titleEl = info.el.querySelector('.fc-event-title');
+    if (titleEl && titleEl.scrollWidth > titleEl.clientWidth) {
+      //title过长 得换一种方式显示
+      //toast.info(info.event.title);
+    }
 
     // 单击功能：
     var eventid=parseInt(info.event.id)
@@ -327,14 +349,14 @@ const calendarOptions = ref({
 });
 
 // 打开模态框
-const openEventModal = (dateStr, dataEnd) => {
+const openEventModal = (dateStr, dataEnd,title="",color="#066FD1",editMode=false) => {
   eventData.value = {
-    title: "",
+    title: title,
     startDate: dateStr,
     endDate: dataEnd,
-    color: "#066FD1",
+    color: color,
   };
-
+  pageData.editMode=editMode;
   showModal.value = true;
 };
 
@@ -701,3 +723,32 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 基础：保持单行省略 */
+/* :deep(.fc-daygrid-event .fc-event-title) {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+} */
+
+/* 超长文字：自动滚动 */
+:deep(.fc-daygrid-event .fc-event-title[data-truncated="true"]) {
+  display: inline-block !important;
+  width: auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  padding-right: 10px !important;
+  animation: textScroll 5s linear infinite !important;
+}
+
+@keyframes textScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+</style>
