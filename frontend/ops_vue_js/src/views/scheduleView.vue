@@ -1,6 +1,6 @@
 <script setup>
 // Vue 核心响应式 API
-import { ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount,reactive } from "vue";
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
 // FullCalendar 插件：月视图
@@ -49,14 +49,8 @@ const calendarRef = ref(null);
 // 当前视图的年份
 const calendarNowShow = ref();
 
-// 用于跟踪上次点击时间的响应式变量
-const lastClickTime = ref(0);
-// 用于跟踪上次点击event时间的响应式变量
-const lastEventClickTime = ref(0);
-
 // 模态框相关状态
 const showModal = ref(false);
-const modalTitle = ref("添加日程");
 const eventData = ref({
   title: "",
   startDate: "",
@@ -85,6 +79,51 @@ const colorOptions = ref([
     name: t("schedule.public_holiday"),
   },
 ]);
+
+const pageData =reactive({//本页全局变量
+  seleEventID:0,//上次点击的eventid
+  lastClickTime:0,// 用于跟踪上次点击时间的响应式变量
+  lastClickTimeStr:"",
+  lastEventClickTime:0,// 用于跟踪上次点击event时间的响应式变量
+  lastEventClickID:0,
+
+  submitChecked:false,
+})
+
+
+
+function unseleEvent(eventID)
+{
+  //寻找哪个event被单击了并修改边框
+  const target = calendarOptions.value.events.find(item => item.id === eventID)
+  if(target){
+      target.borderColor=target.backgroundColor;
+  }
+}
+
+function unseleEventAll()
+{
+  unseleEvent(pageData.seleEventID)
+  pageData.seleEventID=0;
+}
+
+function seleEvent(eventID)
+{
+  //单击了event
+  //取消上次选中
+  if(pageData.seleEventID!=0)
+  {
+    unseleEvent(pageData.seleEventID);
+  }
+  //寻找哪个event被单击了并修改边框
+  const target = calendarOptions.value.events.find(item => item.id === eventID)
+  if(target){
+      target.borderColor="#000000";
+  }
+  pageData.seleEventID=eventID;
+  
+
+}
 
 // 日历配置选项
 const calendarOptions = ref({
@@ -202,21 +241,21 @@ const calendarOptions = ref({
   // 日期点击事件处理函数
   dateClick(info) {
     const nowTime = new Date().getTime();
-    const timeDifference = nowTime - lastClickTime.value;
+    const timeDifference = nowTime - pageData.lastClickTime;
 
-    // 判断是否为双击（400ms 内连续点击）
-    if (timeDifference < 400 && timeDifference > 0) {
-      console.log("双击日期:", info.dateStr);
-      // 双击功能：快速添加事件
-      handleDoubleClick(info);
-    } else {
-      console.log("单击日期:", info.dateStr);
-      // 单击功能：
-      handleSingleClick(info);
+    //判断和上次点击的是不是同一天
+    if(info.dateStr===pageData.lastClickTimeStr){
+      // 判断是否为双击（400ms 内连续点击）
+      if (timeDifference < 400 && timeDifference > 0) {
+        // 双击功能：快速添加事件
+        handleDoubleClick(info);
+      }
     }
+    pageData.lastClickTimeStr=info.dateStr;
+    
 
     // 更新上次点击时间
-    lastClickTime.value = nowTime;
+    pageData.lastClickTime = nowTime;
   },
 
   //选择日期
@@ -234,22 +273,57 @@ const calendarOptions = ref({
   //事件event点击处理函数
   eventClick(info) {
     const nowTime = new Date().getTime();
-    const timeDifference = nowTime - lastEventClickTime.value;
+    const timeDifference = nowTime - pageData.lastEventClickTime;
 
-    // 判断是否为双击（400ms 内连续点击）
-    if (timeDifference < 400 && timeDifference > 0) {
-      console.log("双击事件:", info);
-      // 双击功能：快速添加事件
-    } else {
-      console.log("单击事件:", info);
-      // 单击功能：显示日期详情
+    // 单击功能：
+    var eventid=parseInt(info.event.id)
+    seleEvent(eventid);
+
+    //判断和上次点击的是不是同一个event
+    if(eventid===pageData.lastEventClickID){
+      // 判断是否为双击（400ms 内连续点击）
+      if (timeDifference < 400 && timeDifference > 0) {
+        //console.log("双击事件:", info);
+        // 双击功能：
+        unseleEventAll()
+      }
     }
+    pageData.lastEventClickID=eventid;
+    
+
     // 更新上次点击时间
-    lastEventClickTime.value = nowTime;
+    pageData.lastEventClickTime = nowTime;
   },
 
   //event拖动处理
-  eventDrop(info) {},
+  eventDrop(info) {
+    //需要发送到后端修改event
+    //console.log(info.event)
+    scheduleApi
+    .editEvent({
+      id:parseInt(info.event.id),
+      title: info.event.title,
+      start: info.event.startStr,
+      end: info.event.end===null?info.event.startStr:DateUtils.toRealEnd(info.event.end),
+      color: info.event.backgroundColor,
+    })
+    .then((r) => {
+      //console.log(r);
+      if (r.errCode == 0) {
+        //前端提交是否错误
+        switch (
+          r.raw.err_code //后端返回是否错误
+        ) {
+          case 0:
+            getEvents();//从新从后端获取最新数据
+            break;
+          default:
+            toast.danger(t("message.server_error"));
+            break;
+        }
+      }
+    });
+  },
 });
 
 // 打开模态框
@@ -280,28 +354,17 @@ const handleDoubleClick = (info) => {
   }
 };
 
-// 处理单机事件：显示日期详情
-const handleSingleClick = (info) => {
-  const dateEvents = calendarOptions.value.events.filter(
-    (event) =>
-      event.start === info.dateStr ||
-      (event.start <= info.dateStr && event.end > info.dateStr),
-  );
 
-  if (dateEvents.length > 0) {
-    //alert(`${info.dateStr} 有 ${dateEvents.length} 个事件`)
-  } else {
-    //alert(`${info.dateStr} 没有事件`)
-  }
-};
 
 // 保存日程事件
 const saveEvent = () => {
   if (!eventData.value.title.trim()) {
     //alert("请输入日程内容");
+    pageData.submitChecked=true;
     toast.warning(t("schedule.event_title_required"));
     return;
   }
+  pageData.submitChecked=false;
 
   if (!eventData.value.startDate || !eventData.value.endDate) {
     //alert("请选择日期");
@@ -331,11 +394,13 @@ const saveEvent = () => {
   // 添加到日历事件列表
   //提交到后端
 
+  //console.log(newEvent)
+
   scheduleApi
     .addEvent({
       title: newEvent.title,
       start: newEvent.start,
-      end: DateUtils.toRealEnd(newEvent.end),
+      end: newEvent.end===newEvent.start?newEvent.end:DateUtils.toRealEnd(newEvent.end),
       color: newEvent.backgroundColor,
     })
     .then((r) => {
@@ -369,7 +434,7 @@ const getEvents = () => {
       end: DateUtils.toRealEnd(calendarNowShow.value.end),
     })
     .then((r) => {
-      console.log(r);
+      //console.log(r);
       if (r.errCode == 0) {
         //前端提交是否错误
         switch (
@@ -378,15 +443,15 @@ const getEvents = () => {
           case 0:
             calendarOptions.value.events=[];
             var events = r.raw.return.list;
-            console.log(events);
+            //console.log(events);
             var eventstemp = [];
-            events.forEach((item) => {
+            events?.forEach((item) => {
               
               calendarOptions.value.events.push({
                 id: item.ID, // 后端 ID
                 title: item.Title, // 标题
                 start: item.StartDate, // 开始日期
-                end: DateUtils.toCalendarEnd(item.EndDate), // 结束日期
+                end: item.StartDate===item.EndDate?item.EndDate:DateUtils.toCalendarEnd(item.EndDate), // 结束日期
                 backgroundColor: item.BgColor, // 背景色
                 borderColor: item.BgColor,      // 边框色（一般和背景一样）
                 allDay: true, // 全天事件
@@ -531,6 +596,10 @@ onMounted(() => {
             <div class="uni-easyinput input relative">
               <div
                 class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
+                :class="{
+                  'border-gray-300': eventData.title ||!pageData.submitChecked,
+                  'border-red-500': !eventData.title && pageData.submitChecked
+                }"
               >
                 <input
                   v-model="eventData.title"

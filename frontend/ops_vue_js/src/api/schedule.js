@@ -10,4 +10,8 @@ export const scheduleApi = {
   addEvent(data) {
     return api.post('/schedule/addevent', data)
   },
+
+  editEvent(data) {
+    return api.post('/schedule/editevent', data)
+  },
 }

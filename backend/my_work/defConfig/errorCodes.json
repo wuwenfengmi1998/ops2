@@ -17,7 +17,9 @@
     "file_hash_err":-55,
     "file_save_err":-56,
     "file_not_found":-57,
-    "file_part_err":-58
+    "file_part_err":-58,
+    "schedule_event_not_find":-61,
+    "schedule_permission_denied":-62
 
 
 }

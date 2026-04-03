@@ -40,6 +40,7 @@ type TabScheduleLog struct {
 	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime;comment:操作时间"`
 }
 type fromAddEvent struct {
+	ID uint 	 `json:"id"`
 	Title string `json:"title" binding:"required"` // 日程标题
 	Start string `json:"start" binding:"required"` // 开始日期
 	End   string `json:"end" binding:"required"`   // 结束日期
@@ -117,9 +118,9 @@ func ApiSchedule(r *gin.RouterGroup) {
 					if slices.Contains(scheduleAdmins,user.ID){
 						temp["edit"] = true
 					}
-					// if item.UserID == user.ID || item.UserID == 1 {
-					// 	temp["edit"] = true
-					// }
+					if item.UserID == user.ID {
+						temp["edit"] = true
+					}
 
 					// user_group_find := models.TabUserGroupBinds_{}
 					// if models.DB.Where("user_id = ? AND group_id = ?", user.ID, userGroup.ID).First(&user_group_find).Error == nil { //是应用管理员
@@ -142,6 +143,80 @@ func ApiSchedule(r *gin.RouterGroup) {
 
 	})
 
+	r.POST("/editevent", func(ctx *gin.Context) {
+	isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			
+			var from fromAddEvent
+			if err := mapstructure.Decode(data, &from); err == nil {
+				//先从数据库拉取原始event数据
+				oldEvent:=TabSchedule{
+					ID: from.ID,
+				}
+				if models.DB.Where(&oldEvent).First(&oldEvent).Error==nil{
+					//需要先判断修改权限
+					var isCanEdit=false
+					if slices.Contains(scheduleAdmins,user.ID){ //用户id是管理员
+						isCanEdit = true
+					}
+					if oldEvent.UserID==user.ID{//event是用户创建的
+						isCanEdit = true
+					}
+
+					if isCanEdit{
+						tosql := TabSchedule{
+							// UserID:    user.ID,  //如果是管理员修改的话会覆盖掉创建者的id
+							Title:     from.Title,
+							StartDate: from.Start,
+							EndDate:   from.End,
+							BgColor:   from.Color,
+						}
+						//fmt.Println(tosql)
+
+						findEvent:=TabSchedule{
+							ID: oldEvent.ID,
+						}
+
+						if models.DB.Where(&findEvent).Updates(&tosql).Error==nil{
+							//应该修改完了  写日志
+							//把最新数据再读出来
+							models.DB.Where(&findEvent).First(&findEvent)
+							newContent, _ := json.Marshal(findEvent) //转 JSON
+							oldContent, _ := json.Marshal(oldEvent) //转 JSON
+							tosqllog := TabScheduleLog{
+								UserID:     user.ID,
+								ScheduleID: oldEvent.ID,
+								ActionType: "update",
+								NewContent: string(newContent),
+								OldContent: string(oldContent),
+								IP:         ctx.ClientIP(),
+							}
+							models.DB.Create(&tosqllog)
+							ReturnJson(ctx, "apiOK", nil)
+
+
+						}else{
+							ReturnJson(ctx, "apiErr", nil)
+						}
+						
+					}else{
+						ReturnJson(ctx, "schedule_permission_denied", nil)
+					}
+
+				}else{
+					ReturnJson(ctx, "schedule_event_not_find", nil)
+				}
+
+				
+				
+
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
 	r.POST("/addevent", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
 		if isAuth {
