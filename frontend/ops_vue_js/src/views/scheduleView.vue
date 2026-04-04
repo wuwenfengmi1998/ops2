@@ -92,9 +92,9 @@ const pageData = reactive({//本页全局变量
 
   submitChecked: false,
 
-  isCopy:false,
-  copyTitle:"",
-  copyColor:"",
+  isCopy: false,
+  copyTitle: "",
+  copyColor: "",
 
 })
 
@@ -257,7 +257,7 @@ const calendarOptions = ref({
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastClickTime;
 
-    
+
 
     unseleEventAll();//点击了日期就取消event的选择
 
@@ -287,7 +287,7 @@ const calendarOptions = ref({
   select(info) {
     if (info.end - info.start > 86400000) {
       //选择了多日
-      console.log("选择了多日:", info);
+      //console.log("选择了多日:", info);
       openEventModal(info.startStr, info.endStr);
     } else {
       //选择单日 无功能
@@ -333,43 +333,43 @@ const calendarOptions = ref({
 
   //event拖动处理
   eventDrop(info) {
-    updateEditData(parseInt(info.event.id),info.event.title,info.event.startStr,info.event.end === null ? info.event.startStr : DateUtils.toRealEnd(info.event.end),info.event.backgroundColor);
+    updateEditData(parseInt(info.event.id), info.event.title, info.event.startStr, info.event.end === null ? info.event.startStr : DateUtils.toRealEnd(info.event.end), info.event.backgroundColor);
   },
 });
 
-function editSaveEvent(){
+function editSaveEvent() {
   //console.log(eventData)
-  updateEditData(eventData.value.id,eventData.value.title,eventData.value.startDate,eventData.value.startDate===eventData.value.endDate?eventData.value.startDate:DateUtils.toRealEnd(eventData.value.endDate),eventData.value.color);
+  updateEditData(eventData.value.id, eventData.value.title, eventData.value.startDate, eventData.value.startDate === eventData.value.endDate ? eventData.value.startDate : DateUtils.toRealEnd(eventData.value.endDate), eventData.value.color);
 }
 
-function updateEditData(id,title,start,end,color){
-//需要发送到后端修改event
-    //console.log(info.event)
-    scheduleApi
-      .editEvent({
-        id: id,
-        title: title,
-        start: start,
-        end: end,
-        color: color,
-      })
-      .then((r) => {
-        //console.log(r);
-        if (r.errCode == 0) {
-          //前端提交是否错误
-          switch (
-          r.raw.err_code //后端返回是否错误
-          ) {
-            case 0:
-              closeEventModal();
-              getEvents();//从新从后端获取最新数据
-              break;
-            default:
-              toast.danger(t("message.server_error"));
-              break;
-          }
+function updateEditData(id, title, start, end, color) {
+  //需要发送到后端修改event
+  //console.log(info.event)
+  scheduleApi
+    .editEvent({
+      id: id,
+      title: title,
+      start: start,
+      end: end,
+      color: color,
+    })
+    .then((r) => {
+      //console.log(r);
+      if (r.errCode == 0) {
+        //前端提交是否错误
+        switch (
+        r.raw.err_code //后端返回是否错误
+        ) {
+          case 0:
+            closeEventModal();
+            getEvents();//从新从后端获取最新数据
+            break;
+          default:
+            toast.danger(t("message.server_error"));
+            break;
         }
-      });
+      }
+    });
 }
 
 // 打开模态框
@@ -510,31 +510,31 @@ const getEvents = () => {
 };
 
 //删除event
-function delEvent(){
- 
+function delEvent() {
+
   scheduleApi
     .deleEvent({
-      id:eventData.value.id
+      id: eventData.value.id
     }).then((r) => {
-        //console.log(r);
-        if (r.errCode == 0) {
-          //前端提交是否错误
-          switch (
-          r.raw.err_code //后端返回是否错误
-          ) {
-            case 0:
-              closeEventModal();
-              getEvents();//从新从后端获取最新数据
-              break;
-            default:
-              toast.danger(t("message.server_error"));
-              break;
-          }
-        }else{
-          toast.danger(t("message.server_error"));
+      //console.log(r);
+      if (r.errCode == 0) {
+        //前端提交是否错误
+        switch (
+        r.raw.err_code //后端返回是否错误
+        ) {
+          case 0:
+            closeEventModal();
+            getEvents();//从新从后端获取最新数据
+            break;
+          default:
+            toast.danger(t("message.server_error"));
+            break;
         }
-      });
-    
+      } else {
+        toast.danger(t("message.server_error"));
+      }
+    });
+
 }
 
 
@@ -546,20 +546,20 @@ const selectColor = (colorValue) => {
 
 };
 
-function copyEvent(){
-    pageData.copyTitle=eventData.value.title;
-    pageData.copyColor=eventData.value.color;
-    pageData.isCopy=true;
-    toast.info("已复制");
+function copyEvent() {
+  pageData.copyTitle = eventData.value.title;
+  pageData.copyColor = eventData.value.color;
+  pageData.isCopy = true;
+  toast.info("已复制");
 }
 
-function pastEvent(){
-  if (pageData.isCopy){
-    if(eventData.value.isEditable){
-      eventData.value.color=pageData.copyColor;
-      eventData.value.title=pageData.copyTitle;
+function pastEvent() {
+  if (pageData.isCopy) {
+    if (eventData.value.isEditable) {
+      eventData.value.color = pageData.copyColor;
+      eventData.value.title = pageData.copyTitle;
       toast.info("已粘贴");
-    }else{
+    } else {
       toast.warning("这不是你的日程");
     }
   }
@@ -641,8 +641,8 @@ onMounted(() => {
 
           </h5>
           <h5 class="modal-title text-lg font-semibold absolute left-1/2 -translate-x-1/2">
-            {{userStore.isLoggedIn ? eventData.isEditing ?"xxx的日程":"":""}}
-            
+            {{ userStore.isLoggedIn ? eventData.isEditing ? "xxx的日程" : "" : "" }}
+
           </h5>
           <button @click="closeEventModal" class="btn-close text-gray-500 hover:text-gray-700">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -658,12 +658,8 @@ onMounted(() => {
         <!-- 👇 主体区域：允许内部滚动 -->
         <div class="modal-body p-4 flex-1 overflow-y-auto">
           <!-- 日期选择区域 -->
-          <DatatimePickerForFullCalendar 
-            v-model:startDate="eventData.startDate" 
-            v-model:endDate="eventData.endDate"
-            :color="eventData.color" 
-            :title="eventData.title" 
-            :isEditable="eventData.isEditable" />
+          <DatatimePickerForFullCalendar v-model:startDate="eventData.startDate" v-model:endDate="eventData.endDate"
+            :color="eventData.color" :title="eventData.title" :isEditable="eventData.isEditable" />
 
           <!-- 内容输入区域 -->
           <div class="mb-4">
@@ -719,27 +715,20 @@ onMounted(() => {
             </button>
           </div>
           <div class="flex gap-2">
-            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-            @click="copyEvent"
-            >
+            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md" @click="copyEvent">
               {{ t("schedule.copy") }}
             </button>
             <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md disabled:cursor-not-allowed"
-                :disabled="!pageData.isCopy"
-                @click="pastEvent"
-            >
+              :disabled="!pageData.isCopy || !eventData.isEditable" 
+              @click="pastEvent">
               {{ t("schedule.paste") }}
             </button>
-            <button 
-              v-if="!eventData.isEditing"
-              @click="saveEvent"
+            <button v-if="!eventData.isEditing" @click="saveEvent"
               class="btn btn-primary px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
               :disabled="!eventData.isEditable">
-              {{t("schedule.add_event_button") }}
+              {{ t("schedule.add_event_button") }}
             </button>
-            <button 
-              v-if="eventData.isEditing"
-              @click="editSaveEvent"
+            <button v-if="eventData.isEditing" @click="editSaveEvent"
               class="btn btn-primary px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
               :disabled="!eventData.isEditable">
               修改日程
