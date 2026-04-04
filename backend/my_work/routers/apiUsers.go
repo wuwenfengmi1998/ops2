@@ -350,7 +350,14 @@ func ApiUser(r *gin.RouterGroup) {
 			if models.DB.Where(&userinfo).First(&userinfo).Error == nil {
 				redata["userInfo"] = userinfo
 			} else {
-				redata["userInfo"] = nil
+				//无记录，创建一条
+				userinfo.Username=user.Name
+				userinfo.FirstName=user.Email
+				userinfo.Birthdate=(time.Now())
+				models.DB.Create(&userinfo)
+				//重新拉一条数据
+				
+				redata["userInfo"] = userinfo
 			}
 
 			user.Pass = ""

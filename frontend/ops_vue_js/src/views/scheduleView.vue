@@ -29,6 +29,10 @@ import { scheduleApi } from "@/api/schedule";
 
 import { useDateUtils } from "@/composables/useDateUtils";
 
+import { useUsersStore } from "@/stores/users";
+
+const usersStore =useUsersStore();
+
 const DateUtils = useDateUtils();
 
 const router = useRouter();
@@ -59,6 +63,7 @@ const eventData = ref({
   color: "#066FD1", // 默认蓝色工作事件
   isEditing: false,   //是否处于编辑模式，false就是添加模式
   isEditable: false,//是否有权限编辑，无权限就让按钮灰掉
+  userID:0,
 });
 
 // 颜色选项
@@ -96,8 +101,30 @@ const pageData = reactive({//本页全局变量
   copyTitle: "",
   copyColor: "",
 
+  eventBindUserID:[],
+
 })
 
+//通过eventid获取用户id
+function getUserIdFromEventID(eventID){
+
+    const target = pageData.eventBindUserID.find(item => item.eventID === eventID)
+    if(target){
+      return target.userID
+    }
+    return 0;
+}
+
+//通过用户id获取用户名
+function getUsernameFromUserID(userID){
+
+  if(userID==0){
+    return "";
+  }
+
+  return usersStore.getUsernameFromUserID(userID);
+  
+}
 
 
 function unseleEvent(eventID) {
@@ -485,8 +512,15 @@ const getEvents = () => {
             calendarOptions.value.events = [];
             var events = r.raw.return.list;
             //console.log(events);
-            var eventstemp = [];
+            pageData.eventBindUserID=[];
             events?.forEach((item) => {
+
+              var bind={
+                eventID:item.ID,
+                userID:item.UserID,
+              }
+              pageData.eventBindUserID.push(bind);
+
 
               calendarOptions.value.events.push({
                 id: item.ID, // 后端 ID
@@ -641,7 +675,7 @@ onMounted(() => {
 
           </h5>
           <h5 class="modal-title text-lg font-semibold absolute left-1/2 -translate-x-1/2">
-            {{ userStore.isLoggedIn ? eventData.isEditing ? "xxx的日程" : "" : "" }}
+            {{ userStore.isLoggedIn ? eventData.isEditing ? t("schedule.someone_schedule", { name: getUsernameFromUserID(getUserIdFromEventID(eventData.id)) }) : "" : "" }}
 
           </h5>
           <button @click="closeEventModal" class="btn-close text-gray-500 hover:text-gray-700">

@@ -258,6 +258,7 @@ async function handleSave() {
                   {{ t('settings.name') }}
                   <!-- 必填标记 -->
                   <span class="ml-1 text-red-500">*</span>
+                  <span class="ml-1 text-gray-400">{{ t('settings.name_hint') }}</span>
                 </label>
                 <div class="relative">
                   <!-- 用户名输入框 -->
@@ -285,6 +286,7 @@ async function handleSave() {
                   {{ t('settings.remark') }}
                   <!-- 必填标记 -->
                   <span class="ml-1 text-red-500">*</span>
+                  <span class="ml-1 text-gray-400">{{ t('settings.remark_hint') }}</span>
                 </label>
                 <div class="relative">
                   <!-- 备注输入框 -->

@@ -150,7 +150,8 @@
     "delete": "Delete",
     "copied": "Copied",
     "pasted": "Pasted",
-    "not_your_schedule": "This is not your schedule"
+    "not_your_schedule": "This is not your schedule",
+    "someone_schedule": "Created by {name}"
   },
   "message": {
     "functionality_not_yet_developed": "Functionality not yet developed",
@@ -239,7 +240,9 @@
     "birthday_help": "Select your birthday for personalized services",
     "save_notice": "Your personal information will be updated after saving",
     "placeholder_name": "Enter your name",
-    "placeholder_remark": "Personal introduction or remark"
+    "placeholder_remark": "Personal introduction or remark",
+    "name_hint": "Display only, login name unchanged.",
+    "remark_hint": "Remark only"
   },
   "button": {
     "submit": "Submit",
