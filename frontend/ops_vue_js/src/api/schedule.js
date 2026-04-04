@@ -14,4 +14,7 @@ export const scheduleApi = {
   editEvent(data) {
     return api.post('/schedule/editevent', data)
   },
+  deleEvent(data) {
+    return api.post('/schedule/deleevent', data)
+  },
 }

@@ -143,6 +143,63 @@ func ApiSchedule(r *gin.RouterGroup) {
 
 	})
 
+	r.POST("/deleevent", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromAddEvent
+			if err := mapstructure.Decode(data, &from); err == nil {
+				//先从数据库拉取原始event数据
+				 oldEvent:=TabSchedule{}
+				 if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error==nil{
+					//需要先判断修改权限
+					var isCanEdit=false
+					if slices.Contains(scheduleAdmins,user.ID){ //用户id是管理员
+						isCanEdit = true
+					}
+					if oldEvent.UserID==user.ID{//event是用户创建的
+						isCanEdit = true
+					}
+					if isCanEdit{
+						tosql := TabSchedule{}
+						tosql.DeletedAt.Scan(time.Now())
+						//fmt.Println(tosql)
+						findEvent:=TabSchedule{
+							ID: oldEvent.ID,
+						}
+						if models.DB.Where(&findEvent).Updates(&tosql).Error==nil{
+							//应该修改完了  写日志
+							//把最新数据再读出来
+							models.DB.Where(&findEvent).First(&findEvent)
+							newContent, _ := json.Marshal(findEvent) //转 JSON
+							oldContent, _ := json.Marshal(oldEvent) //转 JSON
+							tosqllog := TabScheduleLog{
+								UserID:     user.ID,
+								ScheduleID: oldEvent.ID,
+								ActionType: "delete",
+								NewContent: string(newContent),
+								OldContent: string(oldContent),
+								IP:         ctx.ClientIP(),
+							}
+							models.DB.Create(&tosqllog)
+							ReturnJson(ctx, "apiOK", nil)
+						}else{
+							ReturnJson(ctx, "apiErr", nil)
+						}
+					}else{
+						ReturnJson(ctx, "schedule_permission_denied", nil)
+					}
+				}else{
+					ReturnJson(ctx, "schedule_event_not_find", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+
+	})
+
 	r.POST("/editevent", func(ctx *gin.Context) {
 	isAuth, user, data := AuthenticationAuthority(ctx)
 		if isAuth {
@@ -150,10 +207,8 @@ func ApiSchedule(r *gin.RouterGroup) {
 			var from fromAddEvent
 			if err := mapstructure.Decode(data, &from); err == nil {
 				//先从数据库拉取原始event数据
-				oldEvent:=TabSchedule{
-					ID: from.ID,
-				}
-				if models.DB.Where(&oldEvent).First(&oldEvent).Error==nil{
+				oldEvent:=TabSchedule{}
+				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error==nil{
 					//需要先判断修改权限
 					var isCanEdit=false
 					if slices.Contains(scheduleAdmins,user.ID){ //用户id是管理员

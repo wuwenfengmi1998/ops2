@@ -502,6 +502,34 @@ const getEvents = () => {
     });
 };
 
+//删除event
+function delEvent(){
+ 
+  scheduleApi
+    .deleEvent({
+      id:eventData.value.id
+    }).then((r) => {
+        //console.log(r);
+        if (r.errCode == 0) {
+          //前端提交是否错误
+          switch (
+          r.raw.err_code //后端返回是否错误
+          ) {
+            case 0:
+              closeEventModal();
+              getEvents();//从新从后端获取最新数据
+              break;
+            default:
+              toast.danger(t("message.server_error"));
+              break;
+          }
+        }else{
+          toast.danger(t("message.server_error"));
+        }
+      });
+    
+}
+
 
 // 颜色选择处理
 const selectColor = (colorValue) => {
@@ -654,7 +682,7 @@ onMounted(() => {
           class="modal-footer border-t p-4 flex justify-between items-center flex-shrink-0">
 
           <div class="flex gap-2">
-            <button v-if="eventData.isEditing" @click="closeEventModal" class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md 
+            <button v-if="eventData.isEditing" @click="delEvent" class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md 
          disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="!eventData.isEditable">
               删除
             </button>
