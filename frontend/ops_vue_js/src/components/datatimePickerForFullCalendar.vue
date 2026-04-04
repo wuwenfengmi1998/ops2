@@ -63,7 +63,8 @@ const eventData = ref({
   title: props.title,
   start: props.startDate,
   end: props.endDate,
-  Color: props.color,
+  backgroundColor: props.color,
+  borderColor: props.color,
   allDay: true,
   editable: true,
 });
@@ -118,7 +119,8 @@ watch(
 watch(
   () => props.color,
   (newVal) => {
-    eventData.value.color = newVal;
+    eventData.value.backgroundColor = newVal;
+    eventData.value.borderColor = newVal;
   },
 );
 
@@ -302,6 +304,7 @@ const calendarOptions = ref({
 });
 
 function switchShow() {
+
   if(props.isEditable){
     if (isShow.value) {
         isShow.value = false;
@@ -317,6 +320,7 @@ function splicingDataWeek(data) {
 }
 
 onMounted(() => {
+  console.log(eventData.value)
   calendarOptions.value.events.push(eventData.value);
 });
 </script>

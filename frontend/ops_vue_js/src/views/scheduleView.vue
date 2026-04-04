@@ -92,7 +92,10 @@ const pageData = reactive({//本页全局变量
 
   submitChecked: false,
 
-  editMode: false,
+  isCopy:false,
+  copyTitle:"",
+  copyColor:"",
+
 })
 
 
@@ -254,6 +257,8 @@ const calendarOptions = ref({
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastClickTime;
 
+    
+
     unseleEventAll();//点击了日期就取消event的选择
 
     //判断和上次点击的是不是同一天
@@ -295,6 +300,8 @@ const calendarOptions = ref({
   eventClick(info) {
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastEventClickTime;
+
+    console.log(info)
 
     //判断event的title是否过长，如果是被截断的 就toast.info弹窗显示
     // const titleEl = info.el.querySelector('.fc-event-title');
@@ -539,6 +546,26 @@ const selectColor = (colorValue) => {
 
 };
 
+function copyEvent(){
+    pageData.copyTitle=eventData.value.title;
+    pageData.copyColor=eventData.value.color;
+    pageData.isCopy=true;
+    toast.info("已复制");
+}
+
+function pastEvent(){
+  if (pageData.isCopy){
+    if(eventData.value.isEditable){
+      eventData.value.color=pageData.copyColor;
+      eventData.value.title=pageData.copyTitle;
+      toast.info("已粘贴");
+    }else{
+      toast.warning("这不是你的日程");
+    }
+  }
+
+}
+
 // 监听语言变化，更新日历的本地化和按钮文字
 watch(locale, () => {
   // 更新日历语言
@@ -631,8 +658,12 @@ onMounted(() => {
         <!-- 👇 主体区域：允许内部滚动 -->
         <div class="modal-body p-4 flex-1 overflow-y-auto">
           <!-- 日期选择区域 -->
-          <DatatimePickerForFullCalendar v-model:startDate="eventData.startDate" v-model:endDate="eventData.endDate"
-            :color="eventData.color" :title="eventData.title" :isEditable="eventData.isEditable" />
+          <DatatimePickerForFullCalendar 
+            v-model:startDate="eventData.startDate" 
+            v-model:endDate="eventData.endDate"
+            :color="eventData.color" 
+            :title="eventData.title" 
+            :isEditable="eventData.isEditable" />
 
           <!-- 内容输入区域 -->
           <div class="mb-4">
@@ -688,10 +719,15 @@ onMounted(() => {
             </button>
           </div>
           <div class="flex gap-2">
-            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md" disabled>
+            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+            @click="copyEvent"
+            >
               {{ t("schedule.copy") }}
             </button>
-            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md" disabled>
+            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md disabled:cursor-not-allowed"
+                :disabled="!pageData.isCopy"
+                @click="pastEvent"
+            >
               {{ t("schedule.paste") }}
             </button>
             <button 
