@@ -109,6 +109,39 @@ func AuthenticationAuthorityFromCookie(c string) (*models.TabUser_, error) {
 	}
 }
 
+func GetUserInfoFromUserID(userID uint) (*models.TabUserInfo_){
+	//通过id获取用户info
+
+	if(userID <=0){
+		return nil
+	}
+
+	//先查询用户是否存在
+	var user models.TabUser_
+	user.ID = userID
+
+	if models.DB.Where(&user).First(&user).Error==nil{
+		var userinfo models.TabUserInfo_
+		userinfo.UserID=user.ID
+		if models.DB.Where(&userinfo).First(&userinfo).Error==nil{
+			return &userinfo
+		}else{
+			//无记录，创建一条
+			userinfo.Username=user.Name
+			userinfo.FirstName=user.Email
+			userinfo.Birthdate=(time.Now())
+			models.DB.Create(&userinfo)
+			return &userinfo
+		}
+	}
+
+	return nil
+
+
+
+	
+}
+
 func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[string]interface{}) {
 
 	data, cookieval := SeparateData(ctx)
@@ -130,6 +163,8 @@ func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[strin
 
 }
 
+
+
 func ApiUser(r *gin.RouterGroup) {
 
 	r.GET("/test", func(ctx *gin.Context) {
@@ -137,6 +172,23 @@ func ApiUser(r *gin.RouterGroup) {
 	})
 	r.POST("/test", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", nil)
+	})
+
+	//get获取用户info
+	r.GET("/getuserinfo/:id",func(ctx *gin.Context) {
+		idStr := ctx.Param("id")
+		id, err := strconv.Atoi(idStr)
+		var redata map[string]interface{} = make(map[string]interface{})
+		if err == nil {
+			userinfo:=GetUserInfoFromUserID(uint(id))
+			if(userinfo!=nil){
+				redata["userinfo"]=*userinfo
+			}
+			
+		}
+
+		ReturnJson(ctx, "apiOK", redata)
+
 	})
 
 	//修改用户密码
@@ -343,26 +395,15 @@ func ApiUser(r *gin.RouterGroup) {
 		isAuth, user, _ := AuthenticationAuthority(ctx)
 		if isAuth {
 			//载入用户info
-			var userinfo models.TabUserInfo_
-			userinfo.UserID = user.ID
+
 			//fmt.Println(userInfo)
 			var redata map[string]interface{} = make(map[string]interface{})
-			if models.DB.Where(&userinfo).First(&userinfo).Error == nil {
-				redata["userInfo"] = userinfo
-			} else {
-				//无记录，创建一条
-				userinfo.Username=user.Name
-				userinfo.FirstName=user.Email
-				userinfo.Birthdate=(time.Now())
-				models.DB.Create(&userinfo)
-				//重新拉一条数据
-				
-				redata["userInfo"] = userinfo
-			}
+
+			info:=GetUserInfoFromUserID(user.ID)
+			redata["userInfo"] = *info
 
 			user.Pass = ""
 			user.Salt = ""
-
 			redata["user"] = user
 
 			ReturnJson(ctx, "apiOK", redata)

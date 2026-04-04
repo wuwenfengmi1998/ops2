@@ -151,7 +151,7 @@
     "copied": "已复制",
     "pasted": "已粘贴",
     "not_your_schedule": "这不是你的日程",
-    "someone_schedule": "{name}创建的日程"
+    "someone_schedule": "{name} 创建的日程"
   },
   "message": {
     "functionality_not_yet_developed": "功能未开发",

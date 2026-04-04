@@ -122,7 +122,7 @@ const navItems = computed(() => [
               alt="avatar"
             />
             <span class="max-w-24 truncate">{{
-              userStore.user?.Name || ""
+              userStore.userInfo?userStore.userInfo.Username:userStore.user.Name
             }}</span>
           </button>
           <Transition
