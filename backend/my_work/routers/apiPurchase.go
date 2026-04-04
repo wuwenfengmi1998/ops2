@@ -11,25 +11,23 @@ import (
 )
 
 type CostItem struct {
-	Cost         int    `json:"cost"`         // 必须，非负
-	CostT        int    `json:"costt"`        // 必须，非负
-	CurrencyType string `json:"currencytype"` // 必须
-	Int          int    `json:"int"`          // 必须
-	Type         string `json:"type"`         // 必须
+	Cost         int    `json:"cost"`         // 费用
+	CostT        int    `json:"costt"`        // 总价
+	CurrencyType string `json:"currencytype"` // 货币类型
+	Int          int    `json:"int"`          // 数量
+	Type         string `json:"type"`         // 费用类型
 }
 type From_purchase_addorder struct {
-	Costs          []CostItem `json:"costs"`           // 价格
-	ExpressNumber string      //快递单号
-	Link           string     `json:"link"`            // 可选
-	Notes string  //样式
-	OrderStatus    string     `json:"order_status"`    //
-	PartName       string     `json:"partname"`        // 可选
-	Photos         []string   `json:"photos"`          // 可选
-	Remark         string     `json:"remark"`          // 可选
-	Styles         string     `json:"styles"`          // 可选
-	Title          string     `json:"title"`           // 必须
-	TrackingNumber string     `json:"tracking_number"` // 可选
-	UpdateTime     string     `json:"update_time"`     // 可选
+	Costs          []CostItem `json:"costs"`           //  成本
+	Link           string     `json:"link"`            //  链接
+	OrderStatus    string     `json:"order_status"`    //  订单状态
+	PartName       string     `json:"partname"`        //  物件名称
+	Photos         []string   `json:"photos"`          //  图片备注
+	Remark         string     `json:"remark"`          //  备注 
+	Styles         string     `json:"styles"`          //  样式备注
+	Title          string     `json:"title"`           //  标题
+	TrackingNumber string     `json:"tracking_number"` //  快递单号
+	UpdateTime     string     `json:"update_time"`     //  更新时间
 }
 
 func ApiPurchase(r *gin.RouterGroup) {
@@ -99,7 +97,8 @@ func ApiPurchase(r *gin.RouterGroup) {
 			var jsondata From_purchase_addorder
 			if err := mapstructure.Decode(data, &jsondata); err == nil {
 
-				//fmt.Println("转换后数据:\n", jsondata)
+				jsonStr, _ := json.MarshalIndent(jsondata, "", "  ")
+				fmt.Println("转换后数据:\n", string(jsonStr))
 
 				//数据比较混乱 在这里校验
 
@@ -107,15 +106,19 @@ func ApiPurchase(r *gin.RouterGroup) {
 				is_data_ok := true
 				if jsondata.Title == "" {
 					is_data_ok = false
+
+					fmt.Println("err1")
 				}
 
 				//判断数量与价格是否为负数
 				for i := 0; i < len(jsondata.Costs); i++ {
 					if jsondata.Costs[i].Cost <= 0 {
 						is_data_ok = false
+						fmt.Println("err2")
 					}
 					if jsondata.Costs[i].Int <= 0 {
 						is_data_ok = false
+						fmt.Println("err3")
 					}
 				}
 
@@ -124,6 +127,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 					//判断字符串是否包含标点符号
 					if models.IsContainsSpecialChar(jsondata.Photos[i]) {
 						is_data_ok = false
+						fmt.Println("err4")
 					}
 
 				}
@@ -132,6 +136,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 				uptime, e := models.StringToTimePtr(jsondata.UpdateTime)
 				if e != nil {
 					is_data_ok = false
+					fmt.Println("err5")
 				}
 
 				if is_data_ok {
@@ -164,7 +169,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 					}
 
 				} else {
-					ReturnJson(ctx, "jsonErr", nil)
+					ReturnJson(ctx, "jsonErr_1", nil)
 				}
 
 			} else {
@@ -175,7 +180,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			ReturnJson(ctx, "userCookieError", nil)
 		}
 
-		ReturnJson(ctx, "apiErr", nil)
+		//ReturnJson(ctx, "apiErr", nil)
 	})
 
 }

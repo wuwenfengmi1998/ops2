@@ -37,24 +37,24 @@ const orderStatus = computed(() => ({
 
 const costEntries = reactive([])
 const newCost = reactive({
-  type: '1', qty: 1, cost: 0, currencyType: '1',
+  type: '1', int: 1, cost: 0, currencyType: '1',
 })
 
 const newCostTotal = computed(() =>
-  parseFloat((newCost.qty * newCost.cost).toFixed(2))
+  parseFloat((newCost.int * newCost.cost).toFixed(2))
 )
 
 function addCostEntry() {
   if (newCost.cost <= 0) return
   costEntries.push({
     type: newCost.type,
-    qty: newCost.qty,
+    int: newCost.int,
     cost: newCost.cost,
-    cost_t: newCostTotal.value,
-    currency_type: newCost.currencyType,
+    costt: newCostTotal.value,
+    currencytype: newCost.currencyType,
   })
   newCost.type = '1'
-  newCost.qty = 1
+  newCost.int = 1
   newCost.cost = 0
   newCost.currencyType = '1'
 }
@@ -73,11 +73,11 @@ const form = reactive({
   remark: '',
   photos: [],
   link: '',
-  style_remarks: '',
-  notes: '',
+  partname: '',
+  styles: '',
   costs: [],
   tracking_number: '',
-  express_number: '',
+  updatetime: '',
   order_status: '1',
 })
 
@@ -97,7 +97,7 @@ async function handleSubmit() {
   form.costs = costEntries.map(h => ({
     ...h,
     cost: Math.round(h.cost * 100),
-    cost_t: Math.round(h.cost_t * 100),
+    costt: Math.round(h.costt * 100),
   }))
 
   loading.value = true
@@ -172,7 +172,7 @@ async function handleSubmit() {
         <div>
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('purchase_addorder.part_name') }}</label>
           <input
-            v-model="form.style_remarks"
+            v-model="form.partname"
             type="text"
             class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
             :placeholder="t('purchase_addorder.part_name')"
@@ -180,7 +180,7 @@ async function handleSubmit() {
         </div>
         <div>
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('purchase_addorder.style_remarks') }}</label>
-          <tagadder :placeholder="t('purchase_addorder.add_style')" v-model="form.notes" />
+          <tagadder :placeholder="t('purchase_addorder.add_style')" v-model="form.styles" />
         </div>
 
         <!-- costs table -->
@@ -201,9 +201,9 @@ async function handleSubmit() {
               <tbody>
                 <tr v-for="(item, idx) in costEntries" :key="idx" class="border-b border-gray-100 dark:border-dk-muted">
                   <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{{ costType[item.type] }}</td>
-                  <td class="px-3 py-2 text-gray-500">{{ item.qty }}</td>
+                  <td class="px-3 py-2 text-gray-500">{{ item.int }}</td>
                   <td class="px-3 py-2 text-gray-500">{{ item.cost }}</td>
-                  <td class="px-3 py-2 text-gray-500">{{ item.cost_t }}</td>
+                  <td class="px-3 py-2 text-gray-500">{{ item.costt }}</td>
                   <td class="px-3 py-2 text-gray-500">{{ currencyOptions[item.currency_type] }}</td>
                   <td class="px-3 py-2">
                     <button class="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20" @click="removeCostEntry(idx)">{{ t('purchase_addorder.remove') }}</button>
@@ -224,7 +224,7 @@ async function handleSubmit() {
             </div>
             <div>
               <label class="mb-1 block text-xs font-medium text-gray-500">{{ t('purchase_addorder.input_quantity') }}</label>
-              <input v-model.number="newCost.qty" type="number" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white" min="1" />
+              <input v-model.number="newCost.int" type="number" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white" min="1" />
             </div>
             <div>
               <label class="mb-1 block text-xs font-medium text-gray-500">{{ t('purchase_addorder.input_fee') }}</label>
@@ -255,12 +255,12 @@ async function handleSubmit() {
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
               {{ t('purchase_addorder.update_time') }} <span class="text-red-500">*</span>
             </label>
-            <datePicker v-model="form.tracking_number" />
+            <datePicker v-model="form.updatetime" />
           </div>
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('purchase_addorder.tracking_number') }}</label>
             <input
-              v-model="form.express_number"
+              v-model="form.tracking_number"
               type="text"
               class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
               :placeholder="t('purchase_addorder.input_tracking_number')"
