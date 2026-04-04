@@ -3,6 +3,7 @@
     "apiErr":-1,
     "postErr":-2,
     "jsonErr":-3,
+    "jsonErr_1":-31,
     "userNameDup":-4,
     "userNameNoFund":-41,
     "userPassIncorrect":-42,

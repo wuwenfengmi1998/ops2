@@ -18,8 +18,10 @@ type CostItem struct {
 	Type         string `json:"type"`         // 必须
 }
 type From_purchase_addorder struct {
-	Costs          []CostItem `json:"costs"`           //
+	Costs          []CostItem `json:"costs"`           // 价格
+	ExpressNumber string      //快递单号
 	Link           string     `json:"link"`            // 可选
+	Notes string  //样式
 	OrderStatus    string     `json:"order_status"`    //
 	PartName       string     `json:"partname"`        // 可选
 	Photos         []string   `json:"photos"`          // 可选
@@ -33,9 +35,9 @@ type From_purchase_addorder struct {
 func ApiPurchase(r *gin.RouterGroup) {
 
 	r.POST("/getorders", func(ctx *gin.Context) {
-		isAuth, user, data := AuthenticationAuthority(ctx)
+		isAuth, _, data := AuthenticationAuthority(ctx)
 		if isAuth {
-			fmt.Println(user)
+			//fmt.Println(user)
 			// DebugPrintJson(data)
 
 			type From_purchase_getorders struct {
@@ -46,7 +48,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 			var jsondata From_purchase_getorders
 			if err := mapstructure.Decode(data, &jsondata); err == nil {
-				//fmt.Println(jsondata)
+				fmt.Println(jsondata)
 
 				is_data_ok := true
 
@@ -74,7 +76,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 					})
 
 				} else {
-					ReturnJson(ctx, "jsonErr", nil)
+					ReturnJson(ctx, "jsonErr_1", nil)
 				}
 
 			} else {

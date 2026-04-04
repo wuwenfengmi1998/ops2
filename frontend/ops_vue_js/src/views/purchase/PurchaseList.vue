@@ -34,9 +34,9 @@ async function fetchOrders() {
   loading.value = true
   try {
     const { errCode, data } = await purchaseApi.getOrders({
-      keyword: searchQuery.value,
-      page: pageSize.value,
-      page_num: currentPage.value,
+      search: searchQuery.value,
+      entries: pageSize.value,
+      page: currentPage.value,
     })
     if (errCode === 0) {
       orders.value = data.all_orders ?? []

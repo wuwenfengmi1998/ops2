@@ -38,7 +38,7 @@ func ApiUserInit() {
 	if models.DB.Where(&usergroup).First(&usergroup).Error == nil {
 
 	} else {
-		fmt.Println("用户组不存在")
+		//fmt.Println("用户组不存在")
 		models.DB.Create(&usergroup) // 传入指针
 	}
 
@@ -198,7 +198,7 @@ func ApiUser(r *gin.RouterGroup) {
 			var jsonData From_user_changepass
 			if err := mapstructure.Decode(data, &jsonData); err == nil {
 				//验证旧密码
-				fmt.Println(user)
+				//fmt.Println(user)
 				//转换旧密码
 				olduser := models.TabUser_{
 					Pass: jsonData.Oldpass,
@@ -290,7 +290,7 @@ func ApiUser(r *gin.RouterGroup) {
 												is_save_ok = true
 												ReturnJson(ctx, "apiOK", nil)
 											} else {
-												fmt.Print(ferr)
+												//fmt.Print(ferr)
 												ReturnJson(ctx, "postErr", nil)
 											}
 
