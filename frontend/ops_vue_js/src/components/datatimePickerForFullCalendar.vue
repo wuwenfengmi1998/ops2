@@ -51,6 +51,11 @@ const props = defineProps({
     required: false,
     default: "",
   },
+  isEditable:{
+    type:Boolean,
+    required: false,
+    default: true,
+  }
 });
 
 const eventData = ref({
@@ -83,8 +88,9 @@ function passing_date_characters(startDate, endDate) {
 }
 function passing_date_characters_Select(startDate, endDate) {
   //滑动选择日期的参数来自FullCalendar，不需要加一天也不需要判断大小，而且直接就是字符串类型
+ 
   eventData.value.start = startDate;
-  eventData.value.end = endDate;
+  eventData.value.end = endDate===""?startDate:endDate;
 }
 
 // 监听props变化，更新本地eventData
@@ -296,11 +302,14 @@ const calendarOptions = ref({
 });
 
 function switchShow() {
-  if (isShow.value) {
-    isShow.value = false;
-  } else {
-    isShow.value = true;
+  if(props.isEditable){
+    if (isShow.value) {
+        isShow.value = false;
+      } else {
+        isShow.value = true;
+      }
   }
+  
 }
 
 function splicingDataWeek(data) {
