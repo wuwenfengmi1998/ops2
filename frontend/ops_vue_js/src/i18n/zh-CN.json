@@ -144,7 +144,13 @@
     "event_title_required": "请输入日程内容",
     "date_required": "请选择日期",
     "clear_dates": "清除日期",
-    "event_added_successfully":"日程添加成功"
+    "event_added_successfully": "日程添加成功",
+    "edit_event_title": "修改日程",
+    "view_event_title": "查看日程",
+    "delete": "删除",
+    "copied": "已复制",
+    "pasted": "已粘贴",
+    "not_your_schedule": "这不是你的日程"
   },
   "message": {
     "functionality_not_yet_developed": "功能未开发",

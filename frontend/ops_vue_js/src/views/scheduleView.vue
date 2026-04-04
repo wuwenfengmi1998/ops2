@@ -301,7 +301,7 @@ const calendarOptions = ref({
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastEventClickTime;
 
-    console.log(info)
+    //console.log(info)
 
     //判断event的title是否过长，如果是被截断的 就toast.info弹窗显示
     // const titleEl = info.el.querySelector('.fc-event-title');
@@ -550,7 +550,7 @@ function copyEvent() {
   pageData.copyTitle = eventData.value.title;
   pageData.copyColor = eventData.value.color;
   pageData.isCopy = true;
-  toast.info("已复制");
+  toast.info(t("schedule.copied"));
 }
 
 function pastEvent() {
@@ -558,9 +558,9 @@ function pastEvent() {
     if (eventData.value.isEditable) {
       eventData.value.color = pageData.copyColor;
       eventData.value.title = pageData.copyTitle;
-      toast.info("已粘贴");
+      toast.info(t("schedule.pasted"));
     } else {
-      toast.warning("这不是你的日程");
+      toast.warning(t("schedule.not_your_schedule"));
     }
   }
 
@@ -637,7 +637,7 @@ onMounted(() => {
         <!-- 模态框头部 -->
         <div class="modal-header border-b p-4 flex justify-between items-center flex-shrink-0">
           <h5 class="modal-title text-lg font-semibold">
-            {{ userStore.isLoggedIn ? eventData.isEditing ? "修改日程" : t("schedule.add_event") : "查看日程" }}
+            {{ userStore.isLoggedIn ? eventData.isEditing ? t("schedule.edit_event_title") : t("schedule.add_event") : t("schedule.view_event_title") }}
 
           </h5>
           <h5 class="modal-title text-lg font-semibold absolute left-1/2 -translate-x-1/2">
@@ -711,7 +711,7 @@ onMounted(() => {
           <div class="flex gap-2">
             <button v-if="eventData.isEditing" @click="delEvent" class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md 
          disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="!eventData.isEditable">
-              删除
+              {{ t("schedule.delete") }}
             </button>
           </div>
           <div class="flex gap-2">
@@ -731,7 +731,7 @@ onMounted(() => {
             <button v-if="eventData.isEditing" @click="editSaveEvent"
               class="btn btn-primary px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
               :disabled="!eventData.isEditable">
-              修改日程
+              {{ t("schedule.edit_event_title") }}
             </button>
           </div>
         </div>

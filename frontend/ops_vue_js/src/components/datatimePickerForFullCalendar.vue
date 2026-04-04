@@ -23,7 +23,6 @@ var dataStartTemp = "";
 
 // 国际化 hook
 import { useI18n } from "vue-i18n";
-import Component from "vue-flatpickr-component";
 // 获取国际化翻译函数和当前语言
 const { t, locale } = useI18n();
 
@@ -127,15 +126,6 @@ watch(
 // 定义事件发射：通知父组件日期变化
 const emit = defineEmits(["update:startDate", "update:endDate", "clearDates"]);
 
-// 清除日期函数
-function clearDates() {
-  eventData.value.startDate = "";
-  eventData.value.endDate = "";
-  emit("clearDates"); // 通知父组件日期已清除
-  emit("update:startDate", ""); // 更新父组件的startDate
-  emit("update:endDate", ""); // 更新父组件的endDate
-  console.log("日期已清除");
-}
 
 // 监听本地eventData变化，同步更新到父组件
 watch(
@@ -320,7 +310,7 @@ function splicingDataWeek(data) {
 }
 
 onMounted(() => {
-  console.log(eventData.value)
+  //console.log(eventData.value)
   calendarOptions.value.events.push(eventData.value);
 });
 </script>

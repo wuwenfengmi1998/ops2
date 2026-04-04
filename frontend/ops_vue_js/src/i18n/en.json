@@ -144,7 +144,13 @@
     "event_title_required": "Please enter event content",
     "date_required": "Please select date",
     "clear_dates": "Clear dates",
-    "event_added_successfully":"Event added successfully"
+    "event_added_successfully": "Event added successfully",
+    "edit_event_title": "Edit Schedule",
+    "view_event_title": "View Schedule",
+    "delete": "Delete",
+    "copied": "Copied",
+    "pasted": "Pasted",
+    "not_your_schedule": "This is not your schedule"
   },
   "message": {
     "functionality_not_yet_developed": "Functionality not yet developed",
