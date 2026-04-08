@@ -59,7 +59,11 @@ async function handleLogin() {
         toast.success(t("message.login_successful"));
         // 有 redirect 则跳转到原页面，否则去首页
         const redirect = router.currentRoute.value.query.redirect;
-        router.replace(redirect || "/");
+        
+        // 1000 毫秒 = 1 秒
+        setTimeout(() => {
+          router.replace(redirect || "/");
+        }, 1000);
         break;
       case -41:
         toast.warning(t("message.username_or_password_incorrect"));
