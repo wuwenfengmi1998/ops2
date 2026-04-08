@@ -315,7 +315,14 @@ const calendarOptions = ref({
     if (info.end - info.start > 86400000) {
       //选择了多日
       //console.log("选择了多日:", info);
-      openEventModal(info.startStr, info.endStr);
+      //先判断是否登录
+        if (userStore.isLoggedIn) {
+          openEventModal(info.startStr, info.endStr);
+        } else {
+          toast.warning(t("message.login_to_your_account"));
+          //router.replace("/login?redirect=/schedule");
+        }
+      
     } else {
       //选择单日 无功能
       //console.log("选择单日:", info);
@@ -528,7 +535,7 @@ const getEvents = () => {
                 start: item.StartDate, // 开始日期
                 end: item.StartDate === item.EndDate ? item.EndDate : DateUtils.toCalendarEnd(item.EndDate), // 结束日期
                 backgroundColor: item.BgColor, // 背景色
-                borderColor: item.BgColor,      // 边框色（一般和背景一样）
+                borderColor: item.ID===pageData.seleEventID?"#000000":item.BgColor,      // 边框色（一般和背景一样）
                 allDay: true, // 全天事件
                 editable: item.edit,
               });
