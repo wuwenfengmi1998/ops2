@@ -32,7 +32,7 @@ const router = createRouter({
         {
           path: 'schedule',
           name: 'schedule',
-          component: () => import('@/views/scheduleView.vue'),
+          component: () => import('@/views/ScheduleView.vue'),
         },
         {
           path: 'purchase',
@@ -42,7 +42,7 @@ const router = createRouter({
         {
           path: 'purchase/addorder',
           name: 'purchase-add',
-          component: () => import('@/views/purchase/AddOrder.vue'),
+          component: () => import('@/views/purchase/addorder.vue'),
         },
         {
           path: 'purchase/showorder/:id',
