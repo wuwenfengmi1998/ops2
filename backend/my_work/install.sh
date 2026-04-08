@@ -11,6 +11,10 @@ echo "正在安装 $APP_NAME..."
 echo "编译应用..."
 CGO_ENABLED=0 GOOS=linux go build -o $APP_NAME -ldflags="-s -w" main.go
 
+# 先停止服务
+sudo systemctl stop $APP_NAME
+sudo systemctl disable $APP_NAME
+
 # 创建目录
 echo "创建目录..."
 sudo mkdir -p $APP_PATH
