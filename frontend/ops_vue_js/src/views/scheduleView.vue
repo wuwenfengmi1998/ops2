@@ -636,8 +636,13 @@ watch(locale, () => {
   ];
 });
 
+let timer = null;
 onMounted(() => {
   getEvents();
+  timer = setInterval(() => {
+    getEvents();
+  }, 2000);
+
   // const handleKeydown = (event) => {
   //   // Ctrl+C 事件
   //   if (event.ctrlKey && event.key === "c") {
@@ -654,9 +659,13 @@ onMounted(() => {
   // };
   // document.addEventListener("keydown", handleKeydown);
   // // 清理事件监听器
-  // onBeforeUnmount(() => {
-  //   document.removeEventListener("keydown", handleKeydown);
-  // });
+  onBeforeUnmount(() => {
+    //document.removeEventListener("keydown", handleKeydown);
+     if (timer) {
+      clearInterval(timer); // 清除定时器
+      timer = null; // 置空，好习惯
+    }
+  });
 });
 </script>
 
