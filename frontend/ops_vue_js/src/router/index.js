@@ -32,7 +32,7 @@ const router = createRouter({
         {
           path: 'schedule',
           name: 'schedule',
-          component: () => import('@/views/ScheduleView.vue'),
+          component: () => import('@/views/scheduleView.vue'),
         },
         {
           path: 'purchase',
