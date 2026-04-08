@@ -131,7 +131,7 @@ function unseleEvent(eventID) {
   //寻找哪个event被单击了并修改边框
   const target = calendarOptions.value.events.find(item => item.id === eventID)
   if (target) {
-    target.borderColor = target.backgroundColor;
+    target.borderColor = "#F7F7F7"
   }
 }
 
@@ -535,7 +535,7 @@ const getEvents = () => {
                 start: item.StartDate, // 开始日期
                 end: item.StartDate === item.EndDate ? item.EndDate : DateUtils.toCalendarEnd(item.EndDate), // 结束日期
                 backgroundColor: item.BgColor, // 背景色
-                borderColor: item.ID===pageData.seleEventID?"#000000":item.BgColor,      // 边框色（一般和背景一样）
+                borderColor: item.ID===pageData.seleEventID?"#000000":"#F7F7F7",      
                 allDay: true, // 全天事件
                 editable: item.edit,
               });
