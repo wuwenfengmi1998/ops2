@@ -8,9 +8,9 @@ const { t } = useI18n()
 const userStore = useUserStore()
 
 const features = computed(() => [
-  { title: t('appname.schedule'), desc: '—' },
-  { title: t('appname.purchase'), desc: '—' },
-  { title: t('appname.warehouse'), desc: '—' },
+  // { title: t('appname.schedule'), desc: '—' },
+  // { title: t('appname.purchase'), desc: '—' },
+  // { title: t('appname.warehouse'), desc: '—' },
 ])
 
 import { computed } from 'vue'
