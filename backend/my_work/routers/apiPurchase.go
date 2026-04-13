@@ -1,13 +1,13 @@
 package routers
 
 import (
-	"encoding/json"
 	"fmt"
 	"ops/models"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
-	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
 
 type CostItem struct {
@@ -18,16 +18,51 @@ type CostItem struct {
 	Type         string `json:"type"`         // 费用类型
 }
 type From_purchase_addorder struct {
-	Costs          []CostItem `json:"costs"`           //  成本
-	Link           string     `json:"link"`            //  链接
-	OrderStatus    string     `json:"order_status"`    //  订单状态
-	PartName       string     `json:"partname"`        //  物件名称
-	Photos         []string   `json:"photos"`          //  图片备注
-	Remark         string     `json:"remark"`          //  备注 
-	Styles         string     `json:"styles"`          //  样式备注
-	Title          string     `json:"title"`           //  标题
-	TrackingNumber string     `json:"tracking_number"` //  快递单号
-	UpdateTime     string     `json:"update_time"`     //  更新时间
+	Costs       []CostItem `json:"costs"`        //  成本
+	Link        string     `json:"link"`         //  链接
+	OrderStatus string     `json:"order_status"` //  订单状态
+	//PartName       string     `json:"partname"`        //  物件名称
+	Photos []string `json:"photos"` //  图片备注
+	Remark string   `json:"remark"` //  备注
+	Styles string   `json:"styles"` //  样式备注
+	Title  string   `json:"title"`  //  标题
+	//TrackingNumber string     `json:"tracking_number"` //  快递单号
+	//UpdateTime     string     `json:"update_time"`     //  更新时间
+}
+
+type TabPurchaseOrder struct {
+	ID        uint           `gorm:"primarykey"`
+	UserID    uint           `gorm:"not null"`
+	Title     string         `gorm:"size:200;comment:标题"`
+	Remark    string         `gorm:"type:text;comment:备注"`
+	Link      string         `gorm:"size:1000;comment:链接"`
+	Styles    string         `gorm:"type:text;comment:样式数组"`
+	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+type TabPurchaseCosts struct {
+	ID        uint       `gorm:"primarykey"`
+	OrderID   uint       `gorm:"not null"`
+	UserID    uint       `gorm:"not null"`
+	Price     int        `gorm:"not null"`
+	Quantity  int        `gorm:"not null"`
+	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
+}
+
+type TabPurchaseFileBind struct {
+	ID        uint       `gorm:"primarykey"`
+	OrderID   uint       `gorm:"not null"`
+	FileID    uint       `gorm:"not null"`
+	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
+}
+
+func ApiPurchaseInit() {
+
+	models.DB.AutoMigrate(&TabPurchaseOrder{})
+	models.DB.AutoMigrate(&TabPurchaseCosts{})
+	models.DB.AutoMigrate(&TabPurchaseFileBind{})
+
 }
 
 func ApiPurchase(r *gin.RouterGroup) {
@@ -61,11 +96,11 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 					//读取有多少条目
 					var count int64
-					models.DB.Model(&models.TabPurchaseOrder{}).Count(&count)
+					models.DB.Model(TabPurchaseOrder{}).Count(&count)
 					//fmt.Println(count)
 
 					//读取条目
-					var getorders []models.TabPurchaseOrder
+					var getorders []TabPurchaseOrder
 					models.DB.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
 
 					ReturnJson(ctx, "apiOK", map[string]interface{}{
@@ -97,8 +132,8 @@ func ApiPurchase(r *gin.RouterGroup) {
 			var jsondata From_purchase_addorder
 			if err := mapstructure.Decode(data, &jsondata); err == nil {
 
-				jsonStr, _ := json.MarshalIndent(jsondata, "", "  ")
-				fmt.Println("转换后数据:\n", string(jsonStr))
+				//jsonStr, _ := json.MarshalIndent(jsondata, "", "  ")
+				//fmt.Println("转换后数据:\n", string(jsonStr))
 
 				//数据比较混乱 在这里校验
 
@@ -106,19 +141,15 @@ func ApiPurchase(r *gin.RouterGroup) {
 				is_data_ok := true
 				if jsondata.Title == "" {
 					is_data_ok = false
-
-					fmt.Println("err1")
 				}
 
 				//判断数量与价格是否为负数
 				for i := 0; i < len(jsondata.Costs); i++ {
 					if jsondata.Costs[i].Cost <= 0 {
 						is_data_ok = false
-						fmt.Println("err2")
 					}
 					if jsondata.Costs[i].Int <= 0 {
 						is_data_ok = false
-						fmt.Println("err3")
 					}
 				}
 
@@ -133,33 +164,30 @@ func ApiPurchase(r *gin.RouterGroup) {
 				}
 
 				//判断时间字符串是否合法
-				uptime, e := models.StringToTimePtr(jsondata.UpdateTime)
-				if e != nil {
-					is_data_ok = false
-					fmt.Println("err5")
-				}
+				// uptime, e := models.StringToTimePtr(jsondata.UpdateTime)
+				// if e != nil {
+				// 	is_data_ok = false
+				// 	fmt.Println("err5")
+				// }
 
 				if is_data_ok {
 					//校验通过
 					//载入数据库
 
-					photos, _ := json.Marshal(jsondata.Photos) //把图片数组转换成字符串
-					new_data := models.TabPurchaseOrder{
-						UserID:         user.ID,
-						Title:          jsondata.Title,
-						Remark:         jsondata.Remark,
-						Photos:         datatypes.JSON(photos),
-						Link:           jsondata.Link,
-						PartName:       jsondata.PartName,
-						Styles:         jsondata.Styles,
-						UpdateTime:     uptime,
-						TrackingNumber: jsondata.TrackingNumber,
-						OrderStatus:    jsondata.OrderStatus,
+					//fmt.Println("yes")
+
+					//photos, _ := json.Marshal(jsondata.Photos) //把图片数组转换成字符串
+					new_data := TabPurchaseOrder{
+						UserID: user.ID,
+						Title:  jsondata.Title,
+						Remark: jsondata.Remark,
+						Link:   jsondata.Link,
+						Styles: jsondata.Styles,
 					}
 					models.DB.Create(&new_data)
 
 					for i := 0; i < len(jsondata.Costs); i++ {
-						new_cost_data := models.TabPurchaseCosts{
+						new_cost_data := TabPurchaseCosts{
 							Price:    jsondata.Costs[i].Cost,
 							Quantity: jsondata.Costs[i].Int,
 							UserID:   user.ID,
@@ -167,6 +195,24 @@ func ApiPurchase(r *gin.RouterGroup) {
 						}
 						models.DB.Create(&new_cost_data)
 					}
+
+					//绑定文件
+					for i := 0; i < len(jsondata.Photos); i++ {
+						findFile := models.TabFileInfo_{
+							Sha256: jsondata.Photos[i],
+							Type:   "image",
+						}
+						if models.DB.Where(&findFile).First(&findFile).Error == nil {
+							bind := TabPurchaseFileBind{
+								OrderID: new_data.ID,
+								FileID:  findFile.ID,
+							}
+							models.DB.Create(&bind)
+						}
+
+					}
+
+					ReturnJson(ctx, "apiOK", nil)
 
 				} else {
 					ReturnJson(ctx, "jsonErr_1", nil)

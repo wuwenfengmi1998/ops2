@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
-	"gorm.io/datatypes"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -90,34 +89,6 @@ type APIRequestLog_ struct {
 	CreatedAt  time.Time `gorm:"column:created_at;type:datetime;default:CURRENT_TIMESTAMP" json:"created_at"`
 }
 
-type TabPurchaseOrder struct {
-	ID       uint           `gorm:"primarykey"`
-	UserID   uint           `gorm:"not null"`
-	Title    string         `gorm:"size:200;comment:标题"`
-	Remark   string         `gorm:"type:text;comment:备注"`
-	Photos   datatypes.JSON `gorm:"type:json;comment:照片哈希数组"`
-	Link     string         `gorm:"size:1000;comment:链接"`
-	PartName string         `gorm:"size:200;not null;comment:物品名称"`
-	Styles   string         `gorm:"type:text;comment:样式数组"`
-	//Costs          datatypes.JSON `gorm:"type:json;comment:费用明细数组"`
-	UpdateTime     *time.Time `gorm:"type:datetime;autoUpdateTime;comment:更新时间"`
-	TrackingNumber string     `gorm:"size:100;Index;comment:快递单号"`
-	OrderStatus    string     `gorm:"default:1;comment:订单状态"`
-
-	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime"`
-	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime"`
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-}
-
-type TabPurchaseCosts struct {
-	ID        uint       `gorm:"primarykey"`
-	OrderID   uint       `gorm:"not null"`
-	UserID    uint       `gorm:"not null"`
-	Price     int        `gorm:"not null"`
-	Quantity  int        `gorm:"not null"`
-	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
-}
-
 func DatabaseInit() error {
 	var err error
 	fmt.Println("database_init")
@@ -158,10 +129,6 @@ func DatabaseInit() error {
 	DB.AutoMigrate(&TabFileInfo_{})
 
 	DB.AutoMigrate(&APIRequestLog_{})
-
-	DB.AutoMigrate(&TabPurchaseOrder{})
-
-	DB.AutoMigrate(&TabPurchaseCosts{})
 
 	return nil
 }

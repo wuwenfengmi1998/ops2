@@ -115,6 +115,9 @@ const newCost = reactive({
   currencyType: "1", // 货币类型：默认人民币
 });
 
+// 费用验证错误状态：点击添加按钮后发现费用为0时触发
+const costError = ref(false);
+
 // ==================== 表单数据 ====================
 /**
  * 订单表单主数据对象
@@ -125,12 +128,12 @@ const form = reactive({
   remark: "", // 备注说明
   photos: [], // 图片列表（上传后由 dropzone 填充）
   link: "", // 采购链接
-  partname: "", // 配件名称
+  //partname: "", // 配件名称
   styles: "", // 款式标签
   costs: [], // 费用明细（提交前由 costEntries 转换）
-  tracking_number: "", // 快递单号
-  updatetime: "", // 更新时间
-  order_status: "1", // 订单状态（默认待下单）
+  //tracking_number: "", // 快递单号
+  //updatetime: "", // 更新时间
+  //order_status: "1", // 订单状态（默认待下单）
 });
 
 /**
@@ -146,7 +149,11 @@ const newCostTotal = computed(() =>
  * 条件：单价必须大于0
  */
 function addCostEntry() {
-  if (newCost.cost <= 0) return;
+  if (newCost.cost <= 0) {
+    costError.value = true;
+    return;
+  }
+  costError.value = false;
   costEntries.push({
     type: newCost.type,
     int: newCost.int,
@@ -178,6 +185,8 @@ watch(
   (val) => {
     const fixed = parseFloat(val).toFixed(2);
     if (parseFloat(fixed) !== val) newCost.cost = parseFloat(fixed);
+    // 用户开始输入时清除错误状态
+    if (val > 0) costError.value = false;
   },
 );
 
@@ -205,10 +214,11 @@ async function handleSubmit() {
 
   // 从 dropzone 组件获取已上传的图片文件名
   form.photos = [];
-  if (photosRef.value?.has_some_files) {
-    const result = photosRef.value.get_some_files();
-    form.photos = result.map((f) => f.name);
-  }
+  // if (photosRef.value?.has_some_files) {
+  //   const result = photosRef.value.get_some_files();
+  //   form.photos = result.map((f) => f.name);
+  // }
+  form.photos=photosRef.value?.return_files().map((f)=>f.hash);
 
   // 将费用明细转换为提交格式
   // 注意：金额需要从"元"转为"分"（乘以100）存储
@@ -219,23 +229,29 @@ async function handleSubmit() {
   }));
 
   // 开始 loading
-  loading.value = true;
-  try {
-    // 调用采购 API 添加订单
-    const { errCode } = await purchaseApi.addOrder(form);
-    if (errCode === 0) {
-      // 保存成功，显示成功提示
-      toast.success(t("message.save_ok"));
-    } else {
-      // 服务器错误，显示错误提示
-      toast.error(t("message.server_error"));
-    }
-  } catch {
-    // 错误已被 HTTP 拦截器处理，此处无需额外处理
-  } finally {
-    // 无论成功失败，都要关闭 loading
-    loading.value = false;
-  }
+  console.log(form)
+  purchaseApi.addOrder(form).then((r)=>{
+
+    console.log(r)
+    
+  })
+  // loading.value = true;
+  // try {
+  //   // 调用采购 API 添加订单
+  //   const { errCode } = await purchaseApi.addOrder(form);
+  //   if (errCode === 0) {
+  //     // 保存成功，显示成功提示
+  //     toast.success(t("message.save_ok"));
+  //   } else {
+  //     // 服务器错误，显示错误提示
+  //     toast.error(t("message.server_error"));
+  //   }
+  // } catch {
+  //   // 错误已被 HTTP 拦截器处理，此处无需额外处理
+  // } finally {
+  //   // 无论成功失败，都要关闭 loading
+  //   loading.value = false;
+  // }
 }
 </script>
 
@@ -371,11 +387,11 @@ async function handleSubmit() {
                   <td class="px-3 py-2 text-gray-500">{{ item.cost }}</td>
                   <td class="px-3 py-2 text-gray-500">{{ item.costt }}</td>
                   <td class="px-3 py-2 text-gray-500">
-                    <img
+                    <!-- <img
                       :src="currencyFlags[item.currencytype]"
                       class="inline-block h-4 w-6 align-middle"
                       :alt="currencyOptions[item.currencytype]"
-                    />
+                    /> -->
                     {{ currencyOptions[item.currencytype] }}
                   </td>
                   <td class="px-3 py-2">
@@ -430,7 +446,8 @@ async function handleSubmit() {
               <input
                 v-model="newCost.cost"
                 type="number"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
+                class="w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-dk-base dark:text-white"
+                :class="costError ? 'border-red-500' : 'border-gray-300 dark:border-dk-muted'"
                 step="0.01"
                 min="0"
               />
@@ -479,7 +496,7 @@ async function handleSubmit() {
           <useDropzone
             acceptFiles="image/*"
             uploadURL="/api/files/upload/image"
-            maxFiles="10"
+            :maxFiles="10"
             ref="photosRef"
           />
         </div>

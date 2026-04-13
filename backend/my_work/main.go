@@ -68,6 +68,7 @@ func main() {
 	models.ConfigAllInit()
 	routers.ApiUserInit() //用户表先初始化这是必须的因为后面需要用到用户组
 	routers.ApiScheduleInit()
+	routers.ApiPurchaseInit()
 
 	//创建必要目录
 	for _, path := range models.ConfigsFile.Pahts {
