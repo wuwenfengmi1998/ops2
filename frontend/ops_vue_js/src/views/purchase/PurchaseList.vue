@@ -58,8 +58,10 @@ function goToPage(page) {
 }
 
 function jumpToOrder(id) {
-  const resolved = router.resolve({ path: `/purchase/showorder/${id}` })
-  window.open(resolved.href, '_blank')
+  // const resolved = router.resolve({ path: `/purchase/showorder/${id}` })
+  // window.open(resolved.href, '_blank')
+
+  router.replace(`/purchase/showorder/${id}`);
 }
 
 function formatDate(dateStr) {
@@ -121,7 +123,7 @@ onMounted(fetchOrders)
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">No.</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.item_name') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.purpose') }}</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.quantity') }}</th>
+              
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('purchase.created_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.status') }}</th>
             </tr>

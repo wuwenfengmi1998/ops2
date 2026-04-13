@@ -91,9 +91,12 @@
     "no_costs": "No cost records",
     "cost_total": "Total",
     "change_status": "Change Status",
+    "change_remark": "Change Remark",
+    "status_photos": "Change Photos",
     "commit_history": "Status History",
     "no_commits": "No status records",
     "commit_placeholder": "Add comment (optional)",
+    "upload_photos": "Upload Photos",
     "commit_create": "Order created"
   },
   "purchase_addorder": {
@@ -222,7 +225,8 @@
     "type_new_pass": "Enter new password",
     "type_cof_pass": "Confirm new password",
     "old_pass_incorrect": "Old password is incorrect",
-    "confirm_password_incorrect": "Confirm password is incorrect"
+    "confirm_password_incorrect": "Confirm password is incorrect",
+    "save_success": "Saved successfully"
   },
   "settings": {
     "cancel": "Cancel",

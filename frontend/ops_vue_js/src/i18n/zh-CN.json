@@ -91,9 +91,12 @@
     "no_costs": "暂无费用记录",
     "cost_total": "合计",
     "change_status": "变更状态",
+    "change_remark": "变更备注",
+    "status_photos": "变更图片",
     "commit_history": "状态记录",
     "no_commits": "暂无状态记录",
     "commit_placeholder": "添加备注（可选）",
+    "upload_photos": "上传图片",
     "commit_create": "订单创建"
   },
   "purchase_addorder": {
@@ -222,7 +225,8 @@
     "type_new_pass": "输入新密码",
     "type_cof_pass": "确认新密码",
     "old_pass_incorrect": "旧密码不正确",
-    "confirm_password_incorrect": "确认密码不正确"
+    "confirm_password_incorrect": "确认密码不正确",
+    "save_success": "保存成功"
   },
   "settings": {
     "cancel": "取消",

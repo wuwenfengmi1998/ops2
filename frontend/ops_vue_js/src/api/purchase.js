@@ -16,8 +16,8 @@ export const purchaseApi = {
     return api.post('/purchase/getorder', { id })
   },
 
-  /** 更新订单状态（可附带评论） */
-  updateOrderStatus(id, status, comment = '') {
-    return api.post('/purchase/updatestatus', { id, status, comment })
+  /** 更新订单状态（可附带评论和图片） */
+  updateOrderStatus(id, status, comment = '', photos = []) {
+    return api.post('/purchase/updatestatus', { id, status, comment, photos })
   },
 }

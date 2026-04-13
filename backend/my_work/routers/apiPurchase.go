@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"ops/models"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -71,6 +72,7 @@ type TabPurchaseCommit struct {
 	Status    string     `gorm:"size:50;comment:变更后的状态"`
 	OldStatus string     `gorm:"size:50;comment:变更前的状态"`
 	Comment   string     `gorm:"type:text;comment:评论/备注"`
+	Photos    string     `gorm:"type:text;comment:变更图片(JSON数组，存放sha256哈希)"`
 	IP        string     `gorm:"size:50;comment:操作IP"`
 	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
@@ -142,11 +144,56 @@ func ApiPurchase(r *gin.RouterGroup) {
 		var commits []TabPurchaseCommit
 		models.DB.Where("order_id = ?", from.ID).Order("created_at DESC").Find(&commits)
 
+		// 解析每条 commit 的 Photos JSON 字段为数组
+		type CommitResponse struct {
+			ID        uint      `json:"id"`
+			OrderID   uint      `json:"orderId"`
+			UserID    uint      `json:"userId"`
+			Action    string    `json:"action"`
+			Status    string    `json:"status"`
+			OldStatus string    `json:"oldStatus"`
+			Comment   string    `json:"comment"`
+			IP        string    `json:"ip"`
+			CreatedAt time.Time `json:"createdAt"`
+			Photos    []string  `json:"photos"`
+		}
+		var commitResps []CommitResponse
+		for _, c := range commits {
+			// Status 优先用数据库字段；若为空（历史旧数据），从 Comment 备注中截取状态
+			status := c.Status
+			if status == "" {
+				status = strings.TrimPrefix(c.Comment, "状态变更为: ")
+				status = strings.TrimPrefix(status, "变更状态为: ")
+				// 如果截取后跟原文一样，说明不是"状态变更为"格式，取原文作为展示
+				if status == c.Comment {
+					status = ""
+				}
+			}
+			resp := CommitResponse{
+				ID:        c.ID,
+				OrderID:   c.OrderID,
+				UserID:    c.UserID,
+				Action:    c.Action,
+				Status:    status,
+				OldStatus: c.OldStatus,
+				Comment:   c.Comment,
+				IP:        c.IP,
+				CreatedAt: time.Time{},
+			}
+			if c.CreatedAt != nil {
+				resp.CreatedAt = *c.CreatedAt
+			}
+			if c.Photos != "" {
+				json.Unmarshal([]byte(c.Photos), &resp.Photos)
+			}
+			commitResps = append(commitResps, resp)
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
 			"order":   order,
 			"costs":   costs,
 			"photos":  files,
-			"commits": commits,
+			"commits": commitResps,
 		})
 	})
 
@@ -159,14 +206,23 @@ func ApiPurchase(r *gin.RouterGroup) {
 		}
 
 		type FromUpdateStatus struct {
-			ID      uint   `json:"id"`
-			Status  string `json:"status" binding:"required"`
-			Comment string `json:"comment"`
+			ID      uint     `json:"id"`
+			Status  string   `json:"status" binding:"required"`
+			Comment string   `json:"comment"`
+			Photos  []string `json:"photos"` // 变更附带的图片哈希
 		}
 		var from FromUpdateStatus
 		if err := mapstructure.Decode(data, &from); err != nil || from.ID == 0 {
 			ReturnJson(ctx, "jsonErr", nil)
 			return
+		}
+
+		// 校验图片哈希（不包含标点符号的哈希值）
+		for _, hash := range from.Photos {
+			if models.IsContainsSpecialChar(hash) {
+				ReturnJson(ctx, "photo_hash_invalid", nil)
+				return
+			}
 		}
 
 		// 校验状态值
@@ -204,8 +260,14 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 		// 写状态变更 commit
 		comment := from.Comment
-		if comment == "" {
+		if comment == "" && len(from.Photos) == 0 {
 			comment = "状态变更为: " + from.Status
+		}
+		photosJSON := ""
+		if len(from.Photos) > 0 {
+			if pj, err := json.Marshal(from.Photos); err == nil {
+				photosJSON = string(pj)
+			}
 		}
 		commit := TabPurchaseCommit{
 			OrderID:   order.ID,
@@ -214,6 +276,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			Status:    from.Status,
 			OldStatus: oldStatus,
 			Comment:   comment,
+			Photos:    photosJSON,
 			IP:        ctx.ClientIP(),
 		}
 		models.DB.Create(&commit)
