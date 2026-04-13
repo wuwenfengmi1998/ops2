@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 22" width="20" height="14">
+  <!-- 红色条纹 -->
+  <rect y="0" width="33" height="2.75" fill="#b22234"/>
+  <rect y="5.5" width="33" height="2.75" fill="#fff"/>
+  <rect y="8.25" width="33" height="2.75" fill="#b22234"/>
+  <rect y="11" width="33" height="2.75" fill="#fff"/>
+  <rect y="13.75" width="33" height="2.75" fill="#b22234"/>
+  <rect y="16.5" width="33" height="2.75" fill="#fff"/>
+  <rect y="19.25" width="33" height="2.75" fill="#b22234"/>
+  <!-- 蓝色矩形（左上角） -->
+  <rect width="13.2" height="8.25" fill="#3c3b6e"/>
+  <!-- 50颗白星（简化：画5x5网格白点） -->
+  <g fill="#fff">
+    <circle cx="2.2" cy="1.1" r="0.7"/>
+    <circle cx="6.6" cy="1.1" r="0.7"/>
+    <circle cx="2.2" cy="4.4" r="0.7"/>
+    <circle cx="6.6" cy="4.4" r="0.7"/>
+  </g>
+</svg>

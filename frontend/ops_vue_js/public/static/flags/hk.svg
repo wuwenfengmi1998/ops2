@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 22" width="20" height="14">
+  <!-- 红色背景 -->
+  <rect width="33" height="22" fill="#de2910"/>
+  <!-- 白色条带 -->
+  <rect y="7" width="33" height="8" fill="#fff"/>
+  <!-- 紫荆花（简化版） -->
+  <g fill="#fff" transform="translate(6.6,11) scale(0.4)">
+    <ellipse cx="0" cy="-8" rx="4" ry="8" fill="#fff"/>
+    <ellipse cx="7.6" cy="-2.5" rx="4" ry="8" fill="#fff" transform="rotate(72)"/>
+    <ellipse cx="4.7" cy="6.5" rx="4" ry="8" fill="#fff" transform="rotate(144)"/>
+    <ellipse cx="-4.7" cy="6.5" rx="4" ry="8" fill="#fff" transform="rotate(216)"/>
+    <ellipse cx="-7.6" cy="-2.5" rx="4" ry="8" fill="#fff" transform="rotate(288)"/>
+    <!-- 花芯 -->
+    <circle cx="0" cy="0" r="3" fill="#ffdf00"/>
+  </g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 22" width="20" height="14">
+  <!-- 绿色背景 -->
+  <rect width="33" height="22" fill="#009900"/>
+  <!-- 莲花（简化版） -->
+  <g fill="#fff" transform="translate(16.5,11)">
+    <ellipse cx="0" cy="-5" rx="2" ry="5"/>
+    <ellipse cx="-4" cy="-2" rx="2" ry="5" transform="rotate(-30)"/>
+    <ellipse cx="4" cy="-2" rx="2" ry="5" transform="rotate(30)"/>
+    <ellipse cx="-6" cy="2" rx="2" ry="5" transform="rotate(-60)"/>
+    <ellipse cx="6" cy="2" rx="2" ry="5" transform="rotate(60)"/>
+    <!-- 莲蓬 -->
+    <circle cx="0" cy="0" r="2.5" fill="#ffdf00"/>
+  </g>
+</svg>

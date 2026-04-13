@@ -223,216 +223,145 @@ defineExpose({
 <template>
   <div>
     <div id="custom-template" style="display: none">
-      <div class="dz-preview dz-file-preview my-custom-style">
-        <div class="remove-btn" data-dz-remove>
-          <!-- <i class="bi bi-x"></i> -->
-          X
-        </div>
-        <div class="dz-image">
-          <img data-dz-thumbnail alt="File preview" />
-          <!-- 缩略图 -->
-        </div>
+      <div class="dz-preview dz-file-preview">
+        <div data-dz-remove class="dz-remove">✕</div>
+        <div class="dz-image"><img data-dz-thumbnail alt="" /></div>
         <div class="dz-details">
           <div class="dz-filename"><span data-dz-name></span></div>
-          <!-- 文件名 -->
           <div class="dz-size"><span data-dz-size></span></div>
-          <!-- 文件大小 -->
         </div>
-        <div class="dz-progress">
-          <span class="dz-upload" data-dz-uploadprogress></span>
-          <!-- 进度条 -->
-        </div>
+        <div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
         <div class="dz-success-mark" data-dz-successmark>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="icon icon-tabler icons-tabler-outline icon-tabler-circle-check"
-          >
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
-            <path d="M9 12l2 2l4 -4" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" stroke-width="3">
+            <path d="M9 12l2 2l4 -4" stroke="none"/>
           </svg>
         </div>
-        <!-- 成功标记 -->
         <div class="dz-error-mark" data-dz-errormark>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="240"
-            height="240"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="icon icon-tabler icons-tabler-outline icon-tabler-circle-x"
-          >
-            <path stroke="none" fill="none" d="M0 0h24v24H0z" />
-            <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
-            <path d="M10 10l4 4m0 -4l-4 4" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="3">
+            <path d="M10 10l4 4m0 -4l-4 4" stroke="none"/>
           </svg>
         </div>
-        <!-- 错误标记 -->
         <div class="dz-error-message"><span data-dz-errormessage></span></div>
-        <!-- 错误信息 -->
-
-        <!-- 移除按钮 -->
       </div>
     </div>
     
-    <div class="text-end">{{ files.length }}/{{ maxFiles }}</div>
-    <div ref="dropzoneElement" class="dropzone"></div>
+    <div class="text-end text-sm text-gray-500">{{ files.length }}/{{ maxFiles }}</div>
+    <div ref="dropzoneElement" class="dropzone mt-2"></div>
   </div>
 </template>
 
 <style scoped>
-.dz_mark {
-  height: 60px;
-  width: 60px;
+/* 覆盖 Dropzone 默认样式 */
+:deep(.dropzone) {
+  min-height: 120px;
+  border: 2px dashed #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
 }
 
-.thumbnail-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: center;
-  padding: 20px;
-  background-color: white;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-}
-
-/* 缩略图样式 */
-.thumbnail {
-  width: var(--thumbnail-size);
-  height: var(--thumbnail-size);
-  border-radius: var(--border-radius);
-  object-fit: cover;
-  border: 2px solid #e9ecef;
-  transition: all 0.3s ease;
-}
-
-.thumbnail:hover {
-  transform: scale(1.05);
-  border-color: #6c757d;
-}
-
-/* 缩略图包装器 */
-.thumbnail-wrapper {
+:deep(.dropzone .dz-preview) {
+  margin: 0.5rem;
   position: relative;
-  width: var(--thumbnail-size);
-  height: var(--thumbnail-size);
-  margin-bottom: 10px;
+  display: inline-block;
+  vertical-align: top;
+  background: transparent !important;
 }
 
-/* 移除按钮 */
-.remove-btn {
+:deep(.dropzone .dz-remove) {
   position: absolute;
-  top: -12px;
-  right: -12px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: #dc3545;
+  top: -6px;
+  left: -6px;
+  width: 18px;
+  height: 18px;
+  background: #ef4444;
   color: white;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  z-index: 10;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.remove-btn:hover {
-  background-color: #bb2d3b;
-  transform: scale(1.1);
-}
-
-/* 文件名称 */
-.file-name {
-  font-size: 12px;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 18px;
   text-align: center;
-  max-width: 100px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+:deep(.dropzone .dz-remove:hover) {
+  background: #dc2626;
+}
+
+:deep(.dropzone .dz-image-preview) {
+  background: transparent !important;
+}
+
+:deep(.dropzone .dz-image) {
+  width: 80px !important;
+  z-index: 0 !important;
+  height: 80px !important;
+  border-radius: 0.5rem !important;
+}
+
+:deep(.dropzone .dz-image img) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+:deep(.dropzone .dz-details) {
+  opacity: 1 !important;
+  position: static !important;
+  padding: 0.25rem !important;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+:deep(.dropzone .dz-filename) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #495057;
+  max-width: 80px;
 }
 
-/* 上传区域 */
-.upload-area {
-  border: 2px dashed #dee2e6;
-  border-radius: 15px;
-  padding: 30px;
-  text-align: center;
-  background-color: #f8f9fa;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 20px;
+:deep(.dropzone .dz-size) {
+  font-size: 0.65rem;
+  color: #9ca3af;
 }
 
-.upload-area:hover {
-  border-color: #6c757d;
-  background-color: #e9ecef;
+:deep(.dropzone .dz-success-mark),
+:deep(.dropzone .dz-error-mark) {
+  width: 24px !important;
+  height: 24px !important;
+  margin-left: -12px !important;
+  margin-top: -12px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.upload-icon {
-  font-size: 48px;
-  color: #6c757d;
-  margin-bottom: 10px;
+:deep(.dropzone .dz-success-mark svg),
+:deep(.dropzone .dz-error-mark svg) {
+  width: 14px !important;
+  height: 14px !important;
+  fill: #22c55e !important;
 }
 
-.preview-title {
-  color: #343a40;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
+:deep(.dropzone .dz-error-mark svg) {
+  fill: #ef4444 !important;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: #6c757d;
+:deep(.dropzone .dz-progress) {
+  position: static !important;
+  width: 100% !important;
+  height: 4px !important;
+  border: none !important;
+  background: #e5e7eb !important;
+  border-radius: 2px !important;
+  margin-top: 0.25rem !important;
 }
 
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 15px;
-  color: #adb5bd;
-}
-
-.counter-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background-color: #0d6efd;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.thumbnail-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-.file-input {
-  display: none;
+:deep(.dropzone .dz-progress .dz-upload) {
+  background: #3b82f6 !important;
+  border-radius: 2px !important;
+  width: 0 !important;
 }
 </style>
