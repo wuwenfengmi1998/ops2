@@ -6,6 +6,7 @@ import { useToastStore } from "@/stores/toast";
 import { usePageTitle } from "@/composables/usePageTitle";
 import { purchaseApi } from "@/api/purchase";
 import { useUserStore } from "@/stores/user";
+import { useUsersStore } from "@/stores/users";
 import {
   IconChevronLeft,
   IconExternalLink,
@@ -22,6 +23,7 @@ const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const toast = useToastStore();
+const usersStore = useUsersStore();
 const userStore = useUserStore();
 
 const orderId = computed(() => parseInt(route.params.id));
@@ -47,6 +49,8 @@ const statusOptions = [
   { value: "ordered", labelKey: "status_ordered", color: "blue" },
   { value: "arrived", labelKey: "status_arrived", color: "purple" },
   { value: "received", labelKey: "status_received", color: "green" },
+  { value: "lost", labelKey: "status_lost", color: "red" },
+  { value: "returned", labelKey: "status_returned", color: "gray" },
 ];
 
 // 状态颜色映射
@@ -58,6 +62,10 @@ const statusColorClass = computed(() => ({
     "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400",
   received:
     "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
+  lost:
+    "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+  returned:
+    "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
 }));
 
 // 货币选项
@@ -278,6 +286,7 @@ onMounted(fetchOrder);
 </script>
 
 <template>
+  
   <div class="mx-auto max-w-6xl px-6 py-6">
     <!-- 返回按钮 -->
     <div class="mb-4">
@@ -349,6 +358,18 @@ onMounted(fetchOrder);
               </span>
               {{ getStatusLabel(order.OrderStatus) }}
             </span>
+            <!-- 创建者 -->
+            <span
+              v-if="order?.UserID"
+              class="ml-1 flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400"
+            >
+              <img
+                :src="usersStore.getAvatarUrlFromUserID(order.UserID)"
+                class="rounded-full object-cover"
+                style="width:18px;height:18px;"
+              />
+              {{ usersStore.getUsernameFromUserID(order.UserID) }}
+            </span>
           </div>
           <span class="text-sm text-gray-400">{{
             formatDate(order?.CreatedAt)
@@ -363,7 +384,24 @@ onMounted(fetchOrder);
             >{{ t("purchase.change_status") }}:</span
           >
           <button
-            v-for="opt in statusOptions"
+            v-for="opt in statusOptions.slice(0, 4)"
+            :key="opt.value"
+            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all"
+            :class="
+              order?.OrderStatus === opt.value
+                ? [getStatusColorClass(opt.value), 'border-transparent']
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-dk-muted dark:text-gray-400 dark:hover:bg-dk-base'
+            "
+            :disabled="updatingStatus"
+            @click="openStatusDialog(opt.value)"
+          >
+            <IconCheck v-if="order?.OrderStatus === opt.value" :size="12" />
+            {{ t("purchase." + opt.labelKey) }}
+          </button>
+          <!-- 异常状态右对齐 -->
+          <span class="flex-1" />
+          <button
+            v-for="opt in statusOptions.slice(4)"
             :key="opt.value"
             class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all"
             :class="
@@ -574,22 +612,33 @@ onMounted(fetchOrder);
           <div
             v-for="commit in commits"
             :key="commit.id"
-            class="flex items-start gap-4 py-3"
+            class="flex items-start gap-3 py-3"
           >
-            <!-- 时间线点 -->
-            <div class="mt-1 flex-shrink-0">
+            <!-- 左侧：头像 + 用户名 -->
+            <div class="flex w-20 flex-shrink-0 flex-col items-center gap-1">
+              <img
+                :src="usersStore.getAvatarUrlFromUserID(commit.userId)"
+                class="rounded-full border border-gray-200 object-cover dark:border-dk-muted"
+                style="width:32px;height:32px;"
+              />
+              <span
+                class="w-full truncate text-center"
+                style="font-size:11px;color:var(--text-secondary,#6b7280);"
+                :title="usersStore.getUsernameFromUserID(commit.userId)"
+              >
+                {{ usersStore.getUsernameFromUserID(commit.userId) }}
+              </span>
+            </div>
+
+            <!-- 中间：时间线点 -->
+            <div class="flex flex-shrink-0 flex-col items-center pt-1">
               <div
-                class="h-2.5 w-2.5 rounded-full"
-                :class="{
-                  'bg-yellow-400': commit.status === 'pending',
-                  'bg-blue-400': commit.status === 'ordered',
-                  'bg-purple-400': commit.status === 'arrived',
-                  'bg-green-400': commit.status === 'received',
-                }"
+                class="h-3 w-3 rounded-full border-2 border-white dark:border-dk-base"
+                :class="getStatusColorClass(commit.status)"
               />
             </div>
 
-            <!-- 内容 -->
+            <!-- 右侧：状态 + 备注 + 图片 -->
             <div class="flex-1 min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <span
@@ -611,7 +660,7 @@ onMounted(fetchOrder);
                       : ""
                   }}{{ getStatusLabel(commit.status) }}
                 </span>
-                <span class="text-xs text-gray-400">{{
+                <span class="ml-auto text-xs text-gray-400">{{
                   formatDate(commit.createdAt)
                 }}</span>
               </div>
@@ -621,7 +670,6 @@ onMounted(fetchOrder);
               >
                 {{ commit.comment }}
               </p>
-              <!-- 变更图片 -->
               <div
                 v-if="commit.photos?.length"
                 class="mt-2 flex flex-wrap gap-1.5"
@@ -632,7 +680,7 @@ onMounted(fetchOrder);
                   :href="`/api/files/get/${hash}`"
                   target="_blank"
                   class="block overflow-hidden rounded border border-gray-200 dark:border-dk-muted transition-transform hover:scale-105"
-                  style="width: 48px; height: 48px"
+                  style="width:48px;height:48px;"
                 >
                   <img
                     :src="`/api/files/get/${hash}`"
@@ -810,7 +858,7 @@ onMounted(fetchOrder);
                 :size="14"
                 class="animate-spin"
               />
-              {{ t("message.save_ok") }}
+              {{ t("message.submit") }}
             </button>
           </div>
         </div>

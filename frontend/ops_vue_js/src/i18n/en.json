@@ -70,6 +70,8 @@
     "status_ordered": "Ordered",
     "status_arrived": "Arrived",
     "status_received": "Received",
+    "status_lost": "Lost",
+    "status_returned": "Returned",
     "completed": "Completed",
     "pending": "Pending",
     "show": "Show",
@@ -226,7 +228,8 @@
     "type_cof_pass": "Confirm new password",
     "old_pass_incorrect": "Old password is incorrect",
     "confirm_password_incorrect": "Confirm password is incorrect",
-    "save_success": "Saved successfully"
+    "save_success": "Saved successfully",
+    "submit": "Submit"
   },
   "settings": {
     "cancel": "Cancel",

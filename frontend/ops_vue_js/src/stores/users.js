@@ -7,34 +7,33 @@ import { usersApi } from '@/api/users';
 export const useUsersStore = defineStore('users', () => {
     const usersInfo =ref([]);
 
-    function getUsernameFromUserID(userID){
-        //console.log(userID)
-        //先在usersInfo找找有没有
-        const target = usersInfo.value?.find(item => item.UserID === userID)
-        if(target){
-            return target.Username //有的话直接返回
-        }else{
-            //没有的话 询问后端
-            usersApi.getUserInfoFromUserID(userID).then((r)=>{
-                //console.log(r)
-                if(r.errCode==0)
-                {
-                    switch(r.raw.err_code){
-                        case 0:
-                            if(r.raw.return.userinfo){
-                                usersInfo.value.push(r.raw.return.userinfo)
-                            }
-                            break;
-                    }
-                }
-            })
+    function getUserFromUserID(userID){
+        return usersInfo.value?.find(item => item.UserID === userID) ?? null
+    }
 
-            return "..." // 第一次返回这个，不会空白/报错
-        }        
+    function getUsernameFromUserID(userID){
+        const target = getUserFromUserID(userID)
+        if (target) {
+            return target.Username
+        }
+        usersApi.getUserInfoFromUserID(userID).then((r) => {
+            if (r.errCode == 0 && r.raw.err_code == 0 && r.raw.return.userinfo) {
+                usersInfo.value.push(r.raw.return.userinfo)
+            }
+        })
+        return "..."
+    }
+
+    function getAvatarUrlFromUserID(userID) {
+        const target = getUserFromUserID(userID)
+        if (target?.AvatarPath) {
+            return `/api/static/avatar/${target.AvatarPath}`
+        }
+        return `/ava.svg`
     }
 
     return{
-        usersInfo,getUsernameFromUserID,
+        usersInfo,getUsernameFromUserID,getAvatarUrlFromUserID,
     }
 
 })

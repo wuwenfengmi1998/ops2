@@ -70,6 +70,8 @@
     "status_ordered": "已下单",
     "status_arrived": "已到达",
     "status_received": "已收件",
+    "status_lost": "丢件",
+    "status_returned": "退件",
     "completed": "已完成",
     "pending": "待处理",
     "show": "显示",
@@ -226,7 +228,8 @@
     "type_cof_pass": "确认新密码",
     "old_pass_incorrect": "旧密码不正确",
     "confirm_password_incorrect": "确认密码不正确",
-    "save_success": "保存成功"
+    "save_success": "保存成功",
+    "submit": "提交"
   },
   "settings": {
     "cancel": "取消",

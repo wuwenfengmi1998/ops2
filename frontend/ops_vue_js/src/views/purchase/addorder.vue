@@ -113,10 +113,10 @@ const costEntries = reactive([]);
  * 用户填写完表单后点击"添加"按钮加入 costEntries
  */
 const newCost = reactive({
-  type: "1", // 费用类型：默认"单价"
+  type: 1, // 费用类型：默认"单价"
   int: 1, // 数量：默认1
   cost: 0, // 单价：默认0
-  currencyType: "1", // 货币类型：默认人民币
+  currencyType: 1, // 货币类型：默认人民币
 });
 
 // 费用验证错误状态：点击添加按钮后发现费用为0时触发
@@ -166,10 +166,10 @@ function addCostEntry() {
     currencytype: newCost.currencyType,
   });
   // 添加后重置表单，以便继续添加下一条
-  newCost.type = "1";
+  newCost.type = 1;
   newCost.int = 1;
   newCost.cost = 0;
-  newCost.currencyType = "1";
+  newCost.currencyType = 1;
 }
 
 /**

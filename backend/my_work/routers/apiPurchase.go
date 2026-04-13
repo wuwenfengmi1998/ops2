@@ -8,28 +8,33 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"
 )
 
+// decodeJSON 将 map 通过 JSON 中转解码到目标结构体，绕过 mapstructure 的字段名匹配问题
+func decodeJSON(data map[string]interface{}, out interface{}) error {
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(jsonBytes, out)
+}
+
 type CostItem struct {
-	Cost         int    `json:"cost"`         // 费用（分）
-	CostT        int    `json:"costt"`        // 总价
-	CurrencyType int    `json:"currencytype"` // 货币类型: 1-CNY 2-MOP 3-HKD 4-USD
-	Int          int    `json:"int"`          // 数量
-	Type         int    `json:"type"`         // 费用类型: 1-单价 2-运费
+	Cost         int `json:"cost"`         // 费用（分）
+	CostT        int `json:"costt"`        // 总价
+	CurrencyType int `json:"currencytype"` // 货币类型: 1-CNY 2-MOP 3-HKD 4-USD
+	Int          int `json:"int"`          // 数量
+	Type         int `json:"type"`         // 费用类型: 1-单价 2-运费
 }
 type From_purchase_addorder struct {
 	Costs       []CostItem `json:"costs"`        //  成本
 	Link        string     `json:"link"`         //  链接
 	OrderStatus string     `json:"order_status"` //  订单状态
-	//PartName       string     `json:"partname"`        //  物件名称
-	Photos []string `json:"photos"` //  图片备注
-	Remark string   `json:"remark"` //  备注
-	Styles string   `json:"styles"` //  样式备注
-	Title  string   `json:"title"`  //  标题
-	//TrackingNumber string     `json:"tracking_number"` //  快递单号
-	//UpdateTime     string     `json:"update_time"`     //  更新时间
+	Photos      []string   `json:"photos"`       //  图片备注
+	Remark      string     `json:"remark"`       //  备注
+	Styles      string     `json:"styles"`       //  样式备注
+	Title       string     `json:"title"`        //  标题
 }
 
 type TabPurchaseOrder struct {
@@ -39,21 +44,21 @@ type TabPurchaseOrder struct {
 	Remark      string         `gorm:"type:text;comment:备注"`
 	Link        string         `gorm:"size:1000;comment:链接"`
 	Styles      string         `gorm:"type:text;comment:样式数组"`
-	OrderStatus string         `gorm:"size:50;default:pending;comment:订单状态: pending-待处理 ordered-已下单 arrived-已到达 received-已收件"`
+	OrderStatus string         `gorm:"size:50;default:pending;comment:订单状态: pending-待处理 ordered-已下单 arrived-已到达 received-已收件 lost-丢件 returned-退件"`
 	CreatedAt   *time.Time     `gorm:"type:datetime;autoCreateTime"`
 	UpdatedAt   *time.Time     `gorm:"type:datetime;autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
 
 type TabPurchaseCosts struct {
-	ID         uint   `gorm:"primarykey"`
-	OrderID    uint   `gorm:"not null"`
-	UserID     uint   `gorm:"not null"`
-	Price      int    `gorm:"not null"`
-	Quantity   int    `gorm:"not null"`
-	CurrencyType int  `gorm:"default:1;comment:货币类型: 1-CNY 2-MOP 3-HKD 4-USD"`
-	CostType     int  `gorm:"default:1;comment:费用类型: 1-单价 2-运费"`
-	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
+	ID           uint       `gorm:"primarykey"`
+	OrderID      uint       `gorm:"not null"`
+	UserID       uint       `gorm:"not null"`
+	Price        int        `gorm:"not null"`
+	Quantity     int        `gorm:"not null"`
+	CurrencyType int        `gorm:"default:1;comment:货币类型: 1-CNY 2-MOP 3-HKD 4-USD"`
+	CostType     int        `gorm:"default:1;comment:费用类型: 1-单价 2-运费"`
+	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
 type TabPurchaseFileBind struct {
@@ -113,7 +118,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			ID uint `json:"id"`
 		}
 		var from FromGetOrder
-		if err := mapstructure.Decode(data, &from); err != nil || from.ID == 0 {
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
 			ReturnJson(ctx, "jsonErr", nil)
 			return
 		}
@@ -212,7 +217,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			Photos  []string `json:"photos"` // 变更附带的图片哈希
 		}
 		var from FromUpdateStatus
-		if err := mapstructure.Decode(data, &from); err != nil || from.ID == 0 {
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
 			ReturnJson(ctx, "jsonErr", nil)
 			return
 		}
@@ -231,6 +236,8 @@ func ApiPurchase(r *gin.RouterGroup) {
 			"ordered":  true,
 			"arrived":  true,
 			"received": true,
+			"lost":     true,
+			"returned": true,
 		}
 		if !validStatuses[from.Status] {
 			ReturnJson(ctx, "invalid_status", nil)
@@ -283,7 +290,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 		// 写操作日志
 		newContent, _ := json.Marshal(map[string]string{
-			"status": from.Status,
+			"status":  from.Status,
 			"comment": comment,
 		})
 		oldContent, _ := json.Marshal(map[string]string{
@@ -316,7 +323,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			}
 
 			var jsondata From_purchase_getorders
-			if err := mapstructure.Decode(data, &jsondata); err == nil {
+			if err := decodeJSON(data, &jsondata); err == nil {
 				fmt.Println(jsondata)
 
 				is_data_ok := true
@@ -366,7 +373,8 @@ func ApiPurchase(r *gin.RouterGroup) {
 			//fmt.Println(user)
 			//DebugPrintJson(data)
 			var jsondata From_purchase_addorder
-			if err := mapstructure.Decode(data, &jsondata); err == nil {
+			fmt.Println(data)
+			if err := decodeJSON(data, &jsondata); err == nil {
 
 				//jsonStr, _ := json.MarshalIndent(jsondata, "", "  ")
 				//fmt.Println("转换后数据:\n", string(jsonStr))
@@ -406,79 +414,79 @@ func ApiPurchase(r *gin.RouterGroup) {
 				// 	fmt.Println("err5")
 				// }
 
-			if is_data_ok {
-				//校验通过
-				//photos, _ := json.Marshal(jsondata.Photos)
-				new_data := TabPurchaseOrder{
-					UserID:      user.ID,
-					Title:       jsondata.Title,
-					Remark:      jsondata.Remark,
-					Link:        jsondata.Link,
-					Styles:      jsondata.Styles,
-					OrderStatus: "pending", // 默认待处理
-				}
-				models.DB.Create(&new_data)
+				if is_data_ok {
+					//校验通过
+					//photos, _ := json.Marshal(jsondata.Photos)
+					new_data := TabPurchaseOrder{
+						UserID:      user.ID,
+						Title:       jsondata.Title,
+						Remark:      jsondata.Remark,
+						Link:        jsondata.Link,
+						Styles:      jsondata.Styles,
+						OrderStatus: "pending", // 默认待处理
+					}
+					models.DB.Create(&new_data)
 
-				for i := 0; i < len(jsondata.Costs); i++ {
-					currencyType := jsondata.Costs[i].CurrencyType
-					if currencyType <= 0 {
-						currencyType = 1 // 默认 CNY
-					}
-					costType := jsondata.Costs[i].Type
-					if costType <= 0 {
-						costType = 1 // 默认单价
-					}
-					new_cost_data := TabPurchaseCosts{
-						Price:         jsondata.Costs[i].Cost,
-						Quantity:      jsondata.Costs[i].Int,
-						UserID:        user.ID,
-						OrderID:       new_data.ID,
-						CurrencyType:  currencyType,
-						CostType:      costType,
-					}
-					models.DB.Create(&new_cost_data)
-				}
-
-				//绑定文件
-				for i := 0; i < len(jsondata.Photos); i++ {
-					findFile := models.TabFileInfo_{
-						Sha256: jsondata.Photos[i],
-						Type:   "image",
-					}
-					if models.DB.Where(&findFile).First(&findFile).Error == nil {
-						bind := TabPurchaseFileBind{
-							OrderID: new_data.ID,
-							FileID:  findFile.ID,
+					for i := 0; i < len(jsondata.Costs); i++ {
+						currencyType := jsondata.Costs[i].CurrencyType
+						if currencyType <= 0 {
+							currencyType = 1 // 默认 CNY
 						}
-						models.DB.Create(&bind)
+						costType := jsondata.Costs[i].Type
+						if costType <= 0 {
+							costType = 1 // 默认单价
+						}
+						new_cost_data := TabPurchaseCosts{
+							Price:        jsondata.Costs[i].Cost,
+							Quantity:     jsondata.Costs[i].Int,
+							UserID:       user.ID,
+							OrderID:      new_data.ID,
+							CurrencyType: currencyType,
+							CostType:     costType,
+						}
+						models.DB.Create(&new_cost_data)
 					}
-				}
 
-				// 写创建日志
-				newContent, _ := json.Marshal(jsondata)
-				tosqllog := TabPurchaseLog{
-					UserID:     user.ID,
-					OrderID:    new_data.ID,
-					ActionType: "create",
-					NewContent: string(newContent),
-					OldContent: "",
-					IP:         ctx.ClientIP(),
-				}
-				models.DB.Create(&tosqllog)
+					//绑定文件
+					for i := 0; i < len(jsondata.Photos); i++ {
+						findFile := models.TabFileInfo_{
+							Sha256: jsondata.Photos[i],
+							Type:   "image",
+						}
+						if models.DB.Where(&findFile).First(&findFile).Error == nil {
+							bind := TabPurchaseFileBind{
+								OrderID: new_data.ID,
+								FileID:  findFile.ID,
+							}
+							models.DB.Create(&bind)
+						}
+					}
 
-				// 写状态创建 commit
-				commitLog := TabPurchaseCommit{
-					OrderID:   new_data.ID,
-					UserID:    user.ID,
-					Action:    "create",
-					Status:    "pending",
-					OldStatus: "",
-					Comment:   "订单创建",
-					IP:        ctx.ClientIP(),
-				}
-				models.DB.Create(&commitLog)
+					// 写创建日志
+					newContent, _ := json.Marshal(jsondata)
+					tosqllog := TabPurchaseLog{
+						UserID:     user.ID,
+						OrderID:    new_data.ID,
+						ActionType: "create",
+						NewContent: string(newContent),
+						OldContent: "",
+						IP:         ctx.ClientIP(),
+					}
+					models.DB.Create(&tosqllog)
 
-				ReturnJson(ctx, "apiOK", nil)
+					// 写状态创建 commit
+					commitLog := TabPurchaseCommit{
+						OrderID:   new_data.ID,
+						UserID:    user.ID,
+						Action:    "create",
+						Status:    "pending",
+						OldStatus: "",
+						Comment:   "订单创建",
+						IP:        ctx.ClientIP(),
+					}
+					models.DB.Create(&commitLog)
+
+					ReturnJson(ctx, "apiOK", nil)
 
 				} else {
 					ReturnJson(ctx, "jsonErr_1", nil)
