@@ -122,14 +122,13 @@ onMounted(fetchOrders)
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.item_name') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.purpose') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.quantity') }}</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('purchase.unit_price') }}</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('purchase.total_price') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('purchase.created_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.status') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+              <td colspan="6" class="px-6 py-8 text-center text-gray-400">
                 <svg class="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -140,16 +139,26 @@ onMounted(fetchOrders)
             <tr
               v-for="order in orders"
               :key="order.ID"
-              class="border-b border-gray-100 transition-colors hover:bg-blue-50/50 dark:border-dk-muted/50 dark:bg-dk-card dark:hover:bg-dk-base/50"
+              class="cursor-pointer border-b border-gray-100 transition-colors hover:bg-blue-50/50 dark:border-dk-muted/50 dark:bg-dk-card dark:hover:bg-dk-base/50"
               @click="jumpToOrder(order.ID)"
             >
               <td class="px-6 py-3 text-gray-400">{{ order.ID }}</td>
               <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ order.Title }}</td>
-              <td class="px-6 py-3 text-gray-600 dark:text-gray-300">{{ order.Remark }}</td>
-              <td class="px-6 py-3 text-gray-600 dark:text-gray-300">1</td>
-              <td class="px-6 py-3 whitespace-nowrap text-gray-500">{{ formatDate(order.UnitPriceAt) }}</td>
-              <td class="px-6 py-3 whitespace-nowrap text-gray-500">{{ formatDate(order.TotalPriceAt) }}</td>
-              <td class="px-6 py-3 text-gray-600 dark:text-gray-300">1</td>
+              <td class="px-6 py-3 max-w-[200px] truncate text-gray-600 dark:text-gray-300">{{ order.Remark || '-' }}</td>
+              <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.CreatedAt) }}</td>
+              <td class="px-6 py-3">
+                <span
+                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                  :class="{
+                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400': order.OrderStatus === 'pending',
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400': order.OrderStatus === 'ordered',
+                    'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400': order.OrderStatus === 'arrived',
+                    'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400': order.OrderStatus === 'received',
+                  }"
+                >
+                  {{ t('purchase.status_' + order.OrderStatus) }}
+                </span>
+              </td>
             </tr>
           </tbody>
         </table>

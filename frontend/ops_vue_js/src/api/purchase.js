@@ -10,4 +10,14 @@ export const purchaseApi = {
   addOrder(data) {
     return api.post('/purchase/addorder', data)
   },
+
+  /** 获取单个订单详情（包含费用明细、图片、状态变更记录） */
+  getOrder(id) {
+    return api.post('/purchase/getorder', { id })
+  },
+
+  /** 更新订单状态（可附带评论） */
+  updateOrderStatus(id, status, comment = '') {
+    return api.post('/purchase/updatestatus', { id, status, comment })
+  },
 }
