@@ -28,15 +28,19 @@ import { useToastStore } from "@/stores/toast";
 import { usePageTitle } from "@/composables/usePageTitle";
 import { useValidation } from "@/composables";
 import { purchaseApi } from "@/api/purchase";
+import { useRouter } from "vue-router";
 
 // 组件导入
 import tagadder from "@/components/tagadder.vue"; // 标签添加组件
 import datePicker from "@/components/datePicker.vue"; // 日期选择组件
 import useDropzone from "@/components/useDropzone.vue"; // 文件上传组件（图片）
+import { timeout } from "tom-select/utils";
 
 // ==================== 页面初始化 ====================
 // 设置页面标题，使用 i18n key
 usePageTitle("purchase.add_part");
+
+const router = useRouter();
 
 // 获取国际化实例，用于多语言文本
 const { t, locale } = useI18n();
@@ -218,7 +222,7 @@ async function handleSubmit() {
   //   const result = photosRef.value.get_some_files();
   //   form.photos = result.map((f) => f.name);
   // }
-  form.photos=photosRef.value?.return_files().map((f)=>f.hash);
+  form.photos = photosRef.value?.return_files().map((f) => f.hash);
 
   // 将费用明细转换为提交格式
   // 注意：金额需要从"元"转为"分"（乘以100）存储
@@ -229,12 +233,27 @@ async function handleSubmit() {
   }));
 
   // 开始 loading
-  console.log(form)
-  purchaseApi.addOrder(form).then((r)=>{
+  loading.value = true;
+  purchaseApi.addOrder(form).then((r) => {
+    if (r.errCode == 0) {
+      switch (r.raw.err_code) {
+        case 0:
+          toast.success(t("message.save_ok"));
+          setTimeout(() => {
+            router.replace("/purchase");
+          }, 1000);
 
-    console.log(r)
-    
-  })
+          break;
+        default:
+          toast.error(t("message.server_error"));
+          break;
+      }
+    } else {
+      toast.error(t("message.server_error"));
+    }
+
+    loading.value = false;
+  });
   // loading.value = true;
   // try {
   //   // 调用采购 API 添加订单
@@ -447,7 +466,11 @@ async function handleSubmit() {
                 v-model="newCost.cost"
                 type="number"
                 class="w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-dk-base dark:text-white"
-                :class="costError ? 'border-red-500' : 'border-gray-300 dark:border-dk-muted'"
+                :class="
+                  costError
+                    ? 'border-red-500'
+                    : 'border-gray-300 dark:border-dk-muted'
+                "
                 step="0.01"
                 min="0"
               />

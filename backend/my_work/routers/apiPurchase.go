@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"encoding/json"
 	"fmt"
 	"ops/models"
 	"time"
@@ -57,11 +58,25 @@ type TabPurchaseFileBind struct {
 	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
+type TabPurchaseLog struct {
+	ID         uint   `gorm:"primarykey"`
+	OrderID    uint   `gorm:"not null;index;comment:关联OrderID"`
+	UserID     uint   `gorm:"not null;comment:操作人ID"`
+	ActionType string `gorm:"size:50;not null;comment:操作类型: create-创建 update-修改 delete-删除 query-查询"`
+	OldContent string `gorm:"type:text;comment:修改前内容(JSON)"`
+	NewContent string `gorm:"type:text;comment:修改后内容(JSON)"`
+	IP         string `gorm:"size:50;comment:操作IP"`
+	Remark     string `gorm:"size:500;comment:备注/操作描述"`
+
+	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime;comment:操作时间"`
+}
+
 func ApiPurchaseInit() {
 
 	models.DB.AutoMigrate(&TabPurchaseOrder{})
 	models.DB.AutoMigrate(&TabPurchaseCosts{})
 	models.DB.AutoMigrate(&TabPurchaseFileBind{})
+	models.DB.AutoMigrate(&TabPurchaseLog{})
 
 }
 
@@ -211,6 +226,16 @@ func ApiPurchase(r *gin.RouterGroup) {
 						}
 
 					}
+					newContent, _ := json.Marshal(jsondata) // 👈 转 JSON
+					tosqllog := TabPurchaseLog{
+						UserID:     user.ID,
+						OrderID:    new_data.ID,
+						ActionType: "create",
+						NewContent: string(newContent), // 👈 直接赋值
+						OldContent: "",
+						IP:         ctx.ClientIP(),
+					}
+					models.DB.Debug().Create(&tosqllog)
 
 					ReturnJson(ctx, "apiOK", nil)
 
