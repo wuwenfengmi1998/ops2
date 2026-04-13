@@ -49,7 +49,7 @@ const normalClass = "rounded-md px-3 py-2 text-sm font-medium text-gray-600 tran
 const navItems = computed(() => [
   { label: t("appname.home"), to: "/" },
   { label: t("appname.schedule"), to: "/schedule" },
-  // { label: t("appname.purchase"), to: "/purchase" },
+  { label: t("appname.purchase"), to: "/purchase" },
   // { label: t("appname.warehouse"), to: "/warehouse" },
 ]);
 </script>

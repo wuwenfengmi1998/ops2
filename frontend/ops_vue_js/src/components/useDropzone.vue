@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, defineProps, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 const { t, locale } = useI18n();
 import Dropzone from "dropzone";
-import "dropzone/dist/dropzone.css";
+//import "dropzone/dist/dropzone.css";
 import { useUserStore } from "@/stores/user";
 import "fslightbox";
 const userStore = useUserStore();
@@ -32,7 +32,7 @@ const initDropzone = () => {
     maxFilesize: prop.maxFilesize,
     maxFiles: prop.maxFiles,
     acceptedFiles: prop.acceptedFiles,
-    dictDefaultMessage: t("dropzone.upload_drop_or_click"),
+    dictDefaultMessage: "",
     dictFallbackMessage: t("dropzone.upload_browser_not_supported"),
     dictFileTooBig: t("dropzone.upload_file_too_big") + "({{filesize}}MB). " + t("dropzone.upload_max_file_size") + "{{maxFilesize}}MB.",
     dictInvalidFileType: t("dropzone.upload_invalid_file_type"),
@@ -65,17 +65,19 @@ defineExpose({ getFiles: () => files, getDropzone: () => dropzoneInstance });
 <template>
   <div class="w-full">
     <div id="custom-template" class="dz-preview dz-file-preview hidden">
-      <div class="relative inline-block rounded-lg border border-gray-200 bg-white p-2 dark:border-dk-muted dark:bg-dk-card">
+      <div class="relative rounded-lg bg-white p-1 shadow-sm hover:shadow-md transition-shadow dark:bg-dk-card">
         <img data-dz-thumbnail class="h-20 w-20 rounded object-cover" />
-        <button data-dz-remove class="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow hover:bg-red-600">×</button>
+        <button data-dz-remove class="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white shadow hover:bg-red-500 transition-colors">×</button>
       </div>
       <div class="mt-1 max-w-[5rem] truncate text-xs text-gray-600 dark:text-dk-subtle" data-dz-name></div>
       <div class="dz-progress mt-1 h-1 w-full rounded-full bg-gray-200 dark:bg-dk-muted"><span class="dz-upload block h-full rounded-full bg-blue-500" data-dz-uploadprogress></span></div>
       <div class="dz-error-message mt-1 text-xs text-red-500"><span data-dz-errormessage></span></div>
     </div>
     <div ref="dropzoneElement" class="dropzone cursor-pointer rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center transition-colors hover:border-blue-400 hover:bg-blue-50 dark:border-dk-muted dark:bg-dk-base dark:hover:border-blue-500 dark:hover:bg-dk-card">
-      <div class="mb-2 text-4xl">📁</div>
-      <div class="text-sm font-medium text-gray-600 dark:text-dk-subtle">{{ t('dropzone.upload_drop_or_click') }}</div>
+      <div class="flex items-center justify-center gap-2">
+        <span class="text-4xl">📁</span>
+        <span class="text-sm font-medium text-gray-600 dark:text-dk-subtle">{{ t('dropzone.upload_drop_or_click') }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -83,4 +85,27 @@ defineExpose({ getFiles: () => files, getDropzone: () => dropzoneInstance });
 <style scoped>
 .dropzone { min-height: 150px; }
 .dz-progress .dz-upload { transition: width 0.3s ease; }
+</style>
+
+<style>
+/* Dropzone dynamically inserts .dz-preview siblings inside .dropzone;
+   set .dropzone as a flex container so previews flow in rows */
+.dropzone {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+}
+/* .dz-message (upload prompt) spans full width, stays at top */
+.dropzone .dz-message {
+  width: 100% !important;
+  flex-shrink: 0 !important;
+}
+/* each .dz-preview occupies 1/8 of a row (12.5%); custom-template sets display */
+.dropzone .dz-preview {
+  flex: 0 0 12.5% !important;
+  max-width: 12.5% !important;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
 </style>
