@@ -20,6 +20,8 @@ export default {
     ordered: '已下单',
     arrived: '已到达',
     received: '已收件',
+    pleaseLogin: '请先登录',
+    login: '登 录',
   },
   // 登录页
   login: {

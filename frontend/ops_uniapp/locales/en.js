@@ -20,6 +20,8 @@ export default {
     ordered: 'Ordered',
     arrived: 'Arrived',
     received: 'Received',
+    pleaseLogin: 'Please login first',
+    login: 'Login',
   },
   // 登录页
   login: {

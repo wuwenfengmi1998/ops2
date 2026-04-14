@@ -1,34 +1,37 @@
 <template>
-  <view class="settings-container">
+  <view class="min-h-screen" :style="{ paddingTop: statusBarHeight + 'px' }">
     <!-- 页面标题 -->
-    <view class="page-header">
-      <text class="page-title">{{ t('apiConfig.title') }}</text>
+    <view class="mx-4 mt-4 mb-6">
+      <text class="block text-2xl font-bold" style="color: #1f2937">{{ t('apiConfig.title') }}</text>
     </view>
 
-    <!-- API 地址配置 -->
-    <view class="config-section">
-      <text class="section-title">{{ t('apiConfig.apiUrl') }}</text>
+    <!-- #ifndef H5 -->
+    <!-- API 地址配置 - 非H5端显示 -->
+    <view class="mx-4 mb-4 bg-white rounded-2xl p-6 shadow-sm">
+      <text class="block text-base font-semibold mb-4" style="color: #1f2937">{{ t('apiConfig.apiUrl') }}</text>
       
-      <view class="input-group">
+      <view class="mb-4">
         <input
-          class="input-field"
+          class="w-full h-11 rounded-xl px-4 text-base"
+          style="background: #f3f4f6; color: #1f2937"
           type="text"
           v-model="apiUrl"
           :placeholder="t('apiConfig.apiUrlPlaceholder')"
-          placeholder-class="placeholder"
+          placeholder-class="placeholder-gray"
         />
       </view>
 
-      <view class="info-text">
-        <text>{{ t('apiConfig.format') }}: http://192.168.1.100/api/</text>
+      <view class="mb-3">
+        <text class="block text-sm" style="color: #9ca3af">{{ t('apiConfig.format') }}: http://192.168.1.100/api/</text>
       </view>
 
-      <view class="info-text">
-        <text>{{ t('apiConfig.current') }}: {{ currentApiUrl }}</text>
+      <view class="mb-4">
+        <text class="block text-sm" style="color: #9ca3af">{{ t('apiConfig.current') }}: {{ currentApiUrl }}</text>
       </view>
 
       <button
-        class="save-btn"
+        class="w-full h-11 rounded-full flex items-center justify-center font-semibold text-base"
+        :style="{ background: 'linear-gradient(to right, #667eea, #764ba2)', color: '#fff' }"
         :loading="saving"
         @click="saveApiUrl"
       >
@@ -36,47 +39,47 @@
       </button>
     </view>
 
-    <!-- 测试连接 -->
-    <view class="config-section">
-      <text class="section-title">{{ t('apiConfig.testConnection') }}</text>
-      
-      <button
-        class="test-btn"
-        :loading="testing"
-        :disabled="!apiUrl"
-        @click="testConnection"
-      >
-        {{ testing ? t('apiConfig.testing') : t('apiConfig.testBtn') }}
-      </button>
-
-      <view class="test-result" v-if="testResult !== null">
-        <text 
-          class="result-text"
-          :class="testResult ? 'success' : 'failed'"
-        >
-          {{ testResult ? t('apiConfig.connectionSuccess') : t('apiConfig.connectionFailed') }}
-        </text>
-      </view>
-    </view>
+   
+    
+    <!-- #endif -->
+	<view class="mx-4 mb-4 bg-white rounded-2xl p-6 shadow-sm">
+	  <text class="block text-base font-semibold mb-4" style="color: #1f2937">{{ t('apiConfig.testConnection') }}</text>
+	  
+	  <button
+	    class="w-full h-10 rounded-full flex items-center justify-center text-base"
+	    :style="{ background: testResult === true ? '#dcfce7' : testResult === false ? '#fef2f2' : '#f3f4f6', color: testResult === true ? '#22c55e' : testResult === false ? '#ef4444' : '#1f2937' }"
+	    :loading="testing"
+	    :disabled="!apiUrl"
+	    @click="testConnection"
+	  >
+	    {{ testing ? t('apiConfig.testing') : t('apiConfig.testBtn') }}
+	  </button>
+	
+	  <view class="mt-4 text-center" v-if="testResult !== null">
+	    <text class="text-base font-medium" :style="{ color: testResult ? '#22c55e' : '#ef4444' }">
+	      {{ testResult ? t('apiConfig.connectionSuccess') : t('apiConfig.connectionFailed') }}
+	    </text>
+	  </view>
+	</view>
 
     <!-- 语言切换 -->
-    <view class="config-section">
-      <text class="section-title">{{ t('apiConfig.language') }}</text>
+    <view class="mx-4 mb-8 bg-white rounded-2xl p-6 shadow-sm">
+      <text class="block text-base font-semibold mb-4" style="color: #1f2937">{{ t('apiConfig.language') }}</text>
       
-      <view class="lang-options">
+      <view class="flex gap-4">
         <view 
-          class="lang-item"
-          :class="{ active: currentLang === 'zh' }"
+          class="flex-1 h-11 rounded-xl flex items-center justify-center border-2"
+          :style="currentLang === 'zh' ? { borderColor: '#667eea', backgroundColor: '#f0f5ff' } : { borderColor: 'transparent', backgroundColor: '#f3f4f6' }"
           @click="switchLang('zh')"
         >
-          <text>🇨🇳 {{ t('apiConfig.zh') }}</text>
+          <text class="text-base" :style="{ color: currentLang === 'zh' ? '#667eea' : '#1f2937' }">🇨🇳 中文</text>
         </view>
         <view 
-          class="lang-item"
-          :class="{ active: currentLang === 'en' }"
+          class="flex-1 h-11 rounded-xl flex items-center justify-center border-2"
+          :style="currentLang === 'en' ? { borderColor: '#667eea', backgroundColor: '#f0f5ff' } : { borderColor: 'transparent', backgroundColor: '#f3f4f6' }"
           @click="switchLang('en')"
         >
-          <text>🇺🇸 {{ t('apiConfig.en') }}</text>
+          <text class="text-base" :style="{ color: currentLang === 'en' ? '#667eea' : '#1f2937' }">🇺🇸 English</text>
         </view>
       </view>
     </view>
@@ -89,19 +92,17 @@ import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
 
-// 响应式数据
+const statusBarHeight = ref(20)
 const apiUrl = ref('')
 const saving = ref(false)
 const testing = ref(false)
 const testResult = ref(null)
 const currentLang = ref('zh')
 
-// 计算属性
 const currentApiUrl = computed(() => {
   return getApp().globalData.BASE_URL || t('apiConfig.notSet')
 })
 
-// 切换语言
 const switchLang = (lang) => {
   locale.value = lang
   currentLang.value = lang
@@ -109,7 +110,6 @@ const switchLang = (lang) => {
   uni.$emit('localeChanged', lang)
 }
 
-// 保存 API 地址
 const saveApiUrl = () => {
   if (!apiUrl.value) {
     uni.showToast({
@@ -119,7 +119,6 @@ const saveApiUrl = () => {
     return
   }
 
-  // 验证 URL 格式
   let url = apiUrl.value.trim()
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = 'http://' + url
@@ -130,11 +129,16 @@ const saveApiUrl = () => {
 
   saving.value = true
   
-  // 保存到本地
+  // 保存原始 URL 到本地存储
   uni.setStorageSync('apiUrl', url)
   
-  // 更新全局配置
+  // H5 端使用相对路径走代理，其他端使用完整 URL
+  // #ifdef H5
+  getApp().globalData.BASE_URL = '/api/'
+  // #endif
+  // #ifndef H5
   getApp().globalData.BASE_URL = url
+  // #endif
 
   setTimeout(() => {
     saving.value = false
@@ -145,18 +149,15 @@ const saveApiUrl = () => {
   }, 500)
 }
 
-// 测试连接
 const testConnection = () => {
   testing.value = true
   testResult.value = null
 
-  // 使用相对路径，走代理
   uni.request({
-    url: '/api/',
+    url: getApp().globalData.BASE_URL,
     method: 'GET',
     timeout: 5000,
     success: (res) => {
-      // 成功返回 {"err_code":0,"err_msg":"apiOK"}
       if (res.data && res.data.err_code === 0) {
         testResult.value = true
       } else {
@@ -172,9 +173,10 @@ const testConnection = () => {
   })
 }
 
-// 生命周期
 onMounted(() => {
-  // 读取当前配置
+  const systemInfo = uni.getSystemInfoSync()
+  statusBarHeight.value = systemInfo.statusBarHeight || 20
+  
   const savedApiUrl = uni.getStorageSync('apiUrl')
   if (savedApiUrl) {
     apiUrl.value = savedApiUrl
@@ -186,159 +188,13 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-.settings-container {
+<style scoped>
+.min-h-screen {
   min-height: 100vh;
   background-color: #f5f5f5;
-  padding: 40rpx 30rpx;
-  padding-bottom: 140rpx;
 }
 
-.page-header {
-  margin-bottom: 40rpx;
-}
-
-.page-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #333;
-}
-
-.config-section {
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
-  margin-bottom: 30rpx;
-}
-
-.section-title {
-  display: block;
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 24rpx;
-}
-
-.input-group {
-  margin-bottom: 20rpx;
-}
-
-.input-field {
-  width: 100%;
-  height: 88rpx;
-  background-color: #f5f5f5;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
-  font-size: 30rpx;
-  color: #333;
-}
-
-.placeholder {
-  color: #999;
-}
-
-.info-text {
-  margin-top: 16rpx;
-  
-  text {
-    font-size: 24rpx;
-    color: #999;
-  }
-}
-
-.save-btn {
-  width: 100%;
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  font-size: 32rpx;
-  font-weight: 600;
-  border-radius: 44rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 30rpx;
-  border: none;
-
-  &::after {
-    border: none;
-  }
-
-  &:active {
-    opacity: 0.9;
-  }
-
-  &[disabled] {
-    opacity: 0.6;
-  }
-}
-
-.test-btn {
-  width: 100%;
-  height: 80rpx;
-  background-color: #f0f0f0;
-  color: #333;
-  font-size: 30rpx;
-  border-radius: 40rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-
-  &::after {
-    border: none;
-  }
-
-  &:active {
-    background-color: #e0e0e0;
-  }
-
-  &[disabled] {
-    opacity: 0.5;
-  }
-}
-
-.test-result {
-  margin-top: 24rpx;
-  text-align: center;
-}
-
-.result-text {
-  font-size: 28rpx;
-  font-weight: 500;
-
-  &.success {
-    color: #52c41a;
-  }
-
-  &.failed {
-    color: #ff4d4f;
-  }
-}
-
-.lang-options {
-  display: flex;
-  gap: 20rpx;
-}
-
-.lang-item {
-  flex: 1;
-  height: 88rpx;
-  background-color: #f5f5f5;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2rpx solid transparent;
-
-  &.active {
-    background-color: #f0f5ff;
-    border-color: #667eea;
-  }
-
-  text {
-    font-size: 28rpx;
-    color: #333;
-  }
+.placeholder-gray {
+  color: #9ca3af;
 }
 </style>
