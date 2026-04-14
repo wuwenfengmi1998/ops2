@@ -14,8 +14,9 @@ import (
 type TabFileInfo_ struct {
 	ID     uint      `gorm:"primaryKey;autoIncrement"`
 	Name   string    `gorm:"not null;size:256;index"` // 前端报告的文件名
-	Path   string    `gorm:"not null;size:300"`       //
-	Sha256 string    `gorm:"not null;size:64;index"`  //
+	Size   int64     `gorm:"not null"`
+	Path   string    `gorm:"not null;size:300"`      //
+	Sha256 string    `gorm:"not null;size:64;index"` //
 	Mime   string    `gorm:"size:64;index"`
 	Type   string    `gorm:"size:64;index"`
 	Const  uint      `gorm:"default:1;index"`
@@ -128,6 +129,7 @@ func ApiFiles(r *gin.RouterGroup) {
 									//先检查数据库有没有数据
 									fund_file_info := TabFileInfo_{
 										Name:   filename,
+										Size:   file.Size,
 										Sha256: hash_str,
 										Mime:   mimeType,
 										Type:   "image",

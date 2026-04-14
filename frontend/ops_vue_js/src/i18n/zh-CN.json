@@ -100,7 +100,8 @@
     "commit_placeholder": "添加备注（可选）",
     "upload_photos": "上传图片",
     "commit_create": "订单创建",
-    "edit_order": "编辑订单"
+    "edit_order": "编辑订单",
+    "submit_changes":"提交修改"
   },
   "purchase_addorder": {
     "add_order": "添加订单",

@@ -100,7 +100,8 @@
     "commit_placeholder": "Add comment (optional)",
     "upload_photos": "Upload Photos",
     "commit_create": "Order created",
-    "edit_order": "Edit Order"
+    "edit_order": "Edit Order",
+    "submit_changes":"Submit changes"
   },
   "purchase_addorder": {
     "add_order": "Add Order",

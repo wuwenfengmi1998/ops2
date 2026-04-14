@@ -141,7 +141,9 @@ onMounted(async () => {
     // 回填图片
     await nextTick();
     if (photos && photos.length > 0) {
-      dropzoneRef.value?.loadInitialFiles(photos);
+      //dropzoneRef.value?.loadInitialFiles(photos);
+      //console.log(photos)
+      form.photos=photos
     }
   } catch {
     pageError.value = t("purchase.order_not_found");
@@ -196,16 +198,33 @@ async function handleSubmit() {
 <template>
   <div class="mx-auto max-w-6xl px-6 py-6">
     <!-- 加载中 -->
-    <div v-if="pageLoading" class="flex items-center justify-center py-20 text-gray-400">
+    <div
+      v-if="pageLoading"
+      class="flex items-center justify-center py-20 text-gray-400"
+    >
       <svg class="mr-2 h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        />
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+        />
       </svg>
       {{ t("message.loading") }}
     </div>
 
     <!-- 订单不存在 -->
-    <div v-else-if="pageError" class="rounded-xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-500 dark:border-red-800 dark:bg-red-900/20">
+    <div
+      v-else-if="pageError"
+      class="rounded-xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-500 dark:border-red-800 dark:bg-red-900/20"
+    >
       {{ pageError }}
     </div>
 
@@ -215,7 +234,9 @@ async function handleSubmit() {
       class="flex flex-col gap-0 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
     >
       <!-- 顶部标题栏 -->
-      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-dk-muted">
+      <div
+        class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-dk-muted"
+      >
         <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
           {{ t("purchase_addorder.edit_order") }}
         </h4>
@@ -224,15 +245,28 @@ async function handleSubmit() {
           class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-base"
           @click="router.back()"
         >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          <svg
+            class="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           {{ t("purchase.back_to_list") }}
         </button>
       </div>
 
       <!-- 错误提示（字段验证） -->
-      <div v-if="errors.title" class="mx-6 mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+      <div
+        v-if="errors.title"
+        class="mx-6 mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400"
+      >
         {{ errors.title }}
       </div>
 
@@ -246,7 +280,9 @@ async function handleSubmit() {
       <div class="space-y-4 px-6 py-5">
         <!-- 标题字段（必填） -->
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             {{ t("purchase_addorder.part_name") }}
             <span class="text-red-500">*</span>
           </label>
@@ -258,14 +294,20 @@ async function handleSubmit() {
             :class="errors.title ? 'border-red-500' : 'border-gray-300'"
             :placeholder="t('purchase_addorder.part_name')"
           />
-          <span v-if="errors.title" class="mt-1 block text-xs text-red-500">{{ errors.title }}</span>
+          <span v-if="errors.title" class="mt-1 block text-xs text-red-500">{{
+            errors.title
+          }}</span>
         </div>
 
         <!-- 备注字段 -->
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label
+            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             {{ t("purchase_addorder.remarks") }}
-            <span class="text-gray-400">{{ form.remark.length }}/{{ textMaxLen }}</span>
+            <span class="text-gray-400"
+              >{{ form.remark.length }}/{{ textMaxLen }}</span
+            >
           </label>
           <textarea
             v-model="form.remark"
@@ -277,7 +319,10 @@ async function handleSubmit() {
 
         <!-- 采购链接 -->
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.link") }}</label>
+          <label
+            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ t("purchase_addorder.link") }}</label
+          >
           <textarea
             v-model="form.link"
             class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
@@ -287,25 +332,48 @@ async function handleSubmit() {
 
         <!-- 款式标签 -->
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.style_remarks") }}</label>
-          <tagadder :placeholder="t('purchase_addorder.add_style')" v-model="form.styles" />
+          <label
+            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ t("purchase_addorder.style_remarks") }}</label
+          >
+          <tagadder
+            :placeholder="t('purchase_addorder.add_style')"
+            v-model="form.styles"
+          />
         </div>
 
         <!-- ==================== 费用明细表格 ==================== -->
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.cost") }}</label>
+          <label
+            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ t("purchase_addorder.cost") }}</label
+          >
 
           <!-- 已添加的费用列表 -->
           <div v-if="costEntries.length" class="mb-4 overflow-x-auto">
             <table class="w-full text-left text-sm text-gray-900">
               <thead>
-                <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base">
-                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.type") }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.quantity") }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.fee") }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.total_price") }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.currency") }}</th>
-                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.operation") }}</th>
+                <tr
+                  class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base"
+                >
+                  <th class="px-3 py-2 font-medium">
+                    {{ t("purchase_addorder.type") }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t("purchase_addorder.quantity") }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t("purchase_addorder.fee") }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t("purchase_addorder.total_price") }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t("purchase_addorder.currency") }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t("purchase_addorder.operation") }}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -314,7 +382,9 @@ async function handleSubmit() {
                   :key="idx"
                   class="border-b border-gray-100 dark:border-dk-muted"
                 >
-                  <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                  <td
+                    class="px-3 py-2 font-medium text-gray-900 dark:text-white"
+                  >
                     {{ costType[item.type] }}
                   </td>
                   <td class="px-3 py-2 text-gray-500">{{ item.int }}</td>
@@ -339,16 +409,26 @@ async function handleSubmit() {
           <!-- 添加费用表单 -->
           <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.fee_type") }}</label>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{
+                t("purchase_addorder.fee_type")
+              }}</label>
               <select
                 v-model="newCost.type"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
               >
-                <option v-for="(label, key) in costType" :key="key" :value="Number(key)">{{ label }}</option>
+                <option
+                  v-for="(label, key) in costType"
+                  :key="key"
+                  :value="Number(key)"
+                >
+                  {{ label }}
+                </option>
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.input_quantity") }}</label>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{
+                t("purchase_addorder.input_quantity")
+              }}</label>
               <input
                 v-model.number="newCost.int"
                 type="number"
@@ -357,23 +437,37 @@ async function handleSubmit() {
               />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.input_fee") }}</label>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{
+                t("purchase_addorder.input_fee")
+              }}</label>
               <input
                 v-model="newCost.cost"
                 type="number"
                 class="w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-dk-base dark:text-white"
-                :class="costError ? 'border-red-500' : 'border-gray-300 dark:border-dk-muted'"
+                :class="
+                  costError
+                    ? 'border-red-500'
+                    : 'border-gray-300 dark:border-dk-muted'
+                "
                 step="0.01"
                 min="0"
               />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.select_currency") }}</label>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{
+                t("purchase_addorder.select_currency")
+              }}</label>
               <select
                 v-model="newCost.currencytype"
                 class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
               >
-                <option v-for="(label, key) in currencyOptions" :key="key" :value="Number(key)">{{ label }}</option>
+                <option
+                  v-for="(label, key) in currencyOptions"
+                  :key="key"
+                  :value="Number(key)"
+                >
+                  {{ label }}
+                </option>
               </select>
             </div>
             <div class="flex items-end">
@@ -389,23 +483,50 @@ async function handleSubmit() {
 
         <!-- ==================== 图片上传 ==================== -->
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.upload_photos") }}</label>
-          <useDropzone ref="dropzoneRef" :initialFiles="[]" />
+          <label
+            class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ t("purchase_addorder.upload_photos") }}</label
+          >
+          <useDropzone 
+            ref="dropzoneRef"
+            acceptFiles="image/*"
+            uploadURL="/api/files/upload/image" 
+            :initialFiles="form.photos" 
+            :maxFiles="10" 
+          />
         </div>
       </div>
 
       <!-- 底部操作栏 -->
-      <div class="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-dk-muted">
+      <div
+        class="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-dk-muted"
+      >
         <button
           class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
           :disabled="loading"
           @click="handleSubmit"
         >
-          <svg v-if="loading" class="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          <svg
+            v-if="loading"
+            class="h-4 w-4 animate-spin text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
           </svg>
-          {{ t("message.save_ok") }}
+          {{ t("purchase.submit_changes") }}
         </button>
       </div>
     </div>

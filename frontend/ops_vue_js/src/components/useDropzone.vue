@@ -209,33 +209,36 @@ function return_files() {
 // 加载初始已有文件（编辑场景）
 function loadInitialFiles() {
   if (!dropzoneInstance || !prop.initialFiles?.length) return;
+  
+
   prop.initialFiles.forEach((f) => {
     // 构造 Dropzone 期望的 mock file 对象
-    const mockFile = {
-      name: f.Name || f.name || f.hash,
-      size: f.Size || f.size || 0,
-      type: f.Mime || f.mime || "image/jpeg",
-      status: Dropzone.SUCCESS,
-      accepted: true,
-      upload: { uuid: f.Hash || f.hash || f.Sha256 },
-      previewElement: null,
-      _removeLink: null,
-    };
-    // 通知 Dropzone "这是一个已存在的文件，不要上传"
-    dropzoneInstance.emit("addedfile", mockFile);
-    dropzoneInstance.emit("complete", mockFile);
-    dropzoneInstance.files.push(mockFile);
-    // 填充上传结果字段
-    const url = `/api/files/get/${f.Hash || f.hash || f.Sha256}`;
-    files.push({
-      uuid: f.Hash || f.hash || f.Sha256,
-      hash: f.Hash || f.hash || f.Sha256,
-      get_url: url,
-      download_url: `/api/files/download/${f.Hash || f.hash || f.Sha256}`,
-      file_name: f.Name || f.name || "",
-      file_size: f.Size || f.size || 0,
-      is_upload: true,
-    });
+     console.log(f)
+    // const mockFile = {
+    //   name: f.Name,
+    //   size: f.Size,
+    //   type: f.Mime,
+    //   status: Dropzone.SUCCESS,
+    //   accepted: true,
+    //   upload: { uuid: f.Sha256 },
+    //   previewElement: null,
+    //   _removeLink: null,
+    // };
+    // // 通知 Dropzone "这是一个已存在的文件，不要上传"
+    // dropzoneInstance.emit("addedfile", mockFile);
+    // dropzoneInstance.emit("complete", mockFile);
+    // dropzoneInstance.files.push(mockFile);
+    // // 填充上传结果字段
+    // const url = `/api/files/get/${f.Sha256}`;
+    // files.push({
+    //   uuid: f.Sha256,
+    //   hash: f.Sha256,
+    //   get_url: url,
+    //   download_url: `/api/files/download/${f.Sha256}`,
+    //   file_name: f.Name,
+    //   file_size: f.Size,
+    //   is_upload: true,
+    // });
   });
 }
 
