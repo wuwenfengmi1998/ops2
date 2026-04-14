@@ -20,4 +20,9 @@ export const purchaseApi = {
   updateOrderStatus(id, status, comment = '', photos = []) {
     return api.post('/purchase/updatestatus', { id, status, comment, photos })
   },
+
+  /** 编辑订单基本信息（标题/备注/链接/款式/费用/图片） */
+  updateOrder(id, data) {
+    return api.post('/purchase/updateorder', { id, ...data })
+  },
 }

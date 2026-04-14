@@ -288,14 +288,25 @@ onMounted(fetchOrder);
 <template>
   
   <div class="mx-auto max-w-6xl px-6 py-6">
-    <!-- 返回按钮 -->
-    <div class="mb-4">
+    <!-- 顶部操作栏：返回 + 编辑 -->
+    <div class="mb-4 flex items-center justify-between">
       <RouterLink
         to="/purchase"
         class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-dk-card dark:hover:text-gray-200"
       >
         <IconChevronLeft :size="16" />
         {{ t("purchase.back_to_list") }}
+      </RouterLink>
+      <!-- 编辑按钮 -->
+      <RouterLink
+        v-if="order"
+        :to="`/purchase/editorder/${order.ID}`"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-card dark:text-gray-300 dark:hover:bg-dk-base"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        {{ t("purchase.edit_order") }}
       </RouterLink>
     </div>
 
@@ -538,7 +549,7 @@ onMounted(fetchOrder);
                 <td
                   class="px-6 py-3 text-base font-bold text-gray-900 dark:text-white"
                 >
-                  {{ costTotalYuan.toFixed(2) }}
+                  <!-- {{ costTotalYuan.toFixed(2) }} -->
                 </td>
                 <td class="px-6 py-3">
                   <span

@@ -1,5 +1,5 @@
 {
-    "week": {
+  "week": {
     "sun": "星期日",
     "mon": "星期一",
     "tue": "星期二",
@@ -99,10 +99,12 @@
     "no_commits": "暂无状态记录",
     "commit_placeholder": "添加备注（可选）",
     "upload_photos": "上传图片",
-    "commit_create": "订单创建"
+    "commit_create": "订单创建",
+    "edit_order": "编辑订单"
   },
   "purchase_addorder": {
     "add_order": "添加订单",
+    "edit_order": "编辑订单",
     "order_info": "订单信息",
     "title": "标题",
     "input_title": "输入订单标题",
@@ -229,7 +231,8 @@
     "old_pass_incorrect": "旧密码不正确",
     "confirm_password_incorrect": "确认密码不正确",
     "save_success": "保存成功",
-    "submit": "提交"
+    "submit": "提交",
+    "loading": "加载中..."
   },
   "settings": {
     "cancel": "取消",

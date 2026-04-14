@@ -1,5 +1,5 @@
 {
-    "week": {
+  "week": {
     "sun": "Sunday",
     "mon": "Monday",
     "tue": "Tuesday",
@@ -99,10 +99,12 @@
     "no_commits": "No status records",
     "commit_placeholder": "Add comment (optional)",
     "upload_photos": "Upload Photos",
-    "commit_create": "Order created"
+    "commit_create": "Order created",
+    "edit_order": "Edit Order"
   },
   "purchase_addorder": {
     "add_order": "Add Order",
+    "edit_order": "Edit Order",
     "order_info": "Order Information",
     "title": "Title",
     "input_title": "Enter order title",
@@ -229,7 +231,8 @@
     "old_pass_incorrect": "Old password is incorrect",
     "confirm_password_incorrect": "Confirm password is incorrect",
     "save_success": "Saved successfully",
-    "submit": "Submit"
+    "submit": "Submit",
+    "loading": "Loading..."
   },
   "settings": {
     "cancel": "Cancel",

@@ -502,4 +502,113 @@ func ApiPurchase(r *gin.RouterGroup) {
 		//ReturnJson(ctx, "apiErr", nil)
 	})
 
+	// 编辑订单基本信息
+	r.POST("/updateorder", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromUpdateOrder struct {
+			ID     uint       `json:"id"`
+			Title  string     `json:"title"`
+			Remark string     `json:"remark"`
+			Link   string     `json:"link"`
+			Styles string     `json:"styles"`
+			Photos []string   `json:"photos"`
+			Costs  []CostItem `json:"costs"`
+		}
+		var from FromUpdateOrder
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+		if from.Title == "" {
+			ReturnJson(ctx, "jsonErr_1", nil)
+			return
+		}
+
+		// 校验图片哈希
+		for _, hash := range from.Photos {
+			if models.IsContainsSpecialChar(hash) {
+				ReturnJson(ctx, "photo_hash_invalid", nil)
+				return
+			}
+		}
+		// 校验费用
+		for _, c := range from.Costs {
+			if c.Cost <= 0 || c.Int <= 0 {
+				ReturnJson(ctx, "jsonErr_1", nil)
+				return
+			}
+		}
+
+		var order TabPurchaseOrder
+		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 记录旧数据
+		oldContent, _ := json.Marshal(order)
+
+		// 更新基本字段
+		if err := models.DB.Model(&order).Updates(map[string]interface{}{
+			"title":  from.Title,
+			"remark": from.Remark,
+			"link":   from.Link,
+			"styles": from.Styles,
+		}).Error; err != nil {
+			ReturnJson(ctx, "apiErr", nil)
+			return
+		}
+
+		// 重建费用明细：先删旧，再插新
+		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseCosts{})
+		for _, c := range from.Costs {
+			ct := c.CurrencyType
+			if ct <= 0 {
+				ct = 1
+			}
+			ctype := c.Type
+			if ctype <= 0 {
+				ctype = 1
+			}
+			models.DB.Create(&TabPurchaseCosts{
+				Price:        c.Cost,
+				Quantity:     c.Int,
+				UserID:       user.ID,
+				OrderID:      from.ID,
+				CurrencyType: ct,
+				CostType:     ctype,
+			})
+		}
+
+		// 重建图片绑定：先删旧，再插新
+		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseFileBind{})
+		for _, hash := range from.Photos {
+			findFile := models.TabFileInfo_{Sha256: hash, Type: "image"}
+			if models.DB.Where(&findFile).First(&findFile).Error == nil {
+				models.DB.Create(&TabPurchaseFileBind{
+					OrderID: from.ID,
+					FileID:  findFile.ID,
+				})
+			}
+		}
+
+		// 写操作日志
+		newContent, _ := json.Marshal(from)
+		models.DB.Create(&TabPurchaseLog{
+			UserID:     user.ID,
+			OrderID:    from.ID,
+			ActionType: "update",
+			OldContent: string(oldContent),
+			NewContent: string(newContent),
+			IP:         ctx.ClientIP(),
+		})
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
 }

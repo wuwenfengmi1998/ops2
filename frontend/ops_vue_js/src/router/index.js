@@ -50,6 +50,11 @@ const router = createRouter({
           component: () => import('@/views/purchase/ShowOrder.vue'),
         },
         {
+          path: 'purchase/editorder/:id',
+          name: 'purchase-edit',
+          component: () => import('@/views/purchase/editorder.vue'),
+        },
+        {
           path: 'warehouse',
           name: 'warehouse',
           component: () => import('@/views/WarehouseView.vue'),
