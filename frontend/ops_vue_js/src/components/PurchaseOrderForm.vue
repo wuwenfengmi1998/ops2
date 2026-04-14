@@ -25,12 +25,7 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  /** 回填费用列表（分为单位） */
-  initialCosts: {
-    type: Array,
-    default: () => [],
-  },
-  /** 回填图片列表 */
+  /** 回填图片列表 [{ Sha256, Name, ... }] */
   initialPhotos: {
     type: Array,
     default: () => [],
@@ -94,12 +89,12 @@ function removeCostEntry(index) {
 
 /** 将当前 costEntries（元）转换为分并同步到父组件 */
 function syncCosts() {
-  const converted = costEntries.map((h) => ({
+  // 直接更新父组件的 form._costs，跳过 emit 链路
+  props.modelValue._costs = costEntries.map((h) => ({
     ...h,
     cost: Math.round(h.cost * 100),
     costt: Math.round(h.costt * 100),
   }));
-  emit("update:modelValue", { ...props.modelValue, _costs: converted });
 }
 
 watch(
@@ -111,25 +106,24 @@ watch(
   },
 );
 
-// 回填费用（分→元）
-watch(
-  () => props.initialCosts,
-  (list) => {
-    if (!list || list.length === 0) return;
-    costEntries.splice(0, costEntries.length);
-    list.forEach((c) => {
-      costEntries.push({
-        type: c.costType,
-        int: c.quantity,
-        cost: parseFloat((c.price / 100).toFixed(2)),
-        costt: parseFloat(((c.price * c.quantity) / 100).toFixed(2)),
-        currencytype: c.currencyType,
-      });
+// ==================== 外部初始化接口 ====================
+/**
+ * 由父组件调用，用于回填已有费用数据（来自 API）
+ * @param {Array} list 费用数组，单位：分
+ */
+function initCostEntries(list) {
+  if (!list || list.length === 0) return;
+  costEntries.splice(0, costEntries.length);
+  list.forEach((c) => {
+    costEntries.push({
+      type: c.type ?? c.CostType ?? 1,
+      int: c.int ?? c.Quantity ?? 1,
+      cost: parseFloat(((c.cost ?? c.Price) / 100).toFixed(2)),
+      costt: parseFloat(((c.costt ?? c.Price * (c.int ?? c.Quantity)) / 100).toFixed(2)),
+      currencytype: c.currencytype ?? c.CurrencyType ?? 1,
     });
-    syncCosts();
-  },
-  { immediate: true },
-);
+  });
+}
 
 // ==================== 图片上传 ====================
 const photosRef = ref(null);
@@ -141,7 +135,7 @@ function getPhotoHashes() {
   return photosRef.value?.return_files().map((f) => f.hash) ?? [];
 }
 
-defineExpose({ getPhotoHashes, costEntries });
+defineExpose({ getPhotoHashes, costEntries, initCostEntries });
 
 // ==================== 表单字段双向绑定 ====================
 function update(field, value) {

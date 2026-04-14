@@ -129,6 +129,8 @@
     "input_fee": "Fee",
     "select_currency": "Select currency",
     "add": "Add",
+    "add_cost": "Add Cost",
+    "upload_photos": "Upload Photos",
     "other_status": "Other Status",
     "update_time": "Update Time",
     "tracking_number": "Tracking Number",

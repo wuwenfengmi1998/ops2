@@ -6,12 +6,31 @@ import (
 	"ops/models"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
+type TabFileInfo_ struct {
+	ID     uint      `gorm:"primaryKey;autoIncrement"`
+	Name   string    `gorm:"not null;size:256;index"` // 前端报告的文件名
+	Path   string    `gorm:"not null;size:300"`       //
+	Sha256 string    `gorm:"not null;size:64;index"`  //
+	Mime   string    `gorm:"size:64;index"`
+	Type   string    `gorm:"size:64;index"`
+	Const  uint      `gorm:"default:1;index"`
+	Per    uint      `gorm:"default:1"`
+	UserID uint      `gorm:"not null;index"`
+	Date   time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
+}
+
 func file_save() {
 
+}
+
+func ApiFilesInit() {
+
+	models.DB.AutoMigrate(&TabFileInfo_{})
 }
 
 func ApiFiles(r *gin.RouterGroup) {
@@ -35,7 +54,7 @@ func ApiFiles(r *gin.RouterGroup) {
 			download = false
 		}
 		if isPartOK {
-			file_info := models.TabFileInfo_{
+			file_info := TabFileInfo_{
 				Sha256: hash,
 			}
 			if models.DB.Where(&file_info).First(&file_info).Error == nil {
@@ -107,14 +126,14 @@ func ApiFiles(r *gin.RouterGroup) {
 									}
 									//记录到数据库
 									//先检查数据库有没有数据
-									fund_file_info := models.TabFileInfo_{
+									fund_file_info := TabFileInfo_{
 										Name:   filename,
 										Sha256: hash_str,
 										Mime:   mimeType,
 										Type:   "image",
 										UserID: user.ID,
 									}
-									fund_file_info2 := models.TabFileInfo_{}
+									fund_file_info2 := TabFileInfo_{}
 
 									models.DB.Where(&fund_file_info).Find(&fund_file_info2)
 

@@ -12,19 +12,6 @@ import (
 
 var DB *gorm.DB
 
-type TabFileInfo_ struct {
-	ID     uint      `gorm:"primaryKey;autoIncrement"`
-	Name   string    `gorm:"not null;size:256;index"` // 前端报告的文件名
-	Path   string    `gorm:"not null;size:300"`       //
-	Sha256 string    `gorm:"not null;size:64;index"`  //
-	Mime   string    `gorm:"size:64;index"`
-	Type   string    `gorm:"size:64;index"`
-	Const  uint      `gorm:"default:1;index"`
-	Per    uint      `gorm:"default:1"`
-	UserID uint      `gorm:"not null;index"`
-	Date   time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
-}
-
 type TabUser_ struct {
 	ID    uint      `gorm:"primaryKey;autoIncrement"` // 自增主键
 	Name  string    `gorm:"size:100;uniqueIndex"`     // 唯一约束索引
@@ -125,8 +112,6 @@ func DatabaseInit() error {
 	DB.AutoMigrate(&TabUserInfo_{})
 
 	DB.AutoMigrate(&TabCookie_{})
-
-	DB.AutoMigrate(&TabFileInfo_{})
 
 	DB.AutoMigrate(&APIRequestLog_{})
 

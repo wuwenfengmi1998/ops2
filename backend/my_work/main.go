@@ -67,6 +67,7 @@ func main() {
 	//统一初始化
 	models.ConfigAllInit()
 	routers.ApiUserInit() //用户表先初始化这是必须的因为后面需要用到用户组
+	routers.ApiFilesInit()
 	routers.ApiScheduleInit()
 	routers.ApiPurchaseInit()
 

@@ -3,7 +3,6 @@ package routers
 import (
 	"encoding/json"
 	"fmt"
-	"ops/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,7 +34,7 @@ func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 
 }
 
-func ReturnFile(ctx *gin.Context, file_info *models.TabFileInfo_, preview bool) {
+func ReturnFile(ctx *gin.Context, file_info *TabFileInfo_, preview bool) {
 	if preview {
 		ctx.File(file_info.Path)
 	} else {

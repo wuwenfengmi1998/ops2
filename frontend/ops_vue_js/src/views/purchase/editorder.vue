@@ -4,18 +4,19 @@
  *
  * 功能概述：
  * - 通过路由参数 :id 加载已有订单数据
- * - 使用 PurchaseOrderForm 组件展示可编辑表单
+ * - 费用明细直接在本页管理（与 addorder.vue 相同模式）
  * - 提交时调用 /purchase/updateorder 保存修改
  */
 
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { useToastStore } from "@/stores/toast";
 import { usePageTitle } from "@/composables/usePageTitle";
 import { useValidation } from "@/composables";
 import { purchaseApi } from "@/api/purchase";
-import PurchaseOrderForm from "@/components/PurchaseOrderForm.vue";
+import tagadder from "@/components/tagadder.vue";
+import useDropzone from "@/components/useDropzone.vue";
 
 usePageTitle("purchase_addorder.edit_order");
 
@@ -32,24 +33,73 @@ const loading = ref(false);
 const pageLoading = ref(true);
 const pageError = ref("");
 
-/** 回填的费用明细（分为单位，传给 PurchaseOrderForm） */
-const initialCosts = ref([]);
-/** 回填的图片列表 */
-const initialPhotos = ref([]);
-
-/** 表单数据 */
+// ==================== 表单数据 ====================
 const form = reactive({
   title: "",
   remark: "",
   link: "",
   styles: "",
   photos: [],
-  costs: [],
-  _costs: [], // 由 PurchaseOrderForm 组件同步的分为单位费用数组
 });
 
-/** PurchaseOrderForm 组件引用（用于获取图片哈希） */
-const formRef = ref(null);
+// ==================== 费用明细（与 addorder.vue 完全一致） ====================
+const textMaxLen = 256;
+const currencyOptions = { 1: "CNY", 2: "MOP", 3: "HKD", 4: "USD" };
+const costType = computed(() => ({
+  1: t("cost_type.unit_price"),
+  2: t("cost_type.freight"),
+}));
+
+/** 已添加的费用列表 */
+const costEntries = reactive([]);
+const costError = ref(false);
+
+const newCost = reactive({
+  type: 1,
+  int: 1,
+  cost: 0,
+  currencytype: 1,
+});
+
+function addCostEntry() {
+  if (!newCost.cost || parseFloat(newCost.cost) <= 0) {
+    costError.value = true;
+    return;
+  }
+  const cost = parseFloat(newCost.cost);
+  costEntries.push({
+    type: newCost.type,
+    int: newCost.int,
+    cost,
+    costt: parseFloat((cost * newCost.int).toFixed(2)),
+    currencytype: newCost.currencytype,
+  });
+  newCost.cost = 0;
+  newCost.type = 1;
+  newCost.int = 1;
+  newCost.currencytype = 1;
+  costError.value = false;
+}
+
+function removeCostEntry(idx) {
+  costEntries.splice(idx, 1);
+}
+
+watch(
+  () => newCost.cost,
+  (val) => {
+    const fixed = parseFloat(val).toFixed(2);
+    if (parseFloat(fixed) !== val) newCost.cost = parseFloat(fixed);
+    if (val > 0) costError.value = false;
+  },
+);
+
+// ==================== 图片上传 ====================
+const dropzoneRef = ref(null);
+
+function getPhotoHashes() {
+  return dropzoneRef.value?.return_files().map((f) => f.hash) ?? [];
+}
 
 // ==================== 加载订单数据 ====================
 onMounted(async () => {
@@ -61,14 +111,13 @@ onMounted(async () => {
 
   try {
     const res = await purchaseApi.getOrder(orderId);
-    console.log(res)
-    if (res.errCode !== 0 || res.raw?.err_code !== 0) {
+    if (res.errCode !== 0 || !res.data) {
       pageError.value = t("purchase.order_not_found");
       pageLoading.value = false;
       return;
     }
 
-    const { order, costs, photos } = res.raw.data;
+    const { order, costs, photos } = res.data;
 
     // 回填基本信息
     form.title = order.Title ?? "";
@@ -76,10 +125,24 @@ onMounted(async () => {
     form.link = order.Link ?? "";
     form.styles = order.Styles ?? "";
 
-    // 回填费用（传给子组件，由子组件转换为元展示）
-    initialCosts.value = costs ?? [];
+    // 回填费用（分→元，直接写 costEntries）
+    if (costs && costs.length > 0) {
+      costs.forEach((c) => {
+        costEntries.push({
+          type: c.CostType,
+          int: c.Quantity,
+          cost: parseFloat((c.Price / 100).toFixed(2)),
+          costt: parseFloat(((c.Price * c.Quantity) / 100).toFixed(2)),
+          currencytype: c.CurrencyType,
+        });
+      });
+    }
+
     // 回填图片
-    initialPhotos.value = photos ?? [];
+    await nextTick();
+    if (photos && photos.length > 0) {
+      dropzoneRef.value?.loadInitialFiles(photos);
+    }
   } catch {
     pageError.value = t("purchase.order_not_found");
   } finally {
@@ -93,10 +156,15 @@ async function handleSubmit() {
   const ok = validate("title", form.title, t("purchase_addorder.title"));
   if (!ok) return;
 
-  // 获取图片哈希
-  form.photos = formRef.value?.getPhotoHashes() ?? [];
-  // 使用子组件同步的费用（分为单位）
-  form.costs = form._costs ?? [];
+  form.photos = getPhotoHashes();
+  // 费用（转为分）
+  const rawCosts = costEntries.map((h) => ({
+    type: h.type,
+    int: h.int,
+    cost: Math.round(h.cost * 100),
+    costt: Math.round(h.costt * 100),
+    currencytype: h.currencytype,
+  }));
 
   loading.value = true;
   try {
@@ -106,10 +174,10 @@ async function handleSubmit() {
       link: form.link,
       styles: form.styles,
       photos: form.photos,
-      costs: form.costs,
+      costs: rawCosts,
     });
 
-    if (res.errCode === 0 && res.raw?.err_code === 0) {
+    if (res.errCode === 0) {
       toast.success(t("message.save_ok"));
       setTimeout(() => {
         router.replace(`/purchase/showorder/${orderId}`);
@@ -168,13 +236,163 @@ async function handleSubmit() {
         {{ errors.title }}
       </div>
 
-      <!-- 表单主体（公共组件） -->
-      <PurchaseOrderForm
-        v-model="form"
-        :initialCosts="initialCosts"
-        :initialPhotos="initialPhotos"
-        ref="formRef"
-      />
+      <!-- ==================== 订单信息区块 ==================== -->
+      <div class="border-b border-gray-200 px-6 py-4 dark:border-dk-muted">
+        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
+          {{ t("purchase_addorder.order_info") }}
+        </h4>
+      </div>
+
+      <div class="space-y-4 px-6 py-5">
+        <!-- 标题字段（必填） -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t("purchase_addorder.part_name") }}
+            <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="form.title"
+            type="text"
+            maxlength="50"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+            :class="errors.title ? 'border-red-500' : 'border-gray-300'"
+            :placeholder="t('purchase_addorder.part_name')"
+          />
+          <span v-if="errors.title" class="mt-1 block text-xs text-red-500">{{ errors.title }}</span>
+        </div>
+
+        <!-- 备注字段 -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t("purchase_addorder.remarks") }}
+            <span class="text-gray-400">{{ form.remark.length }}/{{ textMaxLen }}</span>
+          </label>
+          <textarea
+            v-model="form.remark"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+            rows="4"
+            :placeholder="t('purchase_addorder.remarks_text')"
+          />
+        </div>
+
+        <!-- 采购链接 -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.link") }}</label>
+          <textarea
+            v-model="form.link"
+            class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+            rows="2"
+          />
+        </div>
+
+        <!-- 款式标签 -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.style_remarks") }}</label>
+          <tagadder :placeholder="t('purchase_addorder.add_style')" v-model="form.styles" />
+        </div>
+
+        <!-- ==================== 费用明细表格 ==================== -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.cost") }}</label>
+
+          <!-- 已添加的费用列表 -->
+          <div v-if="costEntries.length" class="mb-4 overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-900">
+              <thead>
+                <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base">
+                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.type") }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.quantity") }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.fee") }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.total_price") }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.currency") }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t("purchase_addorder.operation") }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(item, idx) in costEntries"
+                  :key="idx"
+                  class="border-b border-gray-100 dark:border-dk-muted"
+                >
+                  <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">
+                    {{ costType[item.type] }}
+                  </td>
+                  <td class="px-3 py-2 text-gray-500">{{ item.int }}</td>
+                  <td class="px-3 py-2 text-gray-500">{{ item.cost }}</td>
+                  <td class="px-3 py-2 text-gray-500">{{ item.costt }}</td>
+                  <td class="px-3 py-2 text-gray-500">
+                    {{ currencyOptions[item.currencytype] }}
+                  </td>
+                  <td class="px-3 py-2">
+                    <button
+                      class="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                      @click="removeCostEntry(idx)"
+                    >
+                      {{ t("purchase_addorder.remove") }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 添加费用表单 -->
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.fee_type") }}</label>
+              <select
+                v-model="newCost.type"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
+              >
+                <option v-for="(label, key) in costType" :key="key" :value="Number(key)">{{ label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.input_quantity") }}</label>
+              <input
+                v-model.number="newCost.int"
+                type="number"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
+                min="1"
+              />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.input_fee") }}</label>
+              <input
+                v-model="newCost.cost"
+                type="number"
+                class="w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-dk-base dark:text-white"
+                :class="costError ? 'border-red-500' : 'border-gray-300 dark:border-dk-muted'"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-gray-500">{{ t("purchase_addorder.select_currency") }}</label>
+              <select
+                v-model="newCost.currencytype"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
+              >
+                <option v-for="(label, key) in currencyOptions" :key="key" :value="Number(key)">{{ label }}</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button
+                class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-dk-muted dark:bg-dk-base dark:text-gray-200 dark:hover:bg-dk-muted"
+                @click="addCostEntry"
+              >
+                {{ t("purchase_addorder.add_cost") }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 图片上传 ==================== -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t("purchase_addorder.upload_photos") }}</label>
+          <useDropzone ref="dropzoneRef" :initialFiles="[]" />
+        </div>
+      </div>
 
       <!-- 底部操作栏 -->
       <div class="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-dk-muted">

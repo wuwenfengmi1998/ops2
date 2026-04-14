@@ -139,7 +139,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 		for _, b := range binds {
 			fileIDs = append(fileIDs, b.FileID)
 		}
-		var files []models.TabFileInfo_
+		var files []TabFileInfo_
 		if len(fileIDs) > 0 {
 			models.DB.Where("id IN ?", fileIDs).Find(&files)
 		}
@@ -448,7 +448,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 					//绑定文件
 					for i := 0; i < len(jsondata.Photos); i++ {
-						findFile := models.TabFileInfo_{
+						findFile := TabFileInfo_{
 							Sha256: jsondata.Photos[i],
 							Type:   "image",
 						}
@@ -588,7 +588,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 		// 重建图片绑定：先删旧，再插新
 		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseFileBind{})
 		for _, hash := range from.Photos {
-			findFile := models.TabFileInfo_{Sha256: hash, Type: "image"}
+			findFile := TabFileInfo_{Sha256: hash, Type: "image"}
 			if models.DB.Where(&findFile).First(&findFile).Error == nil {
 				models.DB.Create(&TabPurchaseFileBind{
 					OrderID: from.ID,
