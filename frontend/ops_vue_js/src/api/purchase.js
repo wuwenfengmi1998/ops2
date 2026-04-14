@@ -25,4 +25,9 @@ export const purchaseApi = {
   updateOrder(id, data) {
     return api.post('/purchase/updateorder', { id, ...data })
   },
+
+  /** 删除订单 */
+  deleteOrder(id) {
+    return api.post('/purchase/deleteorder', { id })
+  },
 }

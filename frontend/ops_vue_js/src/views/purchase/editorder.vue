@@ -17,6 +17,7 @@ import { useValidation } from "@/composables";
 import { purchaseApi } from "@/api/purchase";
 import tagadder from "@/components/tagadder.vue";
 import useDropzone from "@/components/useDropzone.vue";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 usePageTitle("purchase_addorder.edit_order");
 
@@ -96,6 +97,7 @@ watch(
 
 // ==================== 图片上传 ====================
 const dropzoneRef = ref(null);
+const showDeleteConfirm = ref(false);
 
 function getPhotoHashes() {
   return dropzoneRef.value?.return_files().map((f) => f.hash) ?? [];
@@ -151,6 +153,30 @@ onMounted(async () => {
     pageLoading.value = false;
   }
 });
+
+// ==================== 提交 ====================
+// ==================== 删除订单 ====================
+async function handleDelete() {
+  showDeleteConfirm.value = true;
+}
+
+async function doDelete() {
+
+  loading.value = true;
+  try {
+    const res = await purchaseApi.deleteOrder(orderId);
+    if (res.errCode === 0) {
+      toast.success(t("message.delete_ok"));
+      router.replace("/purchase");
+    } else {
+      toast.error(t("message.server_error"));
+    }
+  } catch {
+    toast.error(t("message.server_error"));
+  } finally {
+    loading.value = false;
+  }
+}
 
 // ==================== 提交 ====================
 async function handleSubmit() {
@@ -241,11 +267,24 @@ async function handleSubmit() {
         <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
           {{ t("purchase_addorder.edit_order") }}
         </h4>
-        <!-- 返回按钮 -->
-        <button
-          class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-base"
-          @click="router.back()"
-        >
+        <!-- 操作按钮组 -->
+        <div class="flex items-center gap-2">
+          <!-- 删除按钮 -->
+          <button
+            class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+            :disabled="loading"
+            @click="handleDelete"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {{ t("purchase.delete_order") }}
+          </button>
+          <!-- 返回按钮 -->
+          <button
+            class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-base"
+            @click="router.back()"
+          >
           <svg
             class="h-4 w-4"
             fill="none"
@@ -259,8 +298,9 @@ async function handleSubmit() {
               d="M15 19l-7-7 7-7"
             />
           </svg>
-          {{ t("purchase.back_to_list") }}
+          {{ t("purchase.back") }}
         </button>
+        </div>
       </div>
 
       <!-- 错误提示（字段验证） -->
@@ -532,4 +572,12 @@ async function handleSubmit() {
       </div>
     </div>
   </div>
+
+  <!-- 通用确认弹窗 -->
+  <ConfirmDialog
+    v-model="showDeleteConfirm"
+    :title="t('purchase.confirm_delete')"
+    danger
+    @confirm="doDelete"
+  />
 </template>

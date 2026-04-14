@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { purchaseApi } from '@/api/purchase'
-import { IconPlus, IconChevronLeftPipe, IconChevronRightPipe, IconChevronsLeft, IconChevronsRight, IconSearch } from '@tabler/icons-vue'
+import { IconPlus, IconChevronLeftPipe, IconChevronRightPipe, IconChevronsLeft, IconChevronsRight } from '@tabler/icons-vue'
 
 usePageTitle('appname.purchase')
 const { t, locale } = useI18n()
@@ -16,8 +16,18 @@ const orders = ref([])
 const totalCount = ref(0)
 const pageSize = ref(10)
 const currentPage = ref(1)
-const searchQuery = ref('')
+const statusFilter = ref('')
 const loading = ref(false)
+
+const statusOptions = [
+  { value: '', labelKey: 'purchase.filter_all' },
+  { value: 'pending', labelKey: 'purchase.status_pending' },
+  { value: 'ordered', labelKey: 'purchase.status_ordered' },
+  { value: 'arrived', labelKey: 'purchase.status_arrived' },
+  { value: 'received', labelKey: 'purchase.status_received' },
+  { value: 'lost', labelKey: 'purchase.status_lost' },
+  { value: 'returned', labelKey: 'purchase.status_returned' },
+]
 
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value) || 1)
 
@@ -34,7 +44,7 @@ async function fetchOrders() {
   loading.value = true
   try {
     const { errCode, data } = await purchaseApi.getOrders({
-      search: searchQuery.value,
+      status: statusFilter.value,
       entries: pageSize.value,
       page: currentPage.value,
     })
@@ -107,11 +117,16 @@ onMounted(fetchOrders)
             <IconPlus :size="16" />
             {{ t('purchase.add_part') }}
           </RouterLink>
-          <button class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-400">{{ t('purchase.exp_report') }}</button>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-500">{{ t('purchase.search') }}</label>
-          <input v-model="searchQuery" type="text" class="w-48 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white" @keydown.enter="currentPage=1;fetchOrders()" />
+          <!-- 状态下拉筛选 -->
+          <select
+            v-model="statusFilter"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
+            @change="currentPage = 1; fetchOrders()"
+          >
+            <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+              {{ t(opt.labelKey) }}
+            </option>
+          </select>
         </div>
       </div>
 

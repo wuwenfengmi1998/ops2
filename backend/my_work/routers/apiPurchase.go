@@ -317,6 +317,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 			type From_purchase_getorders struct {
 				Search  string
+				Status  string
 				Entries int
 				Page    int
 			}
@@ -336,14 +337,20 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 				if is_data_ok {
 
-					//读取有多少条目
-					var count int64
-					models.DB.Model(TabPurchaseOrder{}).Count(&count)
-					//fmt.Println(count)
+		//读取有多少条目
+				var count int64
+				query := models.DB.Model(TabPurchaseOrder{})
+				if jsondata.Search != "" {
+					query = query.Where("title LIKE ?", "%"+jsondata.Search+"%")
+				}
+				if jsondata.Status != "" {
+					query = query.Where("order_status = ?", jsondata.Status)
+				}
+				query.Count(&count)
 
-					//读取条目
-					var getorders []TabPurchaseOrder
-					models.DB.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
+				//读取条目
+				var getorders []TabPurchaseOrder
+				query.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
 
 					ReturnJson(ctx, "apiOK", map[string]interface{}{
 						"all_count":  count,
@@ -607,6 +614,41 @@ func ApiPurchase(r *gin.RouterGroup) {
 			NewContent: string(newContent),
 			IP:         ctx.ClientIP(),
 		})
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
+	// 删除订单
+	r.POST("/deleteorder", func(ctx *gin.Context) {
+		isAuth, _, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromDeleteOrder struct {
+			ID uint `json:"id"`
+		}
+		var from FromDeleteOrder
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+
+		var order TabPurchaseOrder
+		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 关联删除（硬删，不保留）
+		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseCosts{})
+		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseFileBind{})
+		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseCommit{})
+		models.DB.Where("order_id = ?", from.ID).Delete(&TabPurchaseLog{})
+
+		// 软删除订单本身
+		models.DB.Delete(&order)
 
 		ReturnJson(ctx, "apiOK", nil)
 	})
