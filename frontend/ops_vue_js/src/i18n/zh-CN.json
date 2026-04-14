@@ -133,6 +133,7 @@
     "fee_type": "费用类型",
     "input_quantity": "数量",
     "input_fee": "费用",
+    "fee_hint": "小数点必须是 \".\"，开启输入法状态可能无法输入",
     "select_currency": "选择货币类型",
     "add": "添加",
     "add_cost": "添加费用",

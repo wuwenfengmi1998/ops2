@@ -478,9 +478,17 @@ async function handleSubmit() {
               />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-500">{{
-                t("purchase_addorder.input_fee")
-              }}</label>
+              <label class="mb-1 flex items-center gap-1 block text-xs font-medium text-gray-500">
+                {{ t("purchase_addorder.input_fee") }}
+                <span class="relative group">
+                  <svg class="h-3.5 w-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-48 p-2 text-xs text-white bg-gray-800 rounded-lg shadow-lg z-10 whitespace-normal">
+                    {{ t("purchase_addorder.fee_hint") }}
+                  </span>
+                </span>
+              </label>
               <input
                 v-model="newCost.cost"
                 type="number"

@@ -133,6 +133,7 @@
     "fee_type": "Fee type",
     "input_quantity": "Quantity",
     "input_fee": "Fee",
+    "fee_hint": "Decimal point must be \".\", input method may prevent typing",
     "select_currency": "Select currency",
     "add": "Add",
     "add_cost": "Add Cost",
