@@ -120,12 +120,12 @@ onMounted(fetchOrders)
         <table class="w-full text-left text-sm text-gray-900">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base">
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">No.</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.item_name') }}</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.purpose') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">No.</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-48">{{ t('purchase.item_name') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-64">{{ t('purchase.purpose') }}</th>
               
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('purchase.created_at') }}</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('purchase.status') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-32">{{ t('purchase.created_at') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-32">{{ t('purchase.status') }}</th>
             </tr>
           </thead>
           <tbody>

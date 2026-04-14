@@ -2,7 +2,6 @@ package routers
 
 import (
 	"encoding/json"
-	"fmt"
 	"ops/models"
 	"strings"
 	"time"
@@ -324,7 +323,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 			var jsondata From_purchase_getorders
 			if err := decodeJSON(data, &jsondata); err == nil {
-				fmt.Println(jsondata)
+				//fmt.Println(jsondata)
 
 				is_data_ok := true
 
@@ -373,7 +372,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 			//fmt.Println(user)
 			//DebugPrintJson(data)
 			var jsondata From_purchase_addorder
-			fmt.Println(data)
+			//fmt.Println(data)
 			if err := decodeJSON(data, &jsondata); err == nil {
 
 				//jsonStr, _ := json.MarshalIndent(jsondata, "", "  ")
@@ -402,7 +401,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 					//判断字符串是否包含标点符号
 					if models.IsContainsSpecialChar(jsondata.Photos[i]) {
 						is_data_ok = false
-						fmt.Println("err4")
+						//fmt.Println("err4")
 					}
 
 				}
