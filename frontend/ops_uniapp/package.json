@@ -1,0 +1,21 @@
+{
+  "name": "ops-uniapp",
+  "version": "1.0.0",
+  "description": "OPS Mobile App",
+  "main": "main.js",
+  "scripts": {
+    "dev": "uni -p h5",
+    "build": "uni build -p h5"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-4010520250107001",
+    "vue-i18n": "^9.14.0"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.8",
+    "@dcloudio/uni-cli-shared": "3.0.0-4010520250107001",
+    "@dcloudio/uni-h5": "3.0.0-4010520250107001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4010520250107001",
+    "vite": "^5.4.0"
+  }
+}
