@@ -4,23 +4,37 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { usersApi } from '@/api/users';
 
-export const useUsersStore = defineStore('users', () => {
-    const usersInfo =ref([]);
+const usersInfo = ref([]);
+// 正在请求中的 userID 集合，避免重复发请求
+const pendingFetch = new Set();
 
-    function getUserFromUserID(userID){
+export const useUsersStore = defineStore('users', () => {
+
+    function getUserFromUserID(userID) {
         return usersInfo.value?.find(item => item.UserID === userID) ?? null
     }
 
-    function getUsernameFromUserID(userID){
+    function fetchUser(userID) {
+        if (pendingFetch.has(userID)) return
+        pendingFetch.add(userID)
+        usersApi.getUserInfoFromUserID(userID).then((r) => {
+            if (r.errCode == 0 && r.raw.err_code == 0 && r.raw.return?.userinfo) {
+                // 防止并发写入重复数据
+                if (!usersInfo.value.find(item => item.UserID === userID)) {
+                    usersInfo.value.push(r.raw.return.userinfo)
+                }
+            }
+        }).finally(() => {
+            pendingFetch.delete(userID)
+        })
+    }
+
+    function getUsernameFromUserID(userID) {
         const target = getUserFromUserID(userID)
         if (target) {
             return target.Username
         }
-        usersApi.getUserInfoFromUserID(userID).then((r) => {
-            if (r.errCode == 0 && r.raw.err_code == 0 && r.raw.return.userinfo) {
-                usersInfo.value.push(r.raw.return.userinfo)
-            }
-        })
+        fetchUser(userID)
         return "..."
     }
 
@@ -29,11 +43,13 @@ export const useUsersStore = defineStore('users', () => {
         if (target?.AvatarPath) {
             return `/api/static/avatar/${target.AvatarPath}`
         }
+        // 触发加载（如果还没加载过）
+        fetchUser(userID)
         return `/ava.svg`
     }
 
-    return{
-        usersInfo,getUsernameFromUserID,getAvatarUrlFromUserID,
+    return {
+        usersInfo, getUsernameFromUserID, getAvatarUrlFromUserID,
     }
 
 })
