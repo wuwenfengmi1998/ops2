@@ -187,6 +187,12 @@
     "not_your_schedule": "This is not your schedule",
     "someone_schedule": "Created by {name}"
   },
+  "home": {
+    "today_schedule_count": "Today: {count} schedule(s)",
+    "today_no_schedule": "No schedules today",
+    "loading": "Loading...",
+    "today": "Today: {date}"
+  },
   "message": {
     "functionality_not_yet_developed": "Functionality not yet developed",
     "hello": "Hello",
