@@ -13,6 +13,12 @@
 			}
 		},
 		{
+			"path": "pages/user/user",
+			"style": {
+				"navigationBarTitleText": "我的"
+			}
+		},
+		{
 			"path": "pages/settings/apiConfig",
 			"style": {
 				"navigationBarTitleText": "设置"
@@ -49,6 +55,12 @@
 				"text": "首页",
 				"iconPath": "static/tabbar/home.png",
 				"selectedIconPath": "static/tabbar/home-active.png"
+			},
+			{
+				"pagePath": "pages/user/user",
+				"text": "我的",
+				"iconPath": "static/tabbar/settings.png",
+				"selectedIconPath": "static/tabbar/settings-active.png"
 			},
 			{
 				"pagePath": "pages/settings/apiConfig",

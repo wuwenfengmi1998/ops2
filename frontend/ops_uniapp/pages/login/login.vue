@@ -135,18 +135,26 @@ const handleLogin = () => {
     url: getApp().globalData.BASE_URL + '/users/login',
     method: 'POST',
     data: {
-      username: form.username,
-      password: form.password,
-      remember: form.remember
+      userCookieValue: '',
+      data: {
+        username: form.username,
+        password: form.password,
+        remember: form.remember
+      }
     },
     header: {
       'Content-Type': 'application/json'
     },
     success: (res) => {
-      if (res.data.code === 0 && res.data.data && res.data.data.cookie) {
-        const cookie = res.data.data.cookie
-        uni.setStorageSync('sessionCookie', cookie.Value)
-        uni.setStorageSync('userInfo', res.data.data)
+      if (res.data.err_code === 0 && res.data.return && res.data.return.cookie) {
+        const cookieData = res.data.return.cookie
+        // 存储 cookie Value 作为 session 标识
+        uni.setStorageSync('sessionCookie', cookieData.Value)
+        uni.setStorageSync('cookieExpires', cookieData.ExpiresAt)
+        uni.setStorageSync('userInfo', {
+          userId: cookieData.ID,
+          username: form.username
+        })
 
         if (form.remember) {
           uni.setStorageSync('savedUsername', form.username)
@@ -168,13 +176,15 @@ const handleLogin = () => {
           })
         }, 1500)
       } else {
+        // 根据 err_code 显示错误信息
+        const errCode = res.data.err_code
         const msgMap = {
-          userNameNoFund: t('login.usernameNotFound'),
-          userPassIncorrect: t('login.passwordIncorrect'),
-          jsonErr: t('login.paramError'),
-          postErr: t('login.requestFailed')
+          '-41': t('login.usernameNotFound'),
+          '-42': t('login.passwordIncorrect'),
+          '-3': t('login.paramError'),
+          '-2': t('login.requestFailed')
         }
-        errorMsg.value = msgMap[res.data.code] || t('login.loginFailed')
+        errorMsg.value = msgMap[errCode] || res.data.err_msg || t('login.loginFailed')
       }
     },
     fail: (err) => {

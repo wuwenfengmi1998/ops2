@@ -1,6 +1,9 @@
-import { createI18n } from 'vue-i18n'
+import { createI18n, useI18n as _useI18n } from 'vue-i18n'
 import zh from './zh.js'
 import en from './en.js'
+
+// 兼容 uni-app 的 useI18n 导出
+export const useI18n = _useI18n
 
 // 获取本地语言设置，默认中文
 function getLocale() {

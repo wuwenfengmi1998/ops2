@@ -161,15 +161,18 @@ const handleRegister = () => {
     url: getApp().globalData.BASE_URL + '/users/register',
     method: 'POST',
     data: {
-      username: form.username,
-      useremail: form.email,
-      userpass: form.password
+      userCookieValue: '',
+      data: {
+        username: form.username,
+        useremail: form.email,
+        userpass: form.password
+      }
     },
     header: {
       'Content-Type': 'application/json'
     },
     success: (res) => {
-      if (res.data.code === 0) {
+      if (res.data.err_code === 0) {
         uni.showToast({
           title: t('register.registerSuccess'),
           icon: 'success',
@@ -179,13 +182,15 @@ const handleRegister = () => {
           uni.navigateBack()
         }, 1500)
       } else {
+        // 根据 err_code 显示错误信息
+        const errCode = res.data.err_code
         const msgMap = {
-          userNameDup: t('register.usernameExists'),
-          userEmailDup: t('register.emailUsed'),
-          jsonErr: t('register.paramError'),
-          postErr: t('register.requestFailed')
+          '-4': t('register.usernameExists'),
+          '-43': t('register.emailInvalid'),
+          '-3': t('register.paramError'),
+          '-2': t('register.requestFailed')
         }
-        errorMsg.value = msgMap[res.data.code] || t('register.registerFailed')
+        errorMsg.value = msgMap[errCode] || res.data.err_msg || t('register.registerFailed')
       }
     },
     fail: (err) => {

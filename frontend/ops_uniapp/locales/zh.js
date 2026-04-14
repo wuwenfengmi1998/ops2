@@ -2,6 +2,7 @@ export default {
   // tabBar
   tabBar: {
     home: '首页',
+    user: '我的',
     settings: '设置',
   },
   // 首页
@@ -109,5 +110,17 @@ export default {
     failed: '操作失败',
     back: '返回',
     networkError: '网络请求失败，请检查网络',
+  },
+  // 用户页
+  user: {
+    profile: '个人资料',
+    username: '用户名',
+    firstName: '姓名',
+    birthday: '生日',
+    gender: '性别',
+    region: '地区',
+    male: '男',
+    female: '女',
+    unknown: '未知',
   }
 }

@@ -2,6 +2,7 @@ export default {
   // tabBar
   tabBar: {
     home: 'Home',
+    user: 'Profile',
     settings: 'Settings',
   },
   // 首页
@@ -109,5 +110,17 @@ export default {
     failed: 'Operation failed',
     back: 'Back',
     networkError: 'Network request failed, please check your connection',
+  },
+  // 用户页
+  user: {
+    profile: 'Profile',
+    username: 'Username',
+    firstName: 'Name',
+    birthday: 'Birthday',
+    gender: 'Gender',
+    region: 'Region',
+    male: 'Male',
+    female: 'Female',
+    unknown: 'Unknown',
   }
 }
