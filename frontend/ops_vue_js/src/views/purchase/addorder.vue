@@ -285,11 +285,20 @@ async function handleSubmit() {
     <div
       class="flex flex-col gap-6 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
     >
-      <!-- ==================== 订单信息区块 ==================== -->
-      <div class="border-b border-gray-200 px-6 py-4 dark:border-dk-muted">
+      <!-- ==================== 顶部标题栏 ==================== -->
+      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-dk-muted">
         <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
-          {{ t("purchase_addorder.order_info") }}
+          {{ t("purchase_addorder.add_order") }}
         </h4>
+        <button
+          class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-base"
+          @click="router.back()"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          {{ t("purchase.back") }}
+        </button>
       </div>
 
       <!-- 订单信息表单区域 -->

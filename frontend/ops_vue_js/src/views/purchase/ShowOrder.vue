@@ -32,6 +32,7 @@ const order = ref(null);
 const costs = ref([]);
 const photos = ref([]);
 const commits = ref([]);
+const canModify = ref(false);
 const loading = ref(true);
 const notFound = ref(false);
 const updatingStatus = ref(false);
@@ -269,6 +270,7 @@ async function fetchOrder() {
     const { errCode, data } = await purchaseApi.getOrder(orderId.value);
     if (errCode === 0 && data) {
       order.value = data.order ?? null;
+      canModify.value = data.canModify ?? false;
       costs.value = data.costs ?? [];
       photos.value = data.photos ?? [];
       commits.value = data.commits ?? [];
@@ -299,7 +301,7 @@ onMounted(fetchOrder);
       </RouterLink>
       <!-- 编辑按钮 -->
       <RouterLink
-        v-if="order"
+        v-if="canModify"
         :to="`/purchase/editorder/${order.ID}`"
         class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-card dark:text-gray-300 dark:hover:bg-dk-base"
       >

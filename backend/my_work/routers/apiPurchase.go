@@ -3,12 +3,43 @@ package routers
 import (
 	"encoding/json"
 	"ops/models"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+var (
+	purchaseUserGroup models.TabUserGroups_
+	purchaseAdmins    []uint
+)
+
+// 更新管理员成员缓存
+func updatePurchaseAdminsCash() {
+	purchaseAdmins = nil
+	// id 1 是系统管理员
+	purchaseAdmins = append(purchaseAdmins, 1)
+	var binds []models.TabUserGroupBinds_
+	models.DB.Where("group_id = ?", purchaseUserGroup.ID).Find(&binds)
+	for _, item := range binds {
+		if !slices.Contains(purchaseAdmins, item.UserID) {
+			purchaseAdmins = append(purchaseAdmins, item.UserID)
+		}
+	}
+}
+
+// 判断用户是否有权限修改/删除订单（创建者或管理员）
+func canModifyPurchase(userID, creatorUserID uint) bool {
+	if slices.Contains(purchaseAdmins, userID) {
+		return true
+	}
+	if userID == creatorUserID {
+		return true
+	}
+	return false
+}
 
 // decodeJSON 将 map 通过 JSON 中转解码到目标结构体，绕过 mapstructure 的字段名匹配问题
 func decodeJSON(data map[string]interface{}, out interface{}) error {
@@ -102,12 +133,21 @@ func ApiPurchaseInit() {
 	models.DB.AutoMigrate(&TabPurchaseLog{})
 	models.DB.AutoMigrate(&TabPurchaseCommit{})
 
+	//先检查用户组有没有这个key  purchase
+	purchaseUserGroup.Name = "purchase_admin"
+	if models.DB.Where(&purchaseUserGroup).First(&purchaseUserGroup).Error == nil {
+		updatePurchaseAdminsCash()
+	} else {
+		purchaseUserGroup.Type = "usergroup"
+		models.DB.Create(&purchaseUserGroup)
+	}
+
 }
 
 func ApiPurchase(r *gin.RouterGroup) {
 
 	r.POST("/getorder", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
 			return
@@ -193,11 +233,15 @@ func ApiPurchase(r *gin.RouterGroup) {
 			commitResps = append(commitResps, resp)
 		}
 
+		// 判断当前用户是否可以修改
+		canModify := canModifyPurchase(user.ID, order.UserID)
+
 		ReturnJson(ctx, "apiOK", gin.H{
-			"order":   order,
-			"costs":   costs,
-			"photos":  files,
-			"commits": commitResps,
+			"order":     order,
+			"canModify": canModify,
+			"costs":     costs,
+			"photos":    files,
+			"commits":   commitResps,
 		})
 	})
 
@@ -337,20 +381,20 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 				if is_data_ok {
 
-		//读取有多少条目
-				var count int64
-				query := models.DB.Model(TabPurchaseOrder{})
-				if jsondata.Search != "" {
-					query = query.Where("title LIKE ?", "%"+jsondata.Search+"%")
-				}
-				if jsondata.Status != "" {
-					query = query.Where("order_status = ?", jsondata.Status)
-				}
-				query.Count(&count)
+					//读取有多少条目
+					var count int64
+					query := models.DB.Model(TabPurchaseOrder{})
+					if jsondata.Search != "" {
+						query = query.Where("title LIKE ?", "%"+jsondata.Search+"%")
+					}
+					if jsondata.Status != "" {
+						query = query.Where("order_status = ?", jsondata.Status)
+					}
+					query.Count(&count)
 
-				//读取条目
-				var getorders []TabPurchaseOrder
-				query.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
+					//读取条目
+					var getorders []TabPurchaseOrder
+					query.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
 
 					ReturnJson(ctx, "apiOK", map[string]interface{}{
 						"all_count":  count,
@@ -557,6 +601,12 @@ func ApiPurchase(r *gin.RouterGroup) {
 			return
 		}
 
+		// 权限校验：只有创建者或管理员可以修改
+		if !canModifyPurchase(user.ID, order.UserID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
 		// 记录旧数据
 		oldContent, _ := json.Marshal(order)
 
@@ -620,7 +670,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 	// 删除订单
 	r.POST("/deleteorder", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
 			return
@@ -638,6 +688,12 @@ func ApiPurchase(r *gin.RouterGroup) {
 		var order TabPurchaseOrder
 		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
 			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 权限校验：只有创建者或管理员可以删除
+		if !canModifyPurchase(user.ID, order.UserID) {
+			ReturnJson(ctx, "no_permission", nil)
 			return
 		}
 
