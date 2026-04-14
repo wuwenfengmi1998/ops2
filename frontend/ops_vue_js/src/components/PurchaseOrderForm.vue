@@ -106,24 +106,18 @@ watch(
   },
 );
 
-// ==================== 外部初始化接口 ====================
-/**
- * 由父组件调用，用于回填已有费用数据（来自 API）
- * @param {Array} list 费用数组，单位：分
- */
-function initCostEntries(list) {
-  if (!list || list.length === 0) return;
-  costEntries.splice(0, costEntries.length);
-  list.forEach((c) => {
-    costEntries.push({
-      type: c.type ?? c.CostType ?? 1,
-      int: c.int ?? c.Quantity ?? 1,
-      cost: parseFloat(((c.cost ?? c.Price) / 100).toFixed(2)),
-      costt: parseFloat(((c.costt ?? c.Price * (c.int ?? c.Quantity)) / 100).toFixed(2)),
-      currencytype: c.currencytype ?? c.CurrencyType ?? 1,
+// 回填费用（父组件填充 form._costs 后直接消费）
+watch(
+  () => props.modelValue._costs,
+  (list) => {
+    if (!list || list.length === 0) return;
+    // 先清空默认空白行，再填入 API 返回的数据
+    costEntries.splice(0, costEntries.length);
+    list.forEach((c) => {
+      costEntries.push({ ...c });
     });
-  });
-}
+  },
+);
 
 // ==================== 图片上传 ====================
 const photosRef = ref(null);
@@ -135,7 +129,7 @@ function getPhotoHashes() {
   return photosRef.value?.return_files().map((f) => f.hash) ?? [];
 }
 
-defineExpose({ getPhotoHashes, costEntries, initCostEntries });
+defineExpose({ getPhotoHashes, costEntries });
 
 // ==================== 表单字段双向绑定 ====================
 function update(field, value) {
