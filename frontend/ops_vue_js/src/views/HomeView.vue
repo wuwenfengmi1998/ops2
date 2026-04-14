@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user'
 import { useUsersStore } from '@/stores/users'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { scheduleApi } from '@/api/schedule'
+import { purchaseApi } from '@/api/purchase'
 import { ref, computed, onMounted } from 'vue'
 
 usePageTitle('appname.home')
@@ -14,6 +15,10 @@ const usersStore = useUsersStore()
 // 今日日程数据
 const todaySchedules = ref([])
 const loadingSchedules = ref(false)
+
+// 采购订单数据
+const pendingOrderCount = ref(0)
+const loadingOrders = ref(false)
 
 // 获取今日日期字符串
 const todayStr = computed(() => {
@@ -54,6 +59,21 @@ async function fetchTodaySchedules() {
     console.error('获取今日日程失败', e)
   } finally {
     loadingSchedules.value = false
+  }
+}
+
+// 获取待处理订单数量
+async function fetchPendingOrders() {
+  loadingOrders.value = true
+  try {
+    const { errCode, data } = await purchaseApi.getOrderCount()
+    if (errCode === 0 && data) {
+      pendingOrderCount.value = data.pending || 0
+    }
+  } catch (e) {
+    console.error('获取订单数量失败', e)
+  } finally {
+    loadingOrders.value = false
   }
 }
 
@@ -100,6 +120,9 @@ function getWeekday(dateStr) {
 
 onMounted(() => {
   fetchTodaySchedules()
+  if (userStore.isLoggedIn) {
+    fetchPendingOrders()
+  }
 })
 </script>
 
@@ -161,12 +184,19 @@ onMounted(() => {
     <!-- 功能入口卡片 -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       
-      <div
+      <RouterLink
+        to="/purchase"
         class="rounded-xl border border-gray-200 bg-white px-5 py-4 transition-shadow hover:shadow-md dark:border-dk-muted dark:bg-dk-card"
       >
         <p class="mb-1 text-sm text-gray-500">{{ t('appname.purchase') }}</p>
-        <p class="text-lg font-bold text-gray-900 dark:text-white">—</p>
-      </div>
+        <p class="text-lg font-bold text-gray-900 dark:text-white">
+          <span v-if="loadingOrders">...</span>
+          <span v-else :class="{ 'text-yellow-600 dark:text-yellow-400': pendingOrderCount > 0 }">
+            {{ pendingOrderCount || '—' }}
+          </span>
+        </p>
+        <p class="text-xs text-gray-400">{{ t('home.pending_orders') }}</p>
+      </RouterLink>
     </div>
   </div>
 </template>

@@ -94,6 +94,7 @@
     "link": "链接",
     "no_photos": "暂无图片",
     "open_link": "打开链接",
+    "copy_link": "复制链接",
     "no_costs": "暂无费用记录",
     "cost_total": "合计",
     "change_status": "变更状态",
@@ -191,7 +192,8 @@
     "today_schedule_count": "今日共 {count} 个日程",
     "today_no_schedule": "今日暂无日程",
     "loading": "加载中...",
-    "today": "今日：{date}"
+    "today": "今日：{date}",
+    "pending_orders": "待处理订单"
   },
   "message": {
     "functionality_not_yet_developed": "功能未开发",

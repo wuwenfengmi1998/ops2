@@ -709,4 +709,42 @@ func ApiPurchase(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
 
+	// 获取订单数量统计
+	r.POST("/getordercount", func(ctx *gin.Context) {
+		isAuth, _, _ := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type OrderCount struct {
+			Pending  int64 `json:"pending"`  // 待处理
+			Ordered  int64 `json:"ordered"`  // 已下单
+			Arrived  int64 `json:"arrived"`  // 已到达
+			Received int64 `json:"received"` // 已收件
+			Lost     int64 `json:"lost"`     // 丢件
+			Returned int64 `json:"returned"` // 退件
+			Total    int64 `json:"total"`    // 总数
+		}
+
+		var count OrderCount
+		models.DB.Model(&TabPurchaseOrder{}).Count(&count.Total)
+		models.DB.Model(&TabPurchaseOrder{}).Where("order_status = ?", "pending").Count(&count.Pending)
+		models.DB.Model(&TabPurchaseOrder{}).Where("order_status = ?", "ordered").Count(&count.Ordered)
+		models.DB.Model(&TabPurchaseOrder{}).Where("order_status = ?", "arrived").Count(&count.Arrived)
+		models.DB.Model(&TabPurchaseOrder{}).Where("order_status = ?", "received").Count(&count.Received)
+		models.DB.Model(&TabPurchaseOrder{}).Where("order_status = ?", "lost").Count(&count.Lost)
+		models.DB.Model(&TabPurchaseOrder{}).Where("order_status = ?", "returned").Count(&count.Returned)
+
+		ReturnJson(ctx, "apiOK", map[string]interface{}{
+			"pending":  count.Pending,
+			"ordered":  count.Ordered,
+			"arrived": count.Arrived,
+			"received": count.Received,
+			"lost":    count.Lost,
+			"returned": count.Returned,
+			"total":   count.Total,
+		})
+	})
+
 }

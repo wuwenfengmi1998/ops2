@@ -94,6 +94,7 @@
     "link": "Link",
     "no_photos": "No photos",
     "open_link": "Open Link",
+    "copy_link": "Copy Link",
     "no_costs": "No cost records",
     "cost_total": "Total",
     "change_status": "Change Status",
@@ -191,7 +192,8 @@
     "today_schedule_count": "Today: {count} schedule(s)",
     "today_no_schedule": "No schedules today",
     "loading": "Loading...",
-    "today": "Today: {date}"
+    "today": "Today: {date}",
+    "pending_orders": "Pending orders"
   },
   "message": {
     "functionality_not_yet_developed": "Functionality not yet developed",

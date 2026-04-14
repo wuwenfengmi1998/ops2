@@ -160,7 +160,7 @@ onMounted(fetchOrders)
               @click="jumpToOrder(order.ID)"
             >
               <td class="px-6 py-3 text-gray-400">{{ order.ID }}</td>
-              <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ order.Title }}</td>
+              <td class="px-6 py-3 max-w-[200px] truncate font-medium text-gray-900 dark:text-white">{{ order.Title }}</td>
               <td class="px-6 py-3 max-w-[200px] truncate text-gray-600 dark:text-gray-300">{{ order.Remark || '-' }}</td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.CreatedAt) }}</td>
               <td class="px-6 py-3">

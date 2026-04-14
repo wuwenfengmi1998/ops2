@@ -6,6 +6,11 @@ export const purchaseApi = {
     return api.post('/purchase/getorders', params)
   },
 
+  /** 获取订单数量统计 */
+  getOrderCount() {
+    return api.post('/purchase/getordercount', {})
+  },
+
   /** 新增采购订单 */
   addOrder(data) {
     return api.post('/purchase/addorder', data)

@@ -137,6 +137,14 @@ function openLink() {
   window.open(url, "_blank");
 }
 
+function copyLink() {
+  if (!order.value?.Link) return;
+  navigator.clipboard.writeText(order.value.Link.trim()).then(() => {
+    const toast = useToastStore()
+    toast.success('链接已复制')
+  })
+}
+
 function getStatusLabel(status) {
   if (!status) return "";
   const opt = statusOptions.find((o) => o.value === status);
@@ -450,12 +458,26 @@ onMounted(fetchOrder);
               <label class="mb-1 block text-xs font-medium text-gray-400">{{
                 t("purchase.link")
               }}</label>
-              <div v-if="order?.Link" class="flex items-center gap-2">
-                <p class="max-w-xs truncate text-blue-600 dark:text-blue-400">
+              <div v-if="order?.Link" class="flex flex-wrap items-center gap-2">
+                <a
+                  :href="order.Link.trim().startsWith('http') ? order.Link.trim() : 'https://' + order.Link.trim()"
+                  target="_blank"
+                  class="max-w-[400px] truncate rounded bg-gray-100 px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-200 dark:bg-dk-base dark:text-blue-400 dark:hover:bg-gray-800"
+                  :title="order.Link"
+                >
                   {{ order.Link }}
-                </p>
+                </a>
                 <button
-                  class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                  class="inline-flex items-center gap-1 rounded bg-blue-100 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+                  @click="copyLink"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  {{ t('purchase.copy_link') }}
+                </button>
+                <button
+                  class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                   @click="openLink"
                 >
                   <IconExternalLink :size="14" />
