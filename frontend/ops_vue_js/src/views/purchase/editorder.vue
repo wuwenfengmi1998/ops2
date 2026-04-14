@@ -169,6 +169,7 @@ async function handleSubmit() {
   }));
 
   loading.value = true;
+  console.log(form.photos)
   try {
     const res = await purchaseApi.updateOrder(orderId, {
       title: form.title,

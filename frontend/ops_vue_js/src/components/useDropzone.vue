@@ -36,6 +36,41 @@ function remove_file_from_uuie(uuid) {
   }
 }
 
+function clik_file_event(file){
+// 移除旧的事件监听器，避免重复绑定
+        const oldHandler = file.previewElement._lightboxClickHandler;
+        if (oldHandler) {
+          file.previewElement.removeEventListener("click", oldHandler);
+        }
+
+        // 创建新的点击处理器
+        const clickHandler = function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // 每次点击创建新实例，sources 自动是空的
+          const lightbox = new FsLightbox();
+
+          var dis_id = 0;
+          var dis_id_t = 0;
+          for (var i = 0; i < files.length; i++) {
+            if (files[i]["is_upload"] == true) {
+              lightbox.props.sources.push(files[i]["get_url"]);
+              if (files[i]["uuid"] == file.upload.uuid) {
+                dis_id = dis_id_t;
+              }
+            }
+            dis_id_t += 1;
+          }
+
+          lightbox.open(dis_id);
+        };
+
+        // 保存处理器引用，以便后续移除
+        file.previewElement._lightboxClickHandler = clickHandler;
+        file.previewElement.addEventListener("click", clickHandler);
+}
+
 const prop = defineProps({
   maxFiles: {
     type: Number,
@@ -112,38 +147,7 @@ const initDropzone = () => {
       this.on("success", (file, response) => {
         //console.log("上传成功:", file, response);
 
-        // 移除旧的事件监听器，避免重复绑定
-        const oldHandler = file.previewElement._lightboxClickHandler;
-        if (oldHandler) {
-          file.previewElement.removeEventListener("click", oldHandler);
-        }
-
-        // 创建新的点击处理器
-        const clickHandler = function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-
-          // 每次点击创建新实例，sources 自动是空的
-          const lightbox = new FsLightbox();
-
-          var dis_id = 0;
-          var dis_id_t = 0;
-          for (var i = 0; i < files.length; i++) {
-            if (files[i]["is_upload"] == true) {
-              lightbox.props.sources.push(files[i]["get_url"]);
-              if (files[i]["uuid"] == file.upload.uuid) {
-                dis_id = dis_id_t;
-              }
-            }
-            dis_id_t += 1;
-          }
-
-          lightbox.open(dis_id);
-        };
-
-        // 保存处理器引用，以便后续移除
-        file.previewElement._lightboxClickHandler = clickHandler;
-        file.previewElement.addEventListener("click", clickHandler);
+        clik_file_event(file);
 
         var file_id = get_file_from_uuid(file.upload.uuid);
         if (file_id >= 0) {
@@ -185,7 +189,20 @@ const initDropzone = () => {
             uuid: file.upload.uuid,
             is_upload: false,
           };
-          files.push(t);
+          
+          console.log(file)
+          if(file.isInput){
+            clik_file_event(file);
+          }else{
+            files.push(t);
+          }
+          // if(t.uuid!=null){
+          //   files.push(t);
+          // }else{
+          //   clik_file_event(file);
+          //   //console.log(file)
+          // }
+          
         } else {
           this.removeFile(file);
         }
@@ -211,7 +228,7 @@ function loadInitialFiles() {
 
   prop.initialFiles.forEach((f) => {
     // 构造 Dropzone 期望的 mock file 对象
-    console.log(f);
+    //console.log(f);
     // 填充上传结果字段
     const url = `/api/files/get/${f.Sha256}`;
     const mockFile = {
@@ -221,13 +238,17 @@ function loadInitialFiles() {
       status: Dropzone.SUCCESS,
       accepted: true,
       upload: { uuid: f.Sha256 },
+      isInput:true,
       previewElement: null,
       _removeLink: null,
     };
     // 通知 Dropzone "这是一个已存在的文件，不要上传"
-    dropzoneInstance.emit("addedfile", mockFile);
-    dropzoneInstance.emit("complete", mockFile);
-    dropzoneInstance.files.push(mockFile);
+    // dropzoneInstance.emit("addedfile", mockFile);
+    // dropzoneInstance.emit("complete", mockFile);
+    // dropzoneInstance.files.push(mockFile);
+    // dropzoneInstance.emit("thumbnail", mockFile, url);
+
+    dropzoneInstance.displayExistingFile(mockFile, url);
 
     files.push({
       uuid: f.Sha256,
