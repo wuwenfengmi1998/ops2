@@ -71,7 +71,31 @@ function formatTime(dateStr) {
 
 // 格式化日期
 function formatDate(dateStr) {
+  if (!dateStr) return ''
   return dateStr
+}
+
+// 格式化开始结束日期
+function formatDateRange(startDate, endDate) {
+  if (!startDate) return ''
+  if (startDate === endDate) {
+    return startDate
+  }
+  // 返回数组用于分行显示
+  return [startDate, endDate]
+}
+
+// 获取星期几
+function getWeekday(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const day = date.getDay()
+  if (locale.value === 'en') {
+    const weekdaysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return weekdaysEn[day]
+  }
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return weekdays[day]
 }
 
 onMounted(() => {
@@ -103,21 +127,25 @@ onMounted(() => {
         <ul class="space-y-2">
           <li
             v-for="schedule in todaySchedules"
-            :key="schedule.ID"
+            :key="schedule?.ID"
             class="flex items-start gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-dk-base"
           >
             <span
-              class="whitespace-nowrap rounded px-2 py-0.5 text-sm font-medium text-white"
-              :style="{ backgroundColor: schedule.BgColor }"
+              class="flex flex-col whitespace-nowrap rounded px-2 py-0.5 text-sm font-medium text-white"
+              :style="{ backgroundColor: schedule?.BgColor || '#999' }"
             >
-              {{ formatDate(schedule.StartDate) }}
+              <span v-if="schedule?.StartDate !== schedule?.EndDate">
+                <div>{{ schedule?.StartDate }} {{ getWeekday(schedule?.StartDate) }}</div>
+                <div>{{ schedule?.EndDate }} {{ getWeekday(schedule?.EndDate) }}</div>
+              </span>
+              <span v-else>{{ schedule?.StartDate }} {{ getWeekday(schedule?.StartDate) }}</span>
             </span>
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
-                {{ schedule.Title }}
+                {{ schedule?.Title || '' }}
               </p>
               <p class="text-xs text-gray-500 dark:text-gray-400">
-                {{ getUsername(schedule.UserID) }}
+                {{ getUsername(schedule?.UserID) }}
               </p>
             </div>
           </li>
