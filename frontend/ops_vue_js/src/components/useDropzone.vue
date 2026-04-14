@@ -201,7 +201,6 @@ const initDropzone = () => {
   });
 };
 
-
 function return_files() {
   return files;
 }
@@ -209,36 +208,36 @@ function return_files() {
 // 加载初始已有文件（编辑场景）
 function loadInitialFiles() {
   if (!dropzoneInstance || !prop.initialFiles?.length) return;
-  
 
   prop.initialFiles.forEach((f) => {
     // 构造 Dropzone 期望的 mock file 对象
-     console.log(f)
-    // const mockFile = {
-    //   name: f.Name,
-    //   size: f.Size,
-    //   type: f.Mime,
-    //   status: Dropzone.SUCCESS,
-    //   accepted: true,
-    //   upload: { uuid: f.Sha256 },
-    //   previewElement: null,
-    //   _removeLink: null,
-    // };
-    // // 通知 Dropzone "这是一个已存在的文件，不要上传"
-    // dropzoneInstance.emit("addedfile", mockFile);
-    // dropzoneInstance.emit("complete", mockFile);
-    // dropzoneInstance.files.push(mockFile);
-    // // 填充上传结果字段
-    // const url = `/api/files/get/${f.Sha256}`;
-    // files.push({
-    //   uuid: f.Sha256,
-    //   hash: f.Sha256,
-    //   get_url: url,
-    //   download_url: `/api/files/download/${f.Sha256}`,
-    //   file_name: f.Name,
-    //   file_size: f.Size,
-    //   is_upload: true,
-    // });
+    console.log(f);
+    // 填充上传结果字段
+    const url = `/api/files/get/${f.Sha256}`;
+    const mockFile = {
+      name: f.Name,
+      size: f.Size,
+      type: f.Mime,
+      status: Dropzone.SUCCESS,
+      accepted: true,
+      upload: { uuid: f.Sha256 },
+      previewElement: null,
+      _removeLink: null,
+    };
+    // 通知 Dropzone "这是一个已存在的文件，不要上传"
+    dropzoneInstance.emit("addedfile", mockFile);
+    dropzoneInstance.emit("complete", mockFile);
+    dropzoneInstance.files.push(mockFile);
+
+    files.push({
+      uuid: f.Sha256,
+      hash: f.Sha256,
+      get_url: url,
+      download_url: `/api/files/download/${f.Sha256}`,
+      file_name: f.Name,
+      file_size: f.Size,
+      is_upload: true,
+    });
   });
 }
 
@@ -270,22 +269,40 @@ defineExpose({
           <div class="dz-filename"><span data-dz-name></span></div>
           <div class="dz-size"><span data-dz-size></span></div>
         </div>
-        <div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+        <div class="dz-progress">
+          <span class="dz-upload" data-dz-uploadprogress></span>
+        </div>
         <div class="dz-success-mark" data-dz-successmark>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" stroke-width="3">
-            <path d="M9 12l2 2l4 -4" stroke="none"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="#22c55e"
+            stroke="#22c55e"
+            stroke-width="3"
+          >
+            <path d="M9 12l2 2l4 -4" stroke="none" />
           </svg>
         </div>
         <div class="dz-error-mark" data-dz-errormark>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" stroke-width="3">
-            <path d="M10 10l4 4m0 -4l-4 4" stroke="none"/>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="#ef4444"
+            stroke="#ef4444"
+            stroke-width="3"
+          >
+            <path d="M10 10l4 4m0 -4l-4 4" stroke="none" />
           </svg>
         </div>
         <div class="dz-error-message"><span data-dz-errormessage></span></div>
       </div>
     </div>
-    
-    <div class="text-end text-sm text-gray-500">{{ files.length }}/{{ maxFiles }}</div>
+
+    <div class="text-end text-sm text-gray-500">
+      {{ files.length }}/{{ maxFiles }}
+    </div>
     <div ref="dropzoneElement" class="dropzone mt-2"></div>
   </div>
 </template>
