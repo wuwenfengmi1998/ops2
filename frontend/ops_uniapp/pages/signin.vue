@@ -1,192 +1,297 @@
-<template>
-
-	<view class="d-flex flex-column">
-		<tabler-header type="mini"></tabler-header>
-
-		<div class="page page-center">
-
-			<div class="container container-normal py-4">
-				<div class="row align-items-center g-4">
-					<div class="col-lg">
-						<div class="container-tight">
-							<div class="text-center mb-4">
-								<div class="navbar-brand navbar-brand-autodark"><img src="/static/logo.svg" height="36"
-										alt=""></div>
-							</div>
-							<div class="card card-md">
-								<div class="card-body">
-									<h2 class="h2 text-center mb-4">登录你的账号</h2>
-
-
-									<div class="mb-3">
-										<label class="form-label mb-0 ms-1">用户名</label>
-
-										<input type="text" class="my_input_field"
-											:placeholder-class="is_username_err?'my_input_placeholder_error':'my_input_placeholder'"
-											:placeholder="ph_username" autocomplete="off" maxlength="25"
-											v-model="post_data.username">
-									</div>
-									<div class="mb-2">
-										<label class="form-label mb-0 ms-1">密码</label>
-
-										<input type="password" class="my_input_field"
-											:placeholder-class="is_password_err?'my_input_placeholder_error':'my_input_placeholder'"
-											password="true" :placeholder="ph_password" autocomplete="off"
-											maxlength="100" v-model="post_data.password">
-
-									</div>
-<!-- 									<div class="mb-2">
-										<checkbox-group @change="chack_box_change">
-											<label class="d-flex">
-												<checkbox value="keep_login_in" />
-												<span class="form-check-label">保持登录</span>
-											</label>
-										</checkbox-group>
-									</div> -->
-									<div class="form-footer">
-										<button class="btn btn-primary w-100" @click="submit_data">登录</button>
-									</div>
-
-								</div>
-
-
-							</div>
-							<div class="text-center text-secondary mt-3">
-								还没账号？
-								<a href="/sign-up/" tabindex="-1">点击注册</a>
-								<span class="form-label-description">
-									<a href="./forgot-password.html">忘记密码？</a>
-								</span>
-							</div>
-
-						</div>
-					</div>
-					<div class="col-lg d-none d-lg-block">
-						<img src="/static/illustrations/undraw_secure_login_pdn4.svg" height="300"
-							class="d-block mx-auto" alt="">
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<tabler-footer ref="footer"></tabler-footer>
-	</view>
-
-
-
-</template>
-
 <script>
-	import {
-		my_network_func
-	} from '../my_network_func'
-	import {
-		myfunc
-	} from '../myfunc'
+/**
+ * 登录页
+ * 对标 PC 前端 src/views/LoginView.vue
+ */
+import { authApi } from '../@api/auth.js'
+import { userStore } from '../store/user.js'
 
+export default {
+  data() {
+    return {
+      form: {
+        username: '',
+        password: '',
+        remember: false,
+      },
+      errors: {
+        username: '',
+        password: '',
+      },
+      showPassword: false,
+      loading: false,
+    }
+  },
 
-	export default {
-		data() {
-			return {
-				ph_username: "",
-				ph_password: "",
-				is_username_err: false,
-				is_password_err: false,
-				post_data: {
-					is_keep_login: true,
-					username: "",
-					password: "",
-				}
-			}
-		},
-		methods: {
-			initdata(){
-				this.ph_username="输入你的用户名"
-				this.ph_password="输入你的密码"
-				this.is_username_err=false
-				this.is_password_err=false
-				this.post_data.is_keep_login=true
-				this.post_data.username=""
-				this.post_data.password=""
-			},
+  methods: {
+    validate() {
+      let ok = true
+      this.errors.username = ''
+      this.errors.password = ''
+      if (!this.form.username.trim()) {
+        this.errors.username = '请输入用户名'
+        ok = false
+      }
+      if (!this.form.password) {
+        this.errors.password = '请输入密码'
+        ok = false
+      }
+      return ok
+    },
 
-			chack_box_change(val) {
-				//console.log(val.detail.value[0])
-				if (val.detail.value[0] === 'keep_login_in') {
-					this.post_data.is_keep_login = true
-				} else {
-					this.post_data.is_keep_login = false
-				}
-			},
-			submit_data() {
-				//提交登录数据，
-				//先验证数据合法性
-
-
-				if (this.post_data.username == "") {
-					this.is_username_err = true
-					this.ph_username = "用户名不能为空"
-
-				} else {
-					this.is_username_err = false
-				}
-
-				if (this.post_data.password == "") {
-					this.is_password_err = true
-					this.ph_password = "密码不能为空"
-
-				} else {
-					this.is_password_err = false
-				}
-
-				if (this.is_username_err === false && this.is_password_err === false) {
-					
-					my_network_func.post_json("/user/login", this.post_data, (c) => {
-						
-						if (c.statusCode == 200) {
-							if (c.data.err_code == 0) {
-								this.$refs.footer.alert('success', "登录成功")
-								myfunc.save_json("cookie", c.data.return.cookie)
-								myfunc.save_json("user_info", c.data.return.user_info)
-								this.initdata()
-								setTimeout(() => {
-									uni.navigateTo({
-										url: '/'
-									});
-								}, 1000);
-
-							} else {
-								this.$refs.footer.alert('warning', "账号或密码不正确")
-							}
-						} else {
-							this.$refs.footer.alert('danger', "网络连接错误：" + c.statusCode)
-						}
-
-
-					})
-				} else {
-
-				}
-
-			}
-		},
-		mounted() {
-			this.initdata()
-		}
-	}
+    async handleLogin() {
+      if (!this.validate()) return
+      this.loading = true
+      try {
+        const { errCode, data } = await authApi.login(
+          this.form.username,
+          this.form.password,
+          this.form.remember,
+        )
+        switch (errCode) {
+          case 0:
+            userStore.login(data.cookie)
+            uni.showToast({ title: '登录成功', icon: 'success' })
+            setTimeout(() => {
+              uni.reLaunch({ url: '/pages/index/index' })
+            }, 800)
+            break
+          case -41:
+          case -42:
+            uni.showToast({ title: '用户名或密码错误', icon: 'none' })
+            break
+          default:
+            uni.showToast({ title: '服务器错误，请稍后重试', icon: 'none' })
+        }
+      } catch {
+        // request.js 已处理网络错误提示
+      } finally {
+        this.loading = false
+      }
+    },
+  },
+}
 </script>
 
-<style>
-	.my123 {
-		/* 设置边框：宽度、样式、颜色 */
-		border: 1px solid #e3e3e3;
-		/* 2像素宽的红色实线边框 */
+<template>
+  <view class="signin-page">
+    <!-- 顶部 Logo -->
+    <view class="header">
+      <image src="/static/logo.svg" class="logo" mode="aspectFit" />
+      <text class="app-name">Operations</text>
+    </view>
 
-		/* 设置圆角，值越大，角越圆 */
-		border-radius: 3px;
-		/* 也可以使用百分比，例如50%会变成圆形 */
+    <!-- 登录卡片 -->
+    <view class="card">
+      <text class="card-title">登录你的账号</text>
 
-		font-size: 24px;
+      <!-- 用户名 -->
+      <view class="field">
+        <text class="label">用户名</text>
+        <input
+          v-model="form.username"
+          class="input"
+          :class="{ 'input-error': errors.username }"
+          placeholder="输入你的用户名"
+          maxlength="25"
+          @confirm="handleLogin"
+        />
+        <text v-if="errors.username" class="err-msg">{{ errors.username }}</text>
+      </view>
 
-	}
+      <!-- 密码 -->
+      <view class="field">
+        <text class="label">密码</text>
+        <view class="input-wrap">
+          <input
+            v-model="form.password"
+            class="input"
+            :class="{ 'input-error': errors.password }"
+            :password="!showPassword"
+            placeholder="输入你的密码"
+            maxlength="100"
+            @confirm="handleLogin"
+          />
+          <view class="eye-btn" @tap="showPassword = !showPassword">
+            <text class="eye-icon">{{ showPassword ? '👁' : '🙈' }}</text>
+          </view>
+        </view>
+        <text v-if="errors.password" class="err-msg">{{ errors.password }}</text>
+      </view>
+
+      <!-- 记住我 -->
+      <view class="remember-row" @tap="form.remember = !form.remember">
+        <view class="checkbox" :class="{ checked: form.remember }">
+          <text v-if="form.remember" class="check-mark">✓</text>
+        </view>
+        <text class="remember-text">在此设备上保持登录</text>
+      </view>
+
+      <!-- 登录按钮 -->
+      <button
+        class="submit-btn"
+        :class="{ 'btn-loading': loading }"
+        :disabled="loading"
+        @tap="handleLogin"
+      >
+        <text v-if="loading" class="loading-icon">⟳</text>
+        <text>{{ loading ? '登录中…' : '登 录' }}</text>
+      </button>
+    </view>
+  </view>
+</template>
+
+<style scoped>
+.signin-page {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 40rpx 60rpx;
+}
+
+/* ── 顶部 logo ── */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 60rpx;
+}
+.logo {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 24rpx;
+  margin-bottom: 20rpx;
+}
+.app-name {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* ── 卡片 ── */
+.card {
+  width: 100%;
+  max-width: 680rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 60rpx 48rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.08);
+}
+.card-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  display: block;
+  margin-bottom: 48rpx;
+}
+
+/* ── 表单字段 ── */
+.field {
+  margin-bottom: 36rpx;
+}
+.label {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+  display: block;
+  margin-bottom: 12rpx;
+}
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input {
+  width: 100%;
+  height: 88rpx;
+  border: 2rpx solid #d1d5db;
+  border-radius: 16rpx;
+  padding: 0 32rpx;
+  font-size: 30rpx;
+  color: #111827;
+  background: #fff;
+  box-sizing: border-box;
+}
+.input-error {
+  border-color: #ef4444;
+}
+.eye-btn {
+  position: absolute;
+  right: 24rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 8rpx;
+}
+.eye-icon {
+  font-size: 36rpx;
+}
+.err-msg {
+  font-size: 24rpx;
+  color: #ef4444;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* ── 记住我 ── */
+.remember-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 48rpx;
+  gap: 16rpx;
+}
+.checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #d1d5db;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+.checkbox.checked {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.check-mark {
+  color: #fff;
+  font-size: 26rpx;
+  line-height: 1;
+}
+.remember-text {
+  font-size: 28rpx;
+  color: #4b5563;
+}
+
+/* ── 登录按钮 ── */
+.submit-btn {
+  width: 100%;
+  height: 96rpx;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  border: none;
+}
+.submit-btn[disabled] {
+  background: #93c5fd;
+}
+.loading-icon {
+  font-size: 36rpx;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 </style>

@@ -1,417 +1,465 @@
-<template>
-
-	<tabler-header type="mini" ref="heard"></tabler-header>
-	<div class="page-wrapper">
-		<!-- Page header -->
-		<div class="page-header d-print-none">
-			<div class="container-xl">
-				<div class="row g-2 align-items-center">
-					<div class="col">
-						<h2 class="page-title">
-							设置
-						</h2>
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- Page body -->
-		<div class="page-body">
-			<div class="container-xl">
-				<div class="card">
-					<div class="row g-0">
-
-						<setting-menu></setting-menu>
-
-						<div class="col-12 col-md-9 d-flex flex-column">
-							<div class="card-body">
-
-								<h2 class="mb-4">信息设置</h2>
-								<!-- <h3 class="card-title">Profile Details</h3> -->
-								<div class="row align-items-center">
-									<div class="col-auto">
-
-										<avatar size="xl" :url="user_info.AvatarPath"></avatar>
-									</div>
-									<div class="col-auto"><a class="btn" @click="showPopup">更改头像 </a></div>
-									<!-- <div class="col-auto"><a href="#" class="btn btn-ghost-danger">
-	                        删除头像
-	                      </a></div> -->
-								</div>
-								<!-- <h3 class="card-title mt-4">Business Profile</h3> -->
-								<div class="row g-3">
-									<div class="col-md">
-										<div class="form-label">名字</div>
-										<input type="text" class="my_input_field" v-model="user_info.Username"
-											maxlength="30">
-									</div>
-
-									<div class="col-md">
-										<div class="form-label">备注</div>
-										<input type="text" class="my_input_field" v-model="user_info.FirstName"
-											maxlength="50">
-									</div>
-								</div>
-
-								<div class="mb-3">
-									<label class="form-label">生日</label>
-									<div class="row g-2">
-										<div class="col-5">
-
-											<uni-datetime-picker type="date" :clear-icon="false" v-model="birthdate" />
-										</div>
-									</div>
-								</div>
-
-
-							</div>
-
-							<div class="card-footer bg-transparent mt-auto">
-								<div class="btn-list justify-content-end">
-
-									<a href="#" class="btn btn-primary">
-										提交
-									</a>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-	</div>
-
-	<tabler-footer></tabler-footer>
-
-	<uni-popup ref="popup" type="center">
-		<view class="popup-content">
-			<div class="card card-body container">
-				<h1>头像裁剪工具</h1>
-
-				<div class="flex-wrapper">
-					<!-- 左侧裁剪区 -->
-					<div class="crop-section">
-						<div ref="image_wrapper">
-							<img ref="cropper_image"
-								src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
-						</div>
-						<!-- 上传进度 -->
-						<div class="progress-container">
-							<div class="progress-bar"></div>
-						</div>
-
-
-
-						<div class="preview-stats">
-							<!-- <p>当前缩放: <span id="zoomValue">100%</span></p> -->
-							<p>图片尺寸: <span ref="imageSize">0 x 0</span></p>
-						</div>
-					</div>
-
-					<!-- 右侧预览区 -->
-					<div class="preview-section">
-						<h3>实时预览</h3>
-						<div class="preview-box">
-							<img ref="preview_img"
-								src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
-						</div>
-
-						<!-- 控制按钮 -->
-						<div class="controls">
-
-							<button class="btn btn-primary" @click="selefile">📁 选择图片</button>
-							<button class="btn btn-secondary " onclick="rotateImage(-90)">↩️ 左旋</button>
-							<button class="btn btn-success " id="uploadBtn">✂️ 裁剪头像</button>
-
-							<button class="btn btn-danger " style="margin-top: 150px;" @click="closePopup">❌ 取消</button>
-
-
-
-						</div>
-					</div>
-				</div>
-			</div>
-		</view>
-	</uni-popup>
-
-
-
-
-</template>
-
 <script>
-	import "/static/dist/libs/cropper/cropper.min.js"
+/**
+ * 用户设置页（个人信息）
+ * 对标 PC 前端 src/views/settings/AccountView.vue
+ */
+import { userStore } from '../../store/user.js'
+import { authApi } from '../../@api/auth.js'
 
-	export default {
-		data() {
-			return {
-				user_info: {
-					AvatarPath: "",
-					Username: "",
-					FirstName: "",
-					Birthdate: "",
-				},
-				birthdate: "",
-			}
-		},
-		methods: {
-			showPopup() {
-				this.$refs.popup.open();
-			},
-			closePopup() {
-				this.$refs.popup.close();
-			},
-			updateImageInfo() {
-				if (this.cropper) {
-					const data = this.cropper.getData();
-					// document.getElementById('zoomValue').textContent = 
-					//     `${Math.round(currentScale * 100)}%`;
-					// document.getElementById('imageSize').textContent =
-					//   `${Math.round(data.width)} x ${Math.round(data.height)}`;
-				}
-			},
-			updatePreview() {
-				const canvas = this.cropper.getCroppedCanvas({
-					width: 250,
-					height: 250,
-					imageSmoothingQuality: 'high'
-				});
+export default {
+  data() {
+    return {
+      isLoggedIn: false,
 
-				if (canvas) {
-					var that = this
-					canvas.toBlob(blob => {
-						const previewUrl = URL.createObjectURL(blob);
-						that.$refs.preview_img.src = previewUrl;
-						// 清理旧URL
-						setTimeout(() => URL.revokeObjectURL(previewUrl), 1000);
-					}, 'image/jpeg', 0.85);
-					this.updateImageInfo();
-				}
-			},
-			initCropper(imageSrc) {
-				var that = this
-				// 初始化Cropper
-				if (this.cropper) {
-					this.cropper.destroy();
-				}
-				const image = this.$refs.cropper_image
-				console.log(image)
-				image.src = imageSrc;
-				this.cropper = new Cropper(image, {
-					aspectRatio: 1,
-					viewMode: 2,
-					autoCropArea: 0.8,
-					zoomable: true,
-					zoomOnWheel: true,
-					zoomOnTouch: true,
-					wheelZoomRatio: 0.1,
-					//minCanvasWidth: 400,
-					//minCanvasHeight: 400,
-					crop: that.updatePreview,
-					ready() {
-						that.updateImageInfo();
-						//document.querySelector('.progress-container').style.display = 'none';
-					}
-				});
-			},
-			selefile() {
-				var that=this
-				uni.chooseImage({
-					count: 1, // 最多9张
-					sourceType: ['album', 'camera'], // 来源相册或相机
-					success: (res) => {
+      // 表单
+      form: {
+        username: '',
+        remark: '',
+        birthday: '',
+      },
+      avatarUrl: '/static/ava.svg',
 
-						console.log(res);
-						// 如果需要得到原始的File对象（在H5中），则使用res.tempFiles
-						const file = res.tempFiles[0];
-						if (!file) return;
+      // 状态
+      loading: false,
+      avatarUploading: false,
+    }
+  },
 
-						if (!file.type.startsWith('image/')) {
-							that.$refs.footer.alert('warning', "⚠️ 请选择有效的图片文件")
-							return;
-						}
+  methods: {
+    // ── 初始化 ──
 
-						const reader = new FileReader();
-						reader.onload = () => {
-							that.initCropper(reader.result);
-							//currentScale = 1;
-						};
-						reader.readAsDataURL(file);
-					}
-				});
-				// this.initCropper(
-				// 	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
-				// );
+    initForm() {
+      this.isLoggedIn   = userStore.isLoggedIn
+      this.avatarUrl    = userStore.getAvatarUrl()
+      const info        = userStore.userInfo
+      if (info) {
+        this.form.username = info.Username || ''
+        this.form.remark   = info.FirstName || ''
+        this.form.birthday = userStore.getBirthday()
+      }
+    },
 
-			},
+    // ── 日期选择 ──
 
-		},
+    onBirthdayChange(e) {
+      this.form.birthday = e.detail.value
+    },
 
-		mounted() {
+    // ── 头像上传 ──
 
-			if (this.$refs.heard.is_login) {
-				this.user_info = this.$refs.heard.user_info
-				this.birthdate = this.user_info.Birthdate.substring(0, 10)
-			} else {
+    chooseAvatar() {
+      if (!this.isLoggedIn) {
+        uni.showToast({ title: '请先登录', icon: 'none' })
+        return
+      }
+      uni.chooseImage({
+        count: 1,
+        sourceType: ['album', 'camera'],
+        success: async (res) => {
+          const filePath = res.tempFilePaths[0]
+          if (!filePath) return
+          this.avatarUploading = true
+          try {
+            const { errCode } = await authApi.updateAvatar(filePath)
+            if (errCode === 0) {
+              uni.showToast({ title: '头像更新成功', icon: 'success' })
+              // 刷新用户信息（含新头像路径）
+              await userStore.fetchUserInfo()
+              this.avatarUrl = userStore.getAvatarUrl()
+            } else {
+              uni.showToast({ title: '头像上传失败', icon: 'none' })
+            }
+          } catch {
+            // request.js 已处理
+          } finally {
+            this.avatarUploading = false
+          }
+        },
+      })
+    },
 
-			}
+    // ── 保存信息 ──
 
-			// 初始化默认图片
+    async saveInfo() {
+      if (!this.isLoggedIn) {
+        uni.showToast({ title: '请先登录', icon: 'none' })
+        return
+      }
+      if (!this.form.username.trim()) {
+        uni.showToast({ title: '名字不能为空', icon: 'none' })
+        return
+      }
+      this.loading = true
+      try {
+        const { errCode } = await authApi.updateInfo({
+          username: this.form.username.trim(),
+          remark:   this.form.remark.trim(),
+          birthday: this.form.birthday,
+        })
+        if (errCode === 0) {
+          uni.showToast({ title: '保存成功', icon: 'success' })
+          await userStore.fetchUserInfo()
+        } else {
+          uni.showToast({ title: '保存失败', icon: 'none' })
+        }
+      } catch {
+        // request.js 已处理
+      } finally {
+        this.loading = false
+      }
+    },
 
+    // ── 登出 ──
 
+    handleLogout() {
+      uni.showModal({
+        title: '确认登出',
+        content: '确定要退出登录吗？',
+        success: (res) => {
+          if (res.confirm) {
+            userStore.logout()
+            uni.reLaunch({ url: '/pages/index/index' })
+          }
+        },
+      })
+    },
 
-		}
-	}
+    goToLogin() {
+      uni.navigateTo({ url: '/pages/signin' })
+    },
+  },
+
+  onShow() {
+    this.initForm()
+  },
+
+  onLoad() {
+    this.initForm()
+  },
+}
 </script>
 
-<style>
-	@import url("/static/dist/libs/cropper/cropper.min.css");
-	/* 头像裁剪器样式*/
+<template>
+  <view class="settings-page">
 
-	.container {
-		width: 95%;
-		/* 改为百分比宽度 */
-		margin: 20px auto;
-		/* 增加上下边距 */
-		max-width: 1200px;
-		/* 保留最大宽度 */
-		background: white;
-		padding: 30px;
-		border-radius: 12px;
+    <!-- 顶部导航 -->
+    <view class="navbar">
+      <view class="back-btn" @tap="() => uni.navigateBack()">
+        <text class="back-icon">‹</text>
+      </view>
+      <text class="navbar-title">个人设置</text>
+      <view style="width: 80rpx;" />
+    </view>
 
-	}
+    <scroll-view scroll-y class="content">
 
-	.flex-wrapper {
-		display: flex;
-		gap: 30px;
-		margin-top: 20px;
-		flex-wrap: wrap;
-		/* 添加换行支持 */
-	}
+      <!-- ── 未登录提示 ── -->
+      <view v-if="!isLoggedIn" class="not-login-card">
+        <text class="icon-emoji" style="font-size: 80rpx;">👤</text>
+        <text class="not-login-title">尚未登录</text>
+        <text class="not-login-desc">登录后可查看和修改个人信息</text>
+        <button class="primary-btn" @tap="goToLogin">立即登录</button>
+      </view>
 
-	/* 裁剪区域 */
-	.crop-section {
-		background-color: aqua;
-		flex: 1 1 60%;
-		/* 弹性布局基础宽度 */
-		min-width: 300px;
-		/* 降低最小宽度 */
-		height: auto;
-		/* 移除固定高度 */
-		min-height: 400px;
-		/* 设置最小高度 */
-	}
+      <!-- ── 已登录内容 ── -->
+      <view v-else>
 
-	#image-wrapper {
-		width: 100%;
-		height: 60vh;
-		/* 改用视窗单位 */
-		max-height: 600px;
-		/* 设置最大高度 */
-		background: #f8f9fa;
-		border: 2px dashed #ddd;
-		border-radius: 8px;
-		overflow: hidden;
-	}
+        <!-- 头像区域 -->
+        <view class="avatar-card">
+          <view class="avatar-wrap" @tap="chooseAvatar">
+            <image :src="avatarUrl" class="avatar" mode="aspectFill" />
+            <view class="avatar-overlay">
+              <text class="camera-icon">📷</text>
+            </view>
+            <view v-if="avatarUploading" class="uploading-mask">
+              <text class="uploading-text">上传中…</text>
+            </view>
+          </view>
+          <text class="avatar-hint">点击更换头像</text>
+        </view>
 
-	/* 预览区域自适应 */
-	.preview-section {
-		flex: 1 1 35%;
-		/* 弹性布局基础宽度 */
-		min-width: 250px;
-		/* 设置合理最小宽度 */
-	}
+        <!-- 信息表单 -->
+        <view class="form-card">
+          <text class="section-title">基本信息</text>
 
-	/* 移动端适配 */
-	@media (max-width: 768px) {
-		.container {
-			padding: 15px;
-			/* 减少内边距 */
-		}
+          <!-- 名字 -->
+          <view class="field">
+            <text class="label">名字</text>
+            <input
+              v-model="form.username"
+              class="input"
+              placeholder="输入你的名字"
+              maxlength="30"
+            />
+          </view>
 
-		.flex-wrapper {
-			flex-direction: column;
-			/* 垂直排列 */
-		}
+          <!-- 备注 -->
+          <view class="field">
+            <text class="label">备注</text>
+            <input
+              v-model="form.remark"
+              class="input"
+              placeholder="个人简介或备注"
+              maxlength="50"
+            />
+          </view>
 
-		.crop-section,
-		.preview-section {
-			width: 100% !important;
-			/* 强制全宽 */
-			min-width: unset;
-			/* 移除最小宽度 */
-		}
+          <!-- 生日 -->
+          <view class="field">
+            <text class="label">生日</text>
+            <picker
+              mode="date"
+              :value="form.birthday"
+              @change="onBirthdayChange"
+            >
+              <view class="picker-display">
+                <text :class="form.birthday ? 'picker-value' : 'picker-placeholder'">
+                  {{ form.birthday || '选择生日' }}
+                </text>
+                <text class="picker-arrow">›</text>
+              </view>
+            </picker>
+          </view>
 
-		#image-wrapper {
-			height: 50vh;
-			/* 调整移动端高度 */
-		}
+          <!-- 保存按钮 -->
+          <button
+            class="primary-btn"
+            :class="{ 'btn-loading': loading }"
+            :disabled="loading"
+            @tap="saveInfo"
+          >
+            {{ loading ? '保存中…' : '保存修改' }}
+          </button>
+        </view>
 
-		.preview-box {
-			width: 120px;
-			/* 缩小预览区域 */
-			height: 120px;
-		}
+        <!-- 安全操作 -->
+        <view class="danger-card">
+          <button class="logout-btn" @tap="handleLogout">退出登录</button>
+        </view>
 
-		.controls {
-			flex-direction: column;
-			/* 垂直排列按钮 */
-			margin-top: 10px;
-		}
-	}
+      </view>
+    </scroll-view>
+  </view>
+</template>
 
+<style scoped>
+/* ── 页面 ── */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f3f4f6;
+}
 
-	#cropper-image {
-		max-width: none !important;
-		max-height: none !important;
-	}
+/* ── 顶部导航 ── */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 88rpx 24rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #e5e7eb;
+}
+.back-btn {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.back-icon {
+  font-size: 56rpx;
+  color: #374151;
+  line-height: 1;
+}
+.navbar-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #111827;
+}
 
-	/* 控制区域 */
-	.controls {
-		margin-top: 20px;
-		display: flex;
-		flex-direction: column;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 10px;
-	}
+/* ── 内容区 ── */
+.content {
+  flex: 1;
+  padding: 32rpx;
+}
 
-	/* 预览区域 */
-	.preview-section {
-		flex: 1;
-		min-width: 50px;
-	}
+/* ── 未登录 ── */
+.not-login-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 80rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+.not-login-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #374151;
+}
+.not-login-desc {
+  font-size: 28rpx;
+  color: #9ca3af;
+  text-align: center;
+}
 
-	.preview-box {
-		width: 150px;
-		height: 150px;
-		/* border-radius: 50%; */
-		border: 3px solid var(--primary-color);
-		overflow: hidden;
-		margin: 0 auto 20px;
-	}
+/* ── 头像区 ── */
+.avatar-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 48rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+.avatar-wrap {
+  position: relative;
+  width: 180rpx;
+  height: 180rpx;
+}
+.avatar {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: #e5e7eb;
+}
+.avatar-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 56rpx;
+  height: 56rpx;
+  background: #2563eb;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4rpx solid #fff;
+}
+.camera-icon { font-size: 28rpx; }
+.uploading-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.uploading-text {
+  font-size: 24rpx;
+  color: #fff;
+}
+.avatar-hint {
+  font-size: 26rpx;
+  color: #9ca3af;
+}
 
-	#preview-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
+/* ── 表单卡片 ── */
+.form-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 32rpx;
+}
+.field {
+  margin-bottom: 36rpx;
+}
+.label {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+  display: block;
+  margin-bottom: 12rpx;
+}
+.input {
+  width: 100%;
+  height: 88rpx;
+  border: 2rpx solid #d1d5db;
+  border-radius: 16rpx;
+  padding: 0 28rpx;
+  font-size: 30rpx;
+  color: #111827;
+  background: #fff;
+  box-sizing: border-box;
+}
 
+/* ── Picker ── */
+.picker-display {
+  height: 88rpx;
+  border: 2rpx solid #d1d5db;
+  border-radius: 16rpx;
+  padding: 0 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+}
+.picker-value {
+  font-size: 30rpx;
+  color: #111827;
+}
+.picker-placeholder {
+  font-size: 30rpx;
+  color: #9ca3af;
+}
+.picker-arrow {
+  font-size: 36rpx;
+  color: #9ca3af;
+}
 
+/* ── 按钮 ── */
+.primary-btn {
+  width: 100%;
+  height: 96rpx;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  margin-top: 8rpx;
+}
+.primary-btn[disabled] {
+  background: #93c5fd;
+}
 
-	/* 上传进度 */
-	.progress-container {
-		height: 8px;
-		background: #eee;
-		border-radius: 4px;
-		margin-top: 20px;
-		overflow: hidden;
-		display: none;
-	}
-
-	.progress-bar {
-		width: 0%;
-		height: 100%;
-		background: var(--primary-color);
-		transition: width 0.3s ease;
-	}
+/* ── 危险区 ── */
+.danger-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+.logout-btn {
+  width: 100%;
+  height: 96rpx;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
 </style>

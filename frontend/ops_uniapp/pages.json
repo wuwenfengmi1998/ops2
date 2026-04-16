@@ -1,46 +1,47 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "uni-app"
-			}
-		},
-		{
-			"path" : "pages/test/test",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/setting/my_info",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "pages/signin",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		},
-		{
-			"path" : "components/setting-menu/setting-menu",
-			"style" : 
-			{
-				"navigationBarTitleText" : ""
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8",
-		"navigationStyle": "custom"
-	},
-	"uniIdRouter": {}
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "Operations",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/signin",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/setting/my_info",
+      "style": {
+        "navigationBarTitleText": "个人设置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/schedule/schedule",
+      "style": {
+        "navigationBarTitleText": "日程",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/purchase/list",
+      "style": {
+        "navigationBarTitleText": "采购订单",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Operations",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F3F4F6",
+    "navigationStyle": "custom"
+  },
+  "uniIdRouter": {}
 }

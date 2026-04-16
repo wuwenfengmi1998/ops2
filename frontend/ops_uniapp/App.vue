@@ -1,17 +1,14 @@
 <script>
+	import { userStore } from './store/user.js'
+
 	export default {
 		onLaunch: function() {
-			console.log('App Launch')
+			// 应用启动时恢复登录状态（对标 PC 端 App.vue 的 restoreSession）
+			userStore.restoreSession()
 		},
-		onShow: function() {
-			console.log('App Show')
-		},
-		onHide: function() {
-			console.log('App Hide')
-		}
+		onShow: function() {},
+		onHide: function() {}
 	}
-	import "/static/dist/js/tabler.min.js"
-	import "/static/dist/libs/bootstrap/dist/js/bootstrap.min.js"
 </script>
 
 
