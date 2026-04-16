@@ -1,0 +1,11 @@
+**/.vscode
+**/unpackage
+
+
+**/cache
+**/data
+**/tslogs
+**/uploadfile
+.git
+
+
