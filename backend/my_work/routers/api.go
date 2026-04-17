@@ -56,7 +56,9 @@ func ApiRoot(r *gin.RouterGroup) {
 	ApiPurchase(r.Group("/purchase"))
 	ApiSchedule(r.Group("/schedule"))
 	r.GET("/", func(ctx *gin.Context) {
-		ReturnJson(ctx, "apiOK", nil)
+		ReturnJson(ctx, "apiOK", gin.H{
+			"isOpsApiRoot":true,
+		})
 	})
 
 }
