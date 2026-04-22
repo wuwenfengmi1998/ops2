@@ -1,6 +1,13 @@
 <script setup>
 // Vue 核心响应式 API
-import { ref, watch, onMounted, onBeforeUnmount, reactive, nextTick } from "vue";
+import {
+  ref,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  reactive,
+  nextTick,
+} from "vue";
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
 // FullCalendar 插件：月视图
@@ -31,7 +38,7 @@ import { useDateUtils } from "@/composables/useDateUtils";
 
 import { useUsersStore } from "@/stores/users";
 
-const usersStore =useUsersStore();
+const usersStore = useUsersStore();
 
 const DateUtils = useDateUtils();
 
@@ -61,9 +68,9 @@ const eventData = ref({
   startDate: "",
   endDate: "",
   color: "#066FD1", // 默认蓝色工作事件
-  isEditing: false,   //是否处于编辑模式，false就是添加模式
-  isEditable: false,//是否有权限编辑，无权限就让按钮灰掉
-  userID:0,
+  isEditing: false, //是否处于编辑模式，false就是添加模式
+  isEditable: false, //是否有权限编辑，无权限就让按钮灰掉
+  userID: 0,
 });
 
 // 颜色选项
@@ -88,11 +95,12 @@ const colorOptions = ref([
   },
 ]);
 
-const pageData = reactive({//本页全局变量
-  seleEventID: 0,//上次点击的eventid
-  lastClickTime: 0,// 用于跟踪上次点击时间的响应式变量
+const pageData = reactive({
+  //本页全局变量
+  seleEventID: 0, //上次点击的eventid
+  lastClickTime: 0, // 用于跟踪上次点击时间的响应式变量
   lastClickTimeStr: "",
-  lastEventClickTime: 0,// 用于跟踪上次点击event时间的响应式变量
+  lastEventClickTime: 0, // 用于跟踪上次点击event时间的响应式变量
   lastEventClickID: 0,
 
   submitChecked: false,
@@ -101,42 +109,43 @@ const pageData = reactive({//本页全局变量
   copyTitle: "",
   copyColor: "",
 
-  eventBindUserID:[],
+  eventBindUserID: [],
 
-})
+  lastEventsSnapshot: null, // 上一次 getEvents 获取的原始数据快照，用于检测多浏览器同步变化
+});
 
 //通过eventid获取用户id
-function getUserIdFromEventID(eventID){
-
-    const target = pageData.eventBindUserID.find(item => item.eventID === eventID)
-    if(target){
-      return target.userID
-    }
-    return 0;
+function getUserIdFromEventID(eventID) {
+  const target = pageData.eventBindUserID.find(
+    (item) => item.eventID === eventID,
+  );
+  if (target) {
+    return target.userID;
+  }
+  return 0;
 }
 
 //通过用户id获取用户名
-function getUsernameFromUserID(userID){
-
-  if(userID==0){
+function getUsernameFromUserID(userID) {
+  if (userID == 0) {
     return "";
   }
 
   return usersStore.getUsernameFromUserID(userID);
-  
 }
-
 
 function unseleEvent(eventID) {
   //寻找哪个event被单击了并修改边框
-  const target = calendarOptions.value.events.find(item => item.id === eventID)
+  const target = calendarOptions.value.events.find(
+    (item) => item.id === eventID,
+  );
   if (target) {
-    target.borderColor = "#F7F7F7"
+    target.borderColor = "#F7F7F7";
   }
 }
 
 function unseleEventAll() {
-  unseleEvent(pageData.seleEventID)
+  unseleEvent(pageData.seleEventID);
   pageData.seleEventID = 0;
 }
 
@@ -147,13 +156,13 @@ function seleEvent(eventID) {
     unseleEvent(pageData.seleEventID);
   }
   //寻找哪个event被单击了并修改边框
-  const target = calendarOptions.value.events.find(item => item.id === eventID)
+  const target = calendarOptions.value.events.find(
+    (item) => item.id === eventID,
+  );
   if (target) {
     target.borderColor = "#000000";
   }
   pageData.seleEventID = eventID;
-
-
 }
 
 // 日历配置选项
@@ -263,12 +272,11 @@ const calendarOptions = ref({
   // 日历事件列表（目前为空，后续可接入数据源）
   events: [],
 
-
   eventDidMount(info) {
-    const titleEl = info.el.querySelector('.fc-event-title')
+    const titleEl = info.el.querySelector(".fc-event-title");
     if (titleEl) {
       // 等 DOM 完全渲染后再检测宽度
-      requestAnimationFrame(() => applyScrollToTitle(titleEl))
+      requestAnimationFrame(() => applyScrollToTitle(titleEl));
     }
   },
 
@@ -283,9 +291,7 @@ const calendarOptions = ref({
     const nowTime = new Date().getTime();
     const timeDifference = nowTime - pageData.lastClickTime;
 
-
-
-    unseleEventAll();//点击了日期就取消event的选择
+    unseleEventAll(); //点击了日期就取消event的选择
 
     //判断和上次点击的是不是同一天
     if (info.dateStr === pageData.lastClickTimeStr) {
@@ -304,7 +310,6 @@ const calendarOptions = ref({
     }
     pageData.lastClickTimeStr = info.dateStr;
 
-
     // 更新上次点击时间
     pageData.lastClickTime = nowTime;
   },
@@ -315,19 +320,17 @@ const calendarOptions = ref({
       //选择了多日
       //console.log("选择了多日:", info);
       //先判断是否登录
-        if (userStore.isLoggedIn) {
-          openEventModal(info.startStr, info.endStr);
-        } else {
-          toast.warning(t("message.login_to_your_account"));
-          //router.replace("/login?redirect=/schedule");
-        }
-      
+      if (userStore.isLoggedIn) {
+        openEventModal(info.startStr, info.endStr);
+      } else {
+        toast.warning(t("message.login_to_your_account"));
+        //router.replace("/login?redirect=/schedule");
+      }
     } else {
       //选择单日 无功能
       //console.log("选择单日:", info);
     }
   },
-
 
   //事件event点击处理函数
   eventClick(info) {
@@ -344,7 +347,7 @@ const calendarOptions = ref({
     // }
 
     // 单击功能：
-    var eventid = parseInt(info.event.id)
+    var eventid = parseInt(info.event.id);
     seleEvent(eventid);
 
     //判断和上次点击的是不是同一个event
@@ -352,13 +355,20 @@ const calendarOptions = ref({
       // 判断是否为双击（400ms 内连续点击）
       if (timeDifference < 400 && timeDifference > 0) {
         //console.log("双击事件:", info);
-        openEventModal(info.event.startStr, info.event.end ? info.event.endStr : info.event.startStr, parseInt(info.event.id), info.event.title, info.event.backgroundColor, true, info.event.durationEditable);
+        openEventModal(
+          info.event.startStr,
+          info.event.end ? info.event.endStr : info.event.startStr,
+          parseInt(info.event.id),
+          info.event.title,
+          info.event.backgroundColor,
+          true,
+          info.event.durationEditable,
+        );
         // 双击功能：
-        unseleEventAll()
+        unseleEventAll();
       }
     }
     pageData.lastEventClickID = eventid;
-
 
     // 更新上次点击时间
     pageData.lastEventClickTime = nowTime;
@@ -366,13 +376,29 @@ const calendarOptions = ref({
 
   //event拖动处理
   eventDrop(info) {
-    updateEditData(parseInt(info.event.id), info.event.title, info.event.startStr, info.event.end === null ? info.event.startStr : DateUtils.toRealEnd(info.event.end), info.event.backgroundColor);
+    updateEditData(
+      parseInt(info.event.id),
+      info.event.title,
+      info.event.startStr,
+      info.event.end === null
+        ? info.event.startStr
+        : DateUtils.toRealEnd(info.event.end),
+      info.event.backgroundColor,
+    );
   },
 });
 
 function editSaveEvent() {
   //console.log(eventData)
-  updateEditData(eventData.value.id, eventData.value.title, eventData.value.startDate, eventData.value.startDate === eventData.value.endDate ? eventData.value.startDate : DateUtils.toRealEnd(eventData.value.endDate), eventData.value.color);
+  updateEditData(
+    eventData.value.id,
+    eventData.value.title,
+    eventData.value.startDate,
+    eventData.value.startDate === eventData.value.endDate
+      ? eventData.value.startDate
+      : DateUtils.toRealEnd(eventData.value.endDate),
+    eventData.value.color,
+  );
 }
 
 function updateEditData(id, title, start, end, color) {
@@ -391,12 +417,12 @@ function updateEditData(id, title, start, end, color) {
       if (r.errCode == 0) {
         //前端提交是否错误
         switch (
-        r.raw.err_code //后端返回是否错误
+          r.raw.err_code //后端返回是否错误
         ) {
           case 0:
             closeEventModal();
-            getEvents();//从新从后端获取最新数据
-            recalcScrollTitles();
+            getEvents(); //从新从后端获取最新数据
+            setTimeout(recalcScrollTitles, 150);
             break;
           default:
             toast.danger(t("message.server_error"));
@@ -407,7 +433,15 @@ function updateEditData(id, title, start, end, color) {
 }
 
 // 打开模态框
-const openEventModal = (dateStr, dataEnd, id = 0, title = "", color = "#066FD1", isEditing = false, isEditable = true) => {
+const openEventModal = (
+  dateStr,
+  dataEnd,
+  id = 0,
+  title = "",
+  color = "#066FD1",
+  isEditing = false,
+  isEditable = true,
+) => {
   eventData.value = {
     id: id,
     title: title,
@@ -427,7 +461,6 @@ const openEventModal = (dateStr, dataEnd, id = 0, title = "", color = "#066FD1",
 const closeEventModal = () => {
   showModal.value = false;
 };
-
 
 // 保存日程事件
 const saveEvent = () => {
@@ -473,7 +506,10 @@ const saveEvent = () => {
     .addEvent({
       title: newEvent.title,
       start: newEvent.start,
-      end: newEvent.end === newEvent.start ? newEvent.end : DateUtils.toRealEnd(newEvent.end),
+      end:
+        newEvent.end === newEvent.start
+          ? newEvent.end
+          : DateUtils.toRealEnd(newEvent.end),
       color: newEvent.backgroundColor,
     })
     .then((r) => {
@@ -481,7 +517,7 @@ const saveEvent = () => {
       if (r.errCode == 0) {
         //前端提交是否错误
         switch (
-        r.raw.err_code //后端返回是否错误
+          r.raw.err_code //后端返回是否错误
         ) {
           case 0:
             //calendarOptions.value.events.push(newEvent);
@@ -489,7 +525,7 @@ const saveEvent = () => {
             // 关闭模态框
             closeEventModal();
             getEvents();
-            recalcScrollTitles();
+            setTimeout(recalcScrollTitles, 150);
             break;
           default:
             toast.danger(t("message.server_error"));
@@ -514,33 +550,42 @@ const getEvents = () => {
       if (r.errCode == 0) {
         //前端提交是否错误
         switch (
-        r.raw.err_code //后端返回是否错误
+          r.raw.err_code //后端返回是否错误
         ) {
           case 0:
             calendarOptions.value.events = [];
             var events = r.raw.return.list;
             //console.log(events);
-            pageData.eventBindUserID=[];
+            pageData.eventBindUserID = [];
             events?.forEach((item) => {
-
-              var bind={
-                eventID:item.ID,
-                userID:item.UserID,
-              }
+              var bind = {
+                eventID: item.ID,
+                userID: item.UserID,
+              };
               pageData.eventBindUserID.push(bind);
 
+              calendarOptions.value.events.push({
+                id: item.ID, // 后端 ID
+                title: item.Title, // 标题
+                start: item.StartDate, // 开始日期
+                end:
+                  item.StartDate === item.EndDate
+                    ? item.EndDate
+                    : DateUtils.toCalendarEnd(item.EndDate), // 结束日期
+                backgroundColor: item.BgColor, // 背景色
+                borderColor:
+                  item.ID === pageData.seleEventID ? "#000000" : "#F7F7F7",
+                allDay: true, // 全天事件
+                editable: item.edit,
+              });
+            });
 
-                            calendarOptions.value.events.push({
-                              id: item.ID, // 后端 ID
-                              title: item.Title, // 标题
-                              start: item.StartDate, // 开始日期
-                              end: item.StartDate === item.EndDate ? item.EndDate : DateUtils.toCalendarEnd(item.EndDate), // 结束日期
-                              backgroundColor: item.BgColor, // 背景色
-                              borderColor: item.ID===pageData.seleEventID?"#000000":"#F7F7F7",      
-                              allDay: true, // 全天事件
-                              editable: item.edit,
-                            });
-                          });
+            // 检测数据是否变化（多浏览器同步场景），变了就重新计算滚动
+            const newSnapshot = JSON.stringify(events);
+            if (newSnapshot !== pageData.lastEventsSnapshot) {
+              pageData.lastEventsSnapshot = newSnapshot;
+              setTimeout(recalcScrollTitles, 150);
+            }
 
             break;
           default:
@@ -553,21 +598,21 @@ const getEvents = () => {
 
 //删除event
 function delEvent() {
-
   scheduleApi
     .deleEvent({
-      id: eventData.value.id
-    }).then((r) => {
+      id: eventData.value.id,
+    })
+    .then((r) => {
       //console.log(r);
       if (r.errCode == 0) {
         //前端提交是否错误
         switch (
-        r.raw.err_code //后端返回是否错误
+          r.raw.err_code //后端返回是否错误
         ) {
           case 0:
             closeEventModal();
-            getEvents();//从新从后端获取最新数据
-            recalcScrollTitles();
+            getEvents(); //从新从后端获取最新数据
+            setTimeout(recalcScrollTitles, 150);
             break;
           default:
             toast.danger(t("message.server_error"));
@@ -577,16 +622,13 @@ function delEvent() {
         toast.danger(t("message.server_error"));
       }
     });
-
 }
-
 
 // 颜色选择处理
 const selectColor = (colorValue) => {
   if (eventData.value.isEditable) {
     eventData.value.color = colorValue;
   }
-
 };
 
 function copyEvent() {
@@ -606,7 +648,6 @@ function pastEvent() {
       toast.warning(t("schedule.not_your_schedule"));
     }
   }
-
 }
 
 // ─── 滚动标题工具函数 ───────────────────────────────────────────────────────
@@ -617,13 +658,13 @@ function pastEvent() {
  */
 function applyScrollToTitle(titleEl) {
   // 先重置，避免旧的 --scroll-distance 干扰测量
-  titleEl.removeAttribute('data-truncated')
-  titleEl.style.removeProperty('--scroll-distance')
+  titleEl.removeAttribute("data-truncated");
+  titleEl.style.removeProperty("--scroll-distance");
 
-  const overflow = titleEl.scrollWidth - titleEl.clientWidth
+  const overflow = titleEl.scrollWidth - titleEl.clientWidth;
   if (overflow > 0) {
-    titleEl.style.setProperty('--scroll-distance', `-${overflow}px`)
-    titleEl.setAttribute('data-truncated', 'true')
+    titleEl.style.setProperty("--scroll-distance", `-${overflow}px`);
+    titleEl.setAttribute("data-truncated", "true");
   }
 }
 
@@ -636,11 +677,13 @@ function recalcScrollTitles() {
   // nextTick 等 Vue 完成 DOM 更新，rAF 再等浏览器完成布局计算
   nextTick(() => {
     requestAnimationFrame(() => {
-      const calendarEl = calendarRef.value?.$el
-      if (!calendarEl) return
-      calendarEl.querySelectorAll('.fc-event-title').forEach(applyScrollToTitle)
-    })
-  })
+      const calendarEl = calendarRef.value?.$el;
+      if (!calendarEl) return;
+      calendarEl
+        .querySelectorAll(".fc-event-title")
+        .forEach(applyScrollToTitle);
+    });
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -681,8 +724,8 @@ watch(locale, () => {
   ];
 });
 
-let timer = null
-let resizeObserver = null
+let timer = null;
+let resizeObserver = null;
 
 onMounted(() => {
   getEvents();
@@ -692,28 +735,28 @@ onMounted(() => {
 
   // 监听日历容器宽度变化，重新计算标题滚动距离
   // 用 setTimeout 防抖，避免 resize 过程中频繁触发
-  let resizeTimer = null
+  let resizeTimer = null;
   resizeObserver = new ResizeObserver(() => {
-    clearTimeout(resizeTimer)
+    clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      recalcScrollTitles()
-    }, 150)
-  })
+      recalcScrollTitles();
+    }, 150);
+  });
   // calendarRef.$el 就是 <FullCalendar> 渲染出的根 DOM 节点
   if (calendarRef.value?.$el) {
-    resizeObserver.observe(calendarRef.value.$el)
+    resizeObserver.observe(calendarRef.value.$el);
   }
 
   onBeforeUnmount(() => {
     if (timer) {
-      clearInterval(timer)
-      timer = null
+      clearInterval(timer);
+      timer = null;
     }
     if (resizeObserver) {
-      resizeObserver.disconnect()
-      resizeObserver = null
+      resizeObserver.disconnect();
+      resizeObserver = null;
     }
-    clearTimeout(resizeTimer)
+    clearTimeout(resizeTimer);
   });
 });
 </script>
@@ -723,23 +766,58 @@ onMounted(() => {
   <!-- 日历容器：占满视口高度减去顶部导航高度 -->
   <div class="flex w-full flex-col relative">
     <!-- 事件编辑模态框 -->
-    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/20">
+    <div
+      v-if="showModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/20"
+    >
       <!-- 👇 最关键：给外层加最大高度 + 溢出隐藏 -->
-      <div class="modal-content bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[95vh] flex flex-col">
+      <div
+        class="modal-content bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[95vh] flex flex-col"
+      >
         <!-- 模态框头部 -->
-        <div class="modal-header border-b p-4 flex justify-between items-center flex-shrink-0">
+        <div
+          class="modal-header border-b p-4 flex justify-between items-center flex-shrink-0"
+        >
           <h5 class="modal-title text-lg font-semibold">
-            {{ userStore.isLoggedIn ? eventData.isEditing ? t("schedule.edit_event_title") : t("schedule.add_event") : t("schedule.view_event_title") }}
-
+            {{
+              userStore.isLoggedIn
+                ? eventData.isEditing
+                  ? t("schedule.edit_event_title")
+                  : t("schedule.add_event")
+                : t("schedule.view_event_title")
+            }}
           </h5>
-          <h5 class="modal-title text-lg font-semibold absolute left-1/2 -translate-x-1/2">
-            {{ userStore.isLoggedIn ? eventData.isEditing ? t("schedule.someone_schedule", { name: getUsernameFromUserID(getUserIdFromEventID(eventData.id)) }) : "" : "" }}
-
+          <h5
+            class="modal-title text-lg font-semibold absolute left-1/2 -translate-x-1/2"
+          >
+            {{
+              userStore.isLoggedIn
+                ? eventData.isEditing
+                  ? t("schedule.someone_schedule", {
+                      name: getUsernameFromUserID(
+                        getUserIdFromEventID(eventData.id),
+                      ),
+                    })
+                  : ""
+                : ""
+            }}
           </h5>
-          <button @click="closeEventModal" class="btn-close text-gray-500 hover:text-gray-700">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-              class="icon icon-tabler icons-tabler-outline icon-tabler-x">
+          <button
+            @click="closeEventModal"
+            class="btn-close text-gray-500 hover:text-gray-700"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-x"
+            >
               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
               <path d="M18 6l-12 12"></path>
               <path d="M6 6l12 12"></path>
@@ -750,21 +828,33 @@ onMounted(() => {
         <!-- 👇 主体区域：允许内部滚动 -->
         <div class="modal-body p-4 flex-1 overflow-y-auto">
           <!-- 日期选择区域 -->
-          <DatatimePickerForFullCalendar v-model:startDate="eventData.startDate" v-model:endDate="eventData.endDate"
-            :color="eventData.color" :title="eventData.title" :isEditable="eventData.isEditable" />
+          <DatatimePickerForFullCalendar
+            v-model:startDate="eventData.startDate"
+            v-model:endDate="eventData.endDate"
+            :color="eventData.color"
+            :title="eventData.title"
+            :isEditable="eventData.isEditable"
+          />
 
           <!-- 内容输入区域 -->
           <div class="mb-4">
             <div class="uni-easyinput input relative">
-              <div class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
+              <div
+                class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
                 :class="{
                   'border-gray-300': eventData.title || !pageData.submitChecked,
-                  'border-red-500': !eventData.title && pageData.submitChecked
-                }">
-                <input v-model="eventData.title" type="text" maxlength="140"
+                  'border-red-500': !eventData.title && pageData.submitChecked,
+                }"
+              >
+                <input
+                  v-model="eventData.title"
+                  type="text"
+                  maxlength="140"
                   class="uni-easyinput__content-input w-full px-3 py-2 outline-none"
-                  :placeholder="t('schedule.event_title_placeholder')" @keyup.enter="saveEvent"
-                  :disabled="!eventData.isEditable" />
+                  :placeholder="t('schedule.event_title_placeholder')"
+                  @keyup.enter="saveEvent"
+                  :disabled="!eventData.isEditable"
+                />
               </div>
             </div>
           </div>
@@ -772,19 +862,33 @@ onMounted(() => {
           <!-- 颜色选择区域 -->
           <div class="mb-4">
             <div class="color_box grid grid-cols-3 gap-2">
-              <div v-for="color in colorOptions" :key="color.value" class="color_box_item">
-                <label class="uni-label-pointer form-colorinput flex items-center gap-2 cursor-pointer"
-                  @click="selectColor(color.value)">
+              <div
+                v-for="color in colorOptions"
+                :key="color.value"
+                class="color_box_item"
+              >
+                <label
+                  class="uni-label-pointer form-colorinput flex items-center gap-2 cursor-pointer"
+                  @click="selectColor(color.value)"
+                >
                   <div class="uni-radio-wrapper">
-                    <div class="uni-radio-input flex items-center justify-center w-6 h-6 rounded-full transition-all"
+                    <div
+                      class="uni-radio-input flex items-center justify-center w-6 h-6 rounded-full transition-all"
                       :style="{
                         backgroundColor: color.value,
                         borderColor: color.value,
-                      }">
-                      <svg v-if="eventData.color === color.value" width="18" height="18" viewBox="0 0 32 32">
+                      }"
+                    >
+                      <svg
+                        v-if="eventData.color === color.value"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 32 32"
+                      >
                         <path
                           d="M1.952 18.080q-0.32-0.352-0.416-0.88t0.128-0.976l0.16-0.352q0.224-0.416 0.64-0.528t0.8 0.176l6.496 4.704q0.384 0.288 0.912 0.272t0.88-0.336l17.312-14.272q0.352-0.288 0.848-0.256t0.848 0.352l-0.416-0.416q0.32 0.352 0.32 0.816t-0.32 0.816l-18.656 18.912q-0.32 0.352-0.8 0.352t-0.8-0.32l-7.936-8.064z"
-                          fill="#ffffff"></path>
+                          fill="#ffffff"
+                        ></path>
                       </svg>
                     </div>
                   </div>
@@ -797,32 +901,48 @@ onMounted(() => {
 
         <!-- 👇 底部固定：不被滚动、不压缩 -->
         <!-- 如果没登录直接不显示 -->
-        <div v-if="userStore.isLoggedIn"
-          class="modal-footer border-t p-4 flex justify-between items-center flex-shrink-0">
-
+        <div
+          v-if="userStore.isLoggedIn"
+          class="modal-footer border-t p-4 flex justify-between items-center flex-shrink-0"
+        >
           <div class="flex gap-2">
-            <button v-if="eventData.isEditing" @click="delEvent" class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md 
-         disabled:bg-gray-400 disabled:cursor-not-allowed" :disabled="!eventData.isEditable">
+            <button
+              v-if="eventData.isEditing"
+              @click="delEvent"
+              class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
+            >
               {{ t("schedule.delete") }}
             </button>
           </div>
           <div class="flex gap-2">
-            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md" @click="copyEvent">
+            <button
+              class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              @click="copyEvent"
+            >
               {{ t("schedule.copy") }}
             </button>
-            <button class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md disabled:cursor-not-allowed"
-              :disabled="!pageData.isCopy || !eventData.isEditable" 
-              @click="pastEvent">
+            <button
+              class="btn px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md disabled:cursor-not-allowed"
+              :disabled="!pageData.isCopy || !eventData.isEditable"
+              @click="pastEvent"
+            >
               {{ t("schedule.paste") }}
             </button>
-            <button v-if="!eventData.isEditing" @click="saveEvent"
+            <button
+              v-if="!eventData.isEditing"
+              @click="saveEvent"
               class="btn btn-primary px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-              :disabled="!eventData.isEditable">
+              :disabled="!eventData.isEditable"
+            >
               {{ t("schedule.add_event_button") }}
             </button>
-            <button v-if="eventData.isEditing" @click="editSaveEvent"
+            <button
+              v-if="eventData.isEditing"
+              @click="editSaveEvent"
               class="btn btn-primary px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-              :disabled="!eventData.isEditable">
+              :disabled="!eventData.isEditable"
+            >
               {{ t("schedule.edit_event_title") }}
             </button>
           </div>
@@ -831,7 +951,9 @@ onMounted(() => {
     </div>
 
     <!-- 日历主体区域，带边框和阴影 -->
-    <div class="flex-1 rounded-lg border border-gray-200 bg-white p-0.5 shadow dark:border-dk-muted dark:bg-dk-card">
+    <div
+      class="flex-1 rounded-lg border border-gray-200 bg-white p-0.5 shadow dark:border-dk-muted dark:bg-dk-card"
+    >
       <!-- 内层容器：隐藏溢出内容 -->
       <div class="h-full w-full overflow-hidden rounded-md">
         <!-- FullCalendar 日历组件 -->
@@ -867,7 +989,7 @@ onMounted(() => {
    注意：必须覆盖 FullCalendar 内置的 overflow:hidden，否则动画被自身裁掉 */
 :deep(.fc-daygrid-event .fc-event-title) {
   white-space: nowrap !important;
-  overflow: visible !important;   /* 覆盖 fc-h-event .fc-event-title { overflow: hidden } */
+  overflow: visible !important; /* 覆盖 fc-h-event .fc-event-title { overflow: hidden } */
   text-overflow: ellipsis !important;
   display: block !important;
   will-change: transform;
