@@ -1,6 +1,6 @@
 <script setup>
 // Vue 核心响应式 API
-import { ref, watch, onMounted, onBeforeUnmount, reactive } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount, reactive, nextTick } from "vue";
 // FullCalendar Vue 3 组件
 import FullCalendar from "@fullcalendar/vue3";
 // FullCalendar 插件：月视图
@@ -268,14 +268,7 @@ const calendarOptions = ref({
     const titleEl = info.el.querySelector('.fc-event-title')
     if (titleEl) {
       // 等 DOM 完全渲染后再检测宽度
-      requestAnimationFrame(() => {
-        const overflow = titleEl.scrollWidth - titleEl.clientWidth
-        if (overflow > 0) {
-          // 将溢出量存入 CSS 变量，让动画能精确滚到末尾
-          titleEl.style.setProperty('--scroll-distance', `-${overflow}px`)
-          titleEl.setAttribute('data-truncated', 'true')
-        }
-      })
+      requestAnimationFrame(() => applyScrollToTitle(titleEl))
     }
   },
 
@@ -403,6 +396,7 @@ function updateEditData(id, title, start, end, color) {
           case 0:
             closeEventModal();
             getEvents();//从新从后端获取最新数据
+            recalcScrollTitles();
             break;
           default:
             toast.danger(t("message.server_error"));
@@ -495,6 +489,7 @@ const saveEvent = () => {
             // 关闭模态框
             closeEventModal();
             getEvents();
+            recalcScrollTitles();
             break;
           default:
             toast.danger(t("message.server_error"));
@@ -535,17 +530,17 @@ const getEvents = () => {
               pageData.eventBindUserID.push(bind);
 
 
-              calendarOptions.value.events.push({
-                id: item.ID, // 后端 ID
-                title: item.Title, // 标题
-                start: item.StartDate, // 开始日期
-                end: item.StartDate === item.EndDate ? item.EndDate : DateUtils.toCalendarEnd(item.EndDate), // 结束日期
-                backgroundColor: item.BgColor, // 背景色
-                borderColor: item.ID===pageData.seleEventID?"#000000":"#F7F7F7",      
-                allDay: true, // 全天事件
-                editable: item.edit,
-              });
-            });
+                            calendarOptions.value.events.push({
+                              id: item.ID, // 后端 ID
+                              title: item.Title, // 标题
+                              start: item.StartDate, // 开始日期
+                              end: item.StartDate === item.EndDate ? item.EndDate : DateUtils.toCalendarEnd(item.EndDate), // 结束日期
+                              backgroundColor: item.BgColor, // 背景色
+                              borderColor: item.ID===pageData.seleEventID?"#000000":"#F7F7F7",      
+                              allDay: true, // 全天事件
+                              editable: item.edit,
+                            });
+                          });
 
             break;
           default:
@@ -572,6 +567,7 @@ function delEvent() {
           case 0:
             closeEventModal();
             getEvents();//从新从后端获取最新数据
+            recalcScrollTitles();
             break;
           default:
             toast.danger(t("message.server_error"));
@@ -613,6 +609,42 @@ function pastEvent() {
 
 }
 
+// ─── 滚动标题工具函数 ───────────────────────────────────────────────────────
+
+/**
+ * 对单个 .fc-event-title 元素重新计算是否需要滚动。
+ * 先清除旧状态，再测量，按需设置动画。
+ */
+function applyScrollToTitle(titleEl) {
+  // 先重置，避免旧的 --scroll-distance 干扰测量
+  titleEl.removeAttribute('data-truncated')
+  titleEl.style.removeProperty('--scroll-distance')
+
+  const overflow = titleEl.scrollWidth - titleEl.clientWidth
+  if (overflow > 0) {
+    titleEl.style.setProperty('--scroll-distance', `-${overflow}px`)
+    titleEl.setAttribute('data-truncated', 'true')
+  }
+}
+
+/**
+ * 重新计算日历中所有 event 标题的滚动状态。
+ * 适用于：屏幕宽度变化、数据刷新后。
+ * 用 nextTick + rAF 双重等待，确保 DOM 和布局都已更新完毕。
+ */
+function recalcScrollTitles() {
+  // nextTick 等 Vue 完成 DOM 更新，rAF 再等浏览器完成布局计算
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const calendarEl = calendarRef.value?.$el
+      if (!calendarEl) return
+      calendarEl.querySelectorAll('.fc-event-title').forEach(applyScrollToTitle)
+    })
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // 监听语言变化，更新日历的本地化和按钮文字
 watch(locale, () => {
   // 更新日历语言
@@ -649,35 +681,39 @@ watch(locale, () => {
   ];
 });
 
-let timer = null;
+let timer = null
+let resizeObserver = null
+
 onMounted(() => {
   getEvents();
   timer = setInterval(() => {
     getEvents();
   }, 2000);
 
-  // const handleKeydown = (event) => {
-  //   // Ctrl+C 事件
-  //   if (event.ctrlKey && event.key === "c") {
-  //     event.preventDefault(); // 可选：阻止默认复制行为
-  //     console.log("Ctrl+C 被按下");
-  //     // 你的业务逻辑
-  //   }
-  //   // Ctrl+V 事件
-  //   if (event.ctrlKey && event.key === "v") {
-  //     event.preventDefault(); // 可选：阻止默认粘贴行为
-  //     console.log("Ctrl+V 被按下");
-  //     // 你的业务逻辑
-  //   }
-  // };
-  // document.addEventListener("keydown", handleKeydown);
-  // // 清理事件监听器
+  // 监听日历容器宽度变化，重新计算标题滚动距离
+  // 用 setTimeout 防抖，避免 resize 过程中频繁触发
+  let resizeTimer = null
+  resizeObserver = new ResizeObserver(() => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => {
+      recalcScrollTitles()
+    }, 150)
+  })
+  // calendarRef.$el 就是 <FullCalendar> 渲染出的根 DOM 节点
+  if (calendarRef.value?.$el) {
+    resizeObserver.observe(calendarRef.value.$el)
+  }
+
   onBeforeUnmount(() => {
-    //document.removeEventListener("keydown", handleKeydown);
-     if (timer) {
-      clearInterval(timer); // 清除定时器
-      timer = null; // 置空，好习惯
+    if (timer) {
+      clearInterval(timer)
+      timer = null
     }
+    if (resizeObserver) {
+      resizeObserver.disconnect()
+      resizeObserver = null
+    }
+    clearTimeout(resizeTimer)
   });
 });
 </script>
