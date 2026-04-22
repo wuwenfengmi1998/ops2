@@ -266,10 +266,16 @@ const calendarOptions = ref({
 
   eventDidMount(info) {
     const titleEl = info.el.querySelector('.fc-event-title')
-    if (titleEl && titleEl.scrollWidth > titleEl.clientWidth) {
-      //titleEl.setAttribute('data-truncated', 'true')
-      //日程过长 需要特殊处理
-      //console.log("--",info)
+    if (titleEl) {
+      // 等 DOM 完全渲染后再检测宽度
+      requestAnimationFrame(() => {
+        const overflow = titleEl.scrollWidth - titleEl.clientWidth
+        if (overflow > 0) {
+          // 将溢出量存入 CSS 变量，让动画能精确滚到末尾
+          titleEl.style.setProperty('--scroll-distance', `-${overflow}px`)
+          titleEl.setAttribute('data-truncated', 'true')
+        }
+      })
     }
   },
 
@@ -802,31 +808,59 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 基础：保持单行省略 */
-/* :deep(.fc-daygrid-event .fc-event-title) {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  display: block !important;
-} */
+/*
+  月视图日程标题：超出容器宽度时自动来回滚动
+  - 先停留 1.2s 显示开头
+  - 向左滚动到末尾（匀速）
+  - 停留 1.2s 显示末尾
+  - 向右滚回开头（匀速）
+  - 往复循环
 
-/* 超长文字：自动滚动 */
-:deep(.fc-daygrid-event .fc-event-title[data-truncated="true"]) {
-  display: inline-block !important;
-  width: auto !important;
-  white-space: nowrap !important;
+  关键：FullCalendar 内置给 .fc-h-event .fc-event-title 设置了 overflow:hidden，
+  这会把 translateX 动画裁掉。解决方式是：
+  1. 覆盖 .fc-event-title 的 overflow 为 visible
+  2. 把 overflow:hidden 提升到父容器 .fc-event-title-container 做裁剪视口
+*/
+
+/* 父容器作为裁剪视口 */
+:deep(.fc-daygrid-event .fc-event-title-container) {
   overflow: hidden !important;
-  padding-right: 10px !important;
-  animation: textScroll 5s linear infinite !important;
 }
 
-@keyframes textScroll {
-  0% {
-    transform: translateX(0%);
-  }
+/* 默认状态：单行截断省略（未超长时）
+   注意：必须覆盖 FullCalendar 内置的 overflow:hidden，否则动画被自身裁掉 */
+:deep(.fc-daygrid-event .fc-event-title) {
+  white-space: nowrap !important;
+  overflow: visible !important;   /* 覆盖 fc-h-event .fc-event-title { overflow: hidden } */
+  text-overflow: ellipsis !important;
+  display: block !important;
+  will-change: transform;
+}
 
+/* 需要滚动的标题：移除 ellipsis，启用来回滚动动画 */
+:deep(.fc-daygrid-event .fc-event-title[data-truncated="true"]) {
+  text-overflow: clip !important;
+  display: inline-block !important;
+  animation: marquee-bounce 6s ease-in-out infinite !important;
+}
+
+@keyframes marquee-bounce {
+  /*  0%  ~ 20%：停在开头，让用户看清前段内容  */
+  0%,
+  20% {
+    transform: translateX(0);
+  }
+  /*  20% ~ 60%：匀速向左滚动到末尾  */
+  60% {
+    transform: translateX(var(--scroll-distance, 0px));
+  }
+  /*  60% ~ 80%：停在末尾，让用户看清后段内容  */
+  80% {
+    transform: translateX(var(--scroll-distance, 0px));
+  }
+  /*  80% ~ 100%：匀速向右滚回开头  */
   100% {
-    transform: translateX(-100%);
+    transform: translateX(0);
   }
 }
 </style>
