@@ -222,8 +222,8 @@ async function fetchItems() {
       items.value = data.items || []
       itemTotal.value = data.all_count || 0
       itemStats.total = data.all_count || 0
-      itemStats.inContainer = items.value.filter(i => i.container_id != null).length
-      itemStats.unstored = items.value.filter(i => i.container_id == null).length
+      itemStats.inContainer = items.value.filter(i => i.ContainerID != null).length
+      itemStats.unstored = items.value.filter(i => i.ContainerID == null).length
     }
   } catch { toast.error(t('message.server_error')) }
   finally { itemLoading.value = false }
@@ -260,7 +260,7 @@ const itemPageNumbers = computed(() => {
 })
 
 function goToItemDetail(item) {
-  router.push(`/warehouse/item/${item.id}`)
+  router.push(`/warehouse/item/${item.ID}`)
 }
 
 const deleteItemTarget = ref(null)
@@ -276,7 +276,7 @@ async function doDeleteItem() {
   if (!deleteItemTarget.value) return
   deletingItem.value = true
   try {
-    const { errCode } = await warehouseApi.deleteItem(deleteItemTarget.value.id)
+    const { errCode } = await warehouseApi.deleteItem(deleteItemTarget.value.ID)
     if (errCode === 0) {
       toast.success(t('message.delete_success'))
       showDeleteItemConfirm.value = false
@@ -298,14 +298,36 @@ function getContainerTitle(cid) {
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   try {
-    const d = new Date(dateStr)
+    let d
+    if (typeof dateStr === 'string' && /^\d+$/.test(dateStr)) {
+      // Unix timestamp string like "1712345678"
+      d = new Date(parseInt(dateStr, 10) * 1000)
+    } else {
+      d = new Date(dateStr)
+    }
+    if (isNaN(d.getTime())) return '—'
     return d.toLocaleDateString(isEn.value ? 'en-US' : 'zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
   } catch { return dateStr }
 }
 
 function fmtTs(ts) {
   if (!ts) return '—'
-  const d = new Date(parseInt(ts) * 1000)
+  let d
+  if (typeof ts === 'number') {
+    // Unix timestamp in seconds (number)
+    d = new Date(ts * 1000)
+  } else if (typeof ts === 'string') {
+    // Check if it's a Unix timestamp string like "1712345678"
+    if (/^\d+$/.test(ts)) {
+      d = new Date(parseInt(ts, 10) * 1000)
+    } else {
+      // ISO 8601 or other string format
+      d = new Date(ts)
+    }
+  } else {
+    d = new Date(ts)
+  }
+  if (isNaN(d.getTime())) return '—'
   return d.toLocaleString()
 }
 
@@ -552,23 +574,23 @@ onMounted(() => {
             </tr>
             <tr
               v-else
-              v-for="item in items" :key="item.id"
+              v-for="item in items" :key="item.ID"
               class="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
               @click="goToItemDetail(item)"
             >
-              <td class="px-6 py-3 font-medium max-w-[200px] truncate">{{ item.name }}</td>
-              <td class="px-6 py-3 max-w-[160px] truncate text-xs text-gray-500 dark:text-gray-400">{{ item.serial_number || '—' }}</td>
-              <td class="px-6 py-3 text-center text-sm">{{ item.quantity }}</td>
+              <td class="px-6 py-3 font-medium max-w-[200px] truncate">{{ item.Name }}</td>
+              <td class="px-6 py-3 max-w-[160px] truncate text-xs text-gray-500 dark:text-gray-400">{{ item.SerialNumber || '—' }}</td>
+              <td class="px-6 py-3 text-center text-sm">{{ item.Quantity }}</td>
               <td class="px-6 py-3">
-                <span v-if="item.container_id != null" class="inline-flex items-center gap-1 text-sm text-blue-600">
+                <span v-if="item.ContainerID != null" class="inline-flex items-center gap-1 text-sm text-blue-600">
                   <IconArrowRight :size="13" />
-                  <span class="max-w-[140px] truncate">{{ getContainerTitle(item.container_id) }}</span>
+                  <span class="max-w-[140px] truncate">{{ getContainerTitle(item.ContainerID) }}</span>
                 </span>
                 <span v-else class="inline-flex items-center gap-1 text-xs text-orange-500">
                   {{ t('warehouse.unstored_items') }}
                 </span>
               </td>
-              <td class="px-6 py-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">{{ formatDate(item.created_at) }}</td>
+              <td class="px-6 py-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">{{ formatDate(item.CreatedAt) }}</td>
               <td class="px-6 py-3 text-right" @click.stop>
                 <button
                   class="flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"

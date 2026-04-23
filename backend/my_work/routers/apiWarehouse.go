@@ -345,7 +345,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 		if from.ParentID != nil {
 			query = query.Where("parent_id = ?", *from.ParentID)
-		} else {
+		} else if from.Search == "" {
+			// 无搜索时默认只显示顶级容器
 			query = query.Where("parent_id IS NULL")
 		}
 		query.Count(&count)
@@ -385,6 +386,35 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			return
 		}
 
+		// 构建父容器链（从根到当前）
+		type ParentItem struct {
+			ID    uint   `json:"id"`
+			Title string `json:"title"`
+		}
+		parentChain := []ParentItem{}
+		if c.ParentID != nil {
+			curID := *c.ParentID
+			visited := map[uint]bool{}
+			for curID != 0 {
+				if visited[curID] {
+					break
+				}
+				visited[curID] = true
+				var parent TabWarehouseContainer
+				if err := models.DB.Select("id, title, parent_id").Where("id = ?", curID).First(&parent).Error; err != nil {
+					break
+				}
+				parentChain = append([]ParentItem{{ID: parent.ID, Title: parent.Title}}, parentChain...)
+				if parent.ParentID == nil {
+					break
+				}
+				curID = *parent.ParentID
+			}
+		}
+
+		// 计算当前容器深度（0=顶级，4=已达最大层级）
+		depth := len(parentChain)
+
 		// 关联图片
 		var binds []TabWarehouseContainerFileBind
 		models.DB.Where("container_id = ?", from.ID).Find(&binds)
@@ -398,12 +428,14 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"container": c,
-			"photos":    files,
+			"container":    c,
+			"photos":       files,
+			"parent_chain": parentChain,
+			"depth":        depth,
 		})
 	})
 
-	// 新增物品
+	// 新增物品（查重逻辑：Name+SerialNumber相同则更新容器）
 	r.POST("/add_item", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
@@ -438,46 +470,116 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			quantity = 1
 		}
 
-		item := TabWarehouseItem{
-			Name:         from.Name,
-			SerialNumber: from.SerialNumber,
-			Remark:       from.Remark,
-			Quantity:     quantity,
-			CreatedAt:    strconv.FormatInt(time.Now().Unix(), 10),
-			CreatorID:    user.ID,
-			ContainerID:  from.ContainerID,
-		}
-		models.DB.Create(&item)
+		// 查重：Name + SerialNumber 相同则更新容器
+		var existingItem TabWarehouseItem
+		exists := models.DB.Where("name = ? AND serial_number = ?", from.Name, from.SerialNumber).First(&existingItem).Error == nil
 
-		// 绑定图片
+		var itemID uint
+		var oldContainer *uint
+
+		if exists {
+			// 已有记录：更新容器
+			oldContainer = existingItem.ContainerID
+
+			// 同一容器无需操作，但仍然记录 commit
+			if !ptrEqUint(oldContainer, from.ContainerID) {
+				// 旧容器 ItemCount -1
+				if oldContainer != nil {
+					models.DB.Model(&TabWarehouseContainer{}).Where("id = ?", *oldContainer).Update("item_count", models.DB.Raw("item_count - 1"))
+				}
+				// 新容器 ItemCount +1
+				if from.ContainerID != nil {
+					models.DB.Model(&TabWarehouseContainer{}).Where("id = ?", *from.ContainerID).Update("item_count", models.DB.Raw("item_count + 1"))
+				}
+				// 更新物品容器
+				existingItem.ContainerID = from.ContainerID
+				models.DB.Save(&existingItem)
+			}
+
+			itemID = existingItem.ID
+
+			// 写操作日志
+			newContent, _ := json.Marshal(from)
+			models.DB.Create(&TabWarehouseLog{
+				EntityType: "item",
+				EntityID:   itemID,
+				UserID:     user.ID,
+				ActionType: "update",
+				OldContent: ptrStrUint(oldContainer),
+				NewContent: string(newContent),
+				IP:         ctx.ClientIP(),
+			})
+		} else {
+			// 无记录：新建物品
+			item := TabWarehouseItem{
+				Name:         from.Name,
+				SerialNumber: from.SerialNumber,
+				Remark:       from.Remark,
+				Quantity:     quantity,
+				CreatedAt:    strconv.FormatInt(time.Now().Unix(), 10),
+				CreatorID:    user.ID,
+				ContainerID:  from.ContainerID,
+			}
+			models.DB.Create(&item)
+			itemID = item.ID
+
+			// 绑定图片
+			for _, hash := range from.Photos {
+				var findFile TabFileInfo_
+				if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
+					models.DB.Create(&TabWarehouseItemFileBind{
+						ItemID:    item.ID,
+						FileID:    findFile.ID,
+						CreatorID: user.ID,
+					})
+				}
+			}
+
+			// 所属容器的 ItemCount +1
+			if from.ContainerID != nil {
+				models.DB.Model(&TabWarehouseContainer{}).Where("id = ?", *from.ContainerID).Update("item_count", models.DB.Raw("item_count + 1"))
+			}
+
+			// 写操作日志
+			newContent, _ := json.Marshal(from)
+			models.DB.Create(&TabWarehouseLog{
+				EntityType: "item",
+				EntityID:   itemID,
+				UserID:     user.ID,
+				ActionType: "create",
+				NewContent: string(newContent),
+				IP:         ctx.ClientIP(),
+			})
+		}
+
+		// 新增/更新时绑定图片
 		for _, hash := range from.Photos {
 			var findFile TabFileInfo_
 			if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
-				models.DB.Create(&TabWarehouseItemFileBind{
-					ItemID:    item.ID,
-					FileID:    findFile.ID,
-					CreatorID: user.ID,
-				})
+				// 检查是否已绑定，避免重复
+				var count int64
+				models.DB.Model(&TabWarehouseItemFileBind{}).Where("item_id = ? AND file_id = ?", itemID, findFile.ID).Count(&count)
+				if count == 0 {
+					models.DB.Create(&TabWarehouseItemFileBind{
+						ItemID:    itemID,
+						FileID:    findFile.ID,
+						CreatorID: user.ID,
+					})
+				}
 			}
 		}
 
-		// 所属容器的 ItemCount +1
-		if from.ContainerID != nil {
-			models.DB.Model(&TabWarehouseContainer{}).Where("id = ?", *from.ContainerID).Update("item_count", models.DB.Raw("item_count + 1"))
-		}
-
-		// 写操作日志
-		newContent, _ := json.Marshal(from)
-		models.DB.Create(&TabWarehouseLog{
-			EntityType: "item",
-			EntityID:   item.ID,
-			UserID:     user.ID,
-			ActionType: "create",
-			NewContent: string(newContent),
-			IP:         ctx.ClientIP(),
+		// 记录 commit（无论新建还是更新容器都记录）
+		models.DB.Create(&TabWarehouseItemCommit{
+			ItemID:       itemID,
+			UserID:       user.ID,
+			OldContainer: oldContainer,
+			NewContainer: from.ContainerID,
+			Remark:       from.Remark,
+			IP:           ctx.ClientIP(),
 		})
 
-		ReturnJson(ctx, "apiOK", gin.H{"id": item.ID})
+		ReturnJson(ctx, "apiOK", gin.H{"id": itemID, "updated": exists})
 	})
 
 	// 编辑物品

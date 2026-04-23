@@ -12,7 +12,9 @@ import {
   IconEdit,
   IconTrash,
   IconArrowRight,
+  IconArrowLeft,
   IconSearch,
+  IconPlus,
 } from '@tabler/icons-vue'
 
 usePageTitle('warehouse.item_detail')
@@ -84,7 +86,22 @@ function getStatusLabel(status) {
 // ── 时间格式化 ──
 function fmtTs(ts) {
   if (!ts) return '—'
-  const d = new Date(parseInt(ts) * 1000)
+  let d
+  if (typeof ts === 'number') {
+    // Unix timestamp in seconds (number)
+    d = new Date(ts * 1000)
+  } else if (typeof ts === 'string') {
+    // Check if it's a Unix timestamp string like "1712345678"
+    if (/^\d+$/.test(ts)) {
+      d = new Date(parseInt(ts, 10) * 1000)
+    } else {
+      // ISO 8601 or other string format
+      d = new Date(ts)
+    }
+  } else {
+    d = new Date(ts)
+  }
+  if (isNaN(d.getTime())) return '—'
   return d.toLocaleString()
 }
 
@@ -148,6 +165,21 @@ async function loadContainerNames() {
 function getContainerName(id) {
   if (!id) return t('warehouse.unstored')
   return containerNames[id] || `#${id}`
+}
+
+// ── 关联工单 ──
+function openLinkWorkOrder() {
+  if (!item.value) return
+  // 存储预填数据到 localStorage
+  const prefillData = {
+    itemId: item.value.ID,
+    title: item.value.SerialNumber
+      ? `${item.value.Name}-${item.value.SerialNumber}`
+      : item.value.Name,
+    description: item.value.Remark || '',
+  }
+  localStorage.setItem('prefill_work_order', JSON.stringify(prefillData))
+  router.push('/work_order/add')
 }
 
 // ── 编辑 ──
@@ -297,16 +329,23 @@ onMounted(() => {
 
     <template v-else-if="item">
 
-      <!-- 面包屑 + 操作栏 -->
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-sm">
-          <RouterLink to="/warehouse/item" class="text-blue-500 hover:underline">
-            {{ t('warehouse.item_list') }}
-          </RouterLink>
-          <span class="text-gray-400">/</span>
-          <span class="font-medium text-gray-900 dark:text-white">{{ item.Name }}</span>
-        </div>
+      <!-- 操作栏 -->
+      <div class="flex items-center justify-between gap-2">
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
+          @click="router.back()"
+        >
+          <IconArrowLeft :size="14" />
+          返回
+        </button>
         <div class="flex gap-2">
+          <button
+            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
+            @click="openLinkWorkOrder"
+          >
+            <IconPlus :size="14" />
+            关联工单
+          </button>
           <button
             class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
             @click="openMove"

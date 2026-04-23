@@ -17,6 +17,7 @@ import {
   IconX,
   IconSearch,
   IconExternalLink,
+  IconPackage,
 } from '@tabler/icons-vue'
 
 usePageTitle('work_order.detail_title')
@@ -32,6 +33,7 @@ const orderId = computed(() => parseInt(route.params.id))
 const order = ref(null)
 const photos = ref([])
 const commits = ref([])
+const linkedItems = ref([])
 const canModify = ref(false)
 const canCommit = ref(false)
 const loading = ref(true)
@@ -136,6 +138,7 @@ async function fetchOrder() {
       canCommit.value = data.canCommit ?? false
       photos.value = data.photos ?? []
       commits.value = data.commits ?? []
+      linkedItems.value = data.linkedItems ?? []
       // 初始化进度提交状态为当前状态
       if (order.value?.CurrentStatus) {
         commitStatus.value = order.value.CurrentStatus
@@ -425,6 +428,22 @@ onUnmounted(() => {
           <div v-if="order?.Description">
             <label class="mb-1 block text-xs font-medium text-gray-400">{{ t('work_order.description') }}</label>
             <p class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{{ order.Description }}</p>
+          </div>
+          <!-- 关联物品 -->
+          <div v-if="linkedItems.length > 0">
+            <label class="mb-1 block text-xs font-medium text-gray-400">{{ t('work_order.linked_items') }}</label>
+            <div class="flex flex-wrap gap-2">
+              <RouterLink
+                v-for="item in linkedItems"
+                :key="item.ID"
+                :to="`/warehouse/item/${item.ID}`"
+                class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+              >
+                <IconPackage :size="12" />
+                {{ item.Name }}
+                <span v-if="item.SerialNumber" class="text-green-500">-{{ item.SerialNumber }}</span>
+              </RouterLink>
+            </div>
           </div>
           <!-- 关联采购订单汇总（去重） -->
           <div v-if="allPurchaseOrders.length > 0">

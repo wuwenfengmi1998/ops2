@@ -46,9 +46,27 @@ function getPhotoHashes() {
 }
 
 // ==================== 加载编辑数据 ====================
-onMounted(async () => {
-  if (!isEdit.value) return
+const linkedItemId = ref(null)
 
+onMounted(async () => {
+  // 新增模式：检查预填数据
+  if (!isEdit.value) {
+    const prefillStr = localStorage.getItem('prefill_work_order')
+    if (prefillStr) {
+      try {
+        const prefill = JSON.parse(prefillStr)
+        form.title = prefill.title || ''
+        form.description = prefill.description || ''
+        linkedItemId.value = prefill.itemId || null
+        localStorage.removeItem('prefill_work_order')
+      } catch {
+        // ignore
+      }
+    }
+    return
+  }
+
+  // 编辑模式
   pageLoading.value = true
   try {
     const res = await workOrderApi.get(orderId.value)
@@ -117,6 +135,7 @@ async function handleSubmit() {
         title: form.title,
         description: form.description,
         photos,
+        item_id: linkedItemId.value,
       })
     }
 

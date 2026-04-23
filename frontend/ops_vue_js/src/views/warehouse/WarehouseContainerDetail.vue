@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
@@ -27,9 +27,20 @@ const usersStore = useUsersStore()
 
 const containerId = computed(() => parseInt(route.params.id))
 
+// ── 路由参数变化时重新加载 ──
+watch(containerId, async () => {
+  subPage.value = 1
+  itemPage.value = 1
+  await fetchContainer()
+  fetchSubContainers()
+  fetchItems()
+})
+
 // ── 容器详情 ──
 const container = ref(null)
 const photos = ref([])
+const parentChain = ref([])
+const containerDepth = ref(0)
 const loadingDetail = ref(true)
 const notFound = ref(false)
 
@@ -89,12 +100,31 @@ const deleting = ref(false)
 // ── 时间格式化 ──
 function fmtTs(ts) {
   if (!ts) return '—'
-  const d = new Date(parseInt(ts) * 1000)
+  let d
+  if (typeof ts === 'number') {
+    // Unix timestamp in seconds (number)
+    d = new Date(ts * 1000)
+  } else if (typeof ts === 'string') {
+    // Check if it's a Unix timestamp string like "1712345678"
+    if (/^\d+$/.test(ts)) {
+      d = new Date(parseInt(ts, 10) * 1000)
+    } else {
+      // ISO 8601 or other string format
+      d = new Date(ts)
+    }
+  } else {
+    d = new Date(ts)
+  }
+  if (isNaN(d.getTime())) return '—'
   return d.toLocaleString()
 }
 
 // ── 拉取容器详情 ──
 async function fetchContainer() {
+  container.value = null
+  photos.value = []
+  parentChain.value = []
+  containerDepth.value = 0
   loadingDetail.value = true
   notFound.value = false
   try {
@@ -102,6 +132,8 @@ async function fetchContainer() {
     if (errCode === 0 && data) {
       container.value = data.container
       photos.value = data.photos ?? []
+      parentChain.value = data.parent_chain ?? []
+      containerDepth.value = data.depth ?? 0
     } else {
       notFound.value = true
     }
@@ -114,6 +146,7 @@ async function fetchContainer() {
 
 // ── 拉取子容器 ──
 async function fetchSubContainers() {
+  subContainers.value = []
   loadingSub.value = true
   try {
     const { errCode, data } = await warehouseApi.getContainers({
@@ -135,6 +168,7 @@ async function fetchSubContainers() {
 
 // ── 拉取物品 ──
 async function fetchItems() {
+  items.value = []
   loadingItems.value = true
   try {
     const { errCode, data } = await warehouseApi.getItems({
@@ -278,10 +312,17 @@ onMounted(async () => {
 
       <!-- 面包屑 + 操作栏 -->
       <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-sm">
+        <div class="flex items-center gap-1 text-sm flex-wrap">
           <RouterLink to="/warehouse/container" class="text-blue-500 hover:underline">
             {{ t('warehouse.container_list') }}
           </RouterLink>
+          <template v-for="p in parentChain" :key="p.id">
+            <span class="text-gray-400">/</span>
+            <RouterLink
+              :to="`/warehouse/container/${p.id}`"
+              class="text-blue-500 hover:underline"
+            >{{ p.title }}</RouterLink>
+          </template>
           <span class="text-gray-400">/</span>
           <span class="font-medium text-gray-900 dark:text-white">{{ container.Title }}</span>
         </div>
@@ -359,6 +400,7 @@ onMounted(async () => {
             />
           </div>
           <button
+            v-if="containerDepth < 4"
             class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             @click="showAddSub = true"
           >

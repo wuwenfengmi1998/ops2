@@ -149,6 +149,7 @@
     "not_found": "工单不存在",
     "confirm_delete": "确定要删除此工单吗？此操作不可撤销。",
     "confirm_delete_commit": "确定要删除此进度吗？",
+    "linked_items": "关联物品",
     "submit": "提交",
     "save_changes": "保存修改"
   },
@@ -178,6 +179,7 @@
     "container_count": "容器数",
     "item_count": "物品数",
     "unstored_items": "未入库",
+    "unstored": "未入库",
     "title_required": "容器名称不能为空",
     "delete_confirm_title": "删除容器",
     "delete_confirm_msg": "确定要删除容器「{name}」吗？此操作不可撤销。",
@@ -301,6 +303,9 @@
     "pending_orders": "待处理订单"
   },
   "message": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete_success": "删除成功",
     "functionality_not_yet_developed": "功能未开发",
     "hello": "你好",
     "welcome": "欢迎",

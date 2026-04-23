@@ -140,6 +140,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			Title       string   `json:"title"`
 			Description string   `json:"description"`
 			Photos      []string `json:"photos"`
+			ItemID      *uint    `json:"item_id"`
 		}
 		var from FromAdd
 		if err := decodeJSON(data, &from); err != nil || from.Title == "" {
@@ -172,6 +173,15 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 					FileID:      findFile.ID,
 				})
 			}
+		}
+
+		// 绑定物品
+		if from.ItemID != nil && *from.ItemID > 0 {
+			models.DB.Create(&TabWarehouseItemWorkOrderBind{
+				ItemID:      *from.ItemID,
+				WorkOrderID: order.ID,
+				CreatorID:   user.ID,
+			})
 		}
 
 		// 写创建 commit
@@ -403,12 +413,38 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		// 所有登录用户都可以提交进度
 		canCommit := true
 
+		// 关联物品
+		type LinkedItem struct {
+			ID           uint   `json:"ID"`
+			Name         string `json:"Name"`
+			SerialNumber string `json:"SerialNumber"`
+		}
+		var linkedItems []LinkedItem
+		var itemBinds []TabWarehouseItemWorkOrderBind
+		models.DB.Where("work_order_id = ?", from.ID).Find(&itemBinds)
+		if len(itemBinds) > 0 {
+			var itemIDs []uint
+			for _, b := range itemBinds {
+				itemIDs = append(itemIDs, b.ItemID)
+			}
+			var items []TabWarehouseItem
+			models.DB.Where("id IN ?", itemIDs).Find(&items)
+			for _, it := range items {
+				linkedItems = append(linkedItems, LinkedItem{
+					ID:           it.ID,
+					Name:         it.Name,
+					SerialNumber: it.SerialNumber,
+				})
+			}
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
-			"order":     order,
-			"canModify": canModify,
-			"canCommit": canCommit,
-			"photos":    files,
-			"commits":   commitsWithPhotos,
+			"order":        order,
+			"canModify":    canModify,
+			"canCommit":    canCommit,
+			"photos":       files,
+			"commits":      commitsWithPhotos,
+			"linkedItems":  linkedItems,
 		})
 	})
 
