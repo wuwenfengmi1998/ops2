@@ -8,6 +8,7 @@ import { useUsersStore } from '@/stores/users'
 import { warehouseApi } from '@/api/warehouse'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
+  IconFile,
   IconPackage,
   IconEdit,
   IconTrash,
@@ -333,7 +334,7 @@ onMounted(() => {
             @click="openLinkWorkOrder"
           >
             <IconPlus :size="14" />
-            关联工单
+            {{ t('work_order.add') }}
           </button>
           <button
             class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
@@ -460,7 +461,7 @@ onMounted(() => {
             class="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-3 hover:shadow transition-shadow dark:border-dk-muted dark:bg-dk-card dark:hover:shadow-none"
           >
             <div class="flex items-center gap-3 min-w-0">
-              <IconPackage :size="16" class="text-blue-500 flex-shrink-0" />
+              <IconFile :size="16" class="text-blue-500 flex-shrink-0" />
               <span class="font-medium text-sm text-gray-900 truncate dark:text-white">{{ wo.title }}</span>
             </div>
             <span
