@@ -86,7 +86,7 @@ const prop = defineProps({
   },
   uploadURL: {
     type: String,
-    default: "/api/files/upload",
+    default: "/api/files/upload/image",
   },
   /** 初始已有文件 [{ hash, name, ... }] */
   initialFiles: {

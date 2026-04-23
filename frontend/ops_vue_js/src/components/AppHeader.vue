@@ -50,6 +50,7 @@ const navItems = computed(() => [
   { label: t("appname.home"), to: "/" },
   { label: t("appname.schedule"), to: "/schedule" },
   { label: t("appname.purchase"), to: "/purchase" },
+  { label: t("appname.work_order"), to: "/work_order" },
   // { label: t("appname.warehouse"), to: "/warehouse" },
 ]);
 </script>

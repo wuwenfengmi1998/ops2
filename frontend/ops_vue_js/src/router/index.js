@@ -55,6 +55,26 @@ const router = createRouter({
           component: () => import('@/views/purchase/editorder.vue'),
         },
         {
+          path: 'work_order',
+          name: 'work-order-list',
+          component: () => import('@/views/work_order/WorkOrderList.vue'),
+        },
+        {
+          path: 'work_order/add',
+          name: 'work-order-add',
+          component: () => import('@/views/work_order/AddEditWorkOrder.vue'),
+        },
+        {
+          path: 'work_order/edit/:id',
+          name: 'work-order-edit',
+          component: () => import('@/views/work_order/AddEditWorkOrder.vue'),
+        },
+        {
+          path: 'work_order/show/:id',
+          name: 'work-order-show',
+          component: () => import('@/views/work_order/ShowWorkOrder.vue'),
+        },
+        {
           path: 'warehouse',
           name: 'warehouse',
           component: () => import('@/views/WarehouseView.vue'),

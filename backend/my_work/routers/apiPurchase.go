@@ -3,6 +3,7 @@ package routers
 import (
 	"encoding/json"
 	"ops/models"
+	parsefmt "fmt"
 	"slices"
 	"strings"
 	"time"
@@ -294,10 +295,6 @@ func ApiPurchase(r *gin.RouterGroup) {
 		}
 
 		oldStatus := order.OrderStatus
-		if oldStatus == from.Status {
-			ReturnJson(ctx, "status_no_change", nil)
-			return
-		}
 
 		// 更新状态
 		updates := map[string]interface{}{
@@ -359,38 +356,46 @@ func ApiPurchase(r *gin.RouterGroup) {
 			//fmt.Println(user)
 			// DebugPrintJson(data)
 
-			type From_purchase_getorders struct {
-				Search  string
-				Status  string
-				Entries int
-				Page    int
-			}
-
-			var jsondata From_purchase_getorders
-			if err := decodeJSON(data, &jsondata); err == nil {
-				//fmt.Println(jsondata)
-
-				is_data_ok := true
-
-				if jsondata.Entries <= 0 || jsondata.Entries > 300 {
-					is_data_ok = false
-				}
-				if jsondata.Page <= 0 {
-					is_data_ok = false
+				type From_purchase_getorders struct {
+					Search  string
+					Status  string
+					Entries int
+					Page    int
 				}
 
-				if is_data_ok {
+				var jsondata From_purchase_getorders
+				if err := decodeJSON(data, &jsondata); err == nil {
+					//fmt.Println(jsondata)
 
-					//读取有多少条目
-					var count int64
-					query := models.DB.Model(TabPurchaseOrder{})
-					if jsondata.Search != "" {
-						query = query.Where("title LIKE ?", "%"+jsondata.Search+"%")
+					is_data_ok := true
+
+					if jsondata.Entries <= 0 || jsondata.Entries > 300 {
+						is_data_ok = false
 					}
-					if jsondata.Status != "" {
-						query = query.Where("order_status = ?", jsondata.Status)
+					if jsondata.Page <= 0 {
+						is_data_ok = false
 					}
-					query.Count(&count)
+
+					if is_data_ok {
+
+						//读取有多少条目
+						var count int64
+						query := models.DB.Model(TabPurchaseOrder{})
+						if jsondata.Search != "" {
+							// 精确匹配订单 ID
+							var id uint
+							if _, err := parsefmt.Sscanf(jsondata.Search, "%d", &id); err == nil && id > 0 {
+								query = query.Where("id = ?", id)
+							} else {
+								// 模糊匹配标题和用途（Remark）
+								query = query.Where("title LIKE ? OR remark LIKE ?",
+									"%"+jsondata.Search+"%", "%"+jsondata.Search+"%")
+							}
+						}
+						if jsondata.Status != "" {
+							query = query.Where("order_status = ?", jsondata.Status)
+						}
+						query.Count(&count)
 
 					//读取条目
 					var getorders []TabPurchaseOrder

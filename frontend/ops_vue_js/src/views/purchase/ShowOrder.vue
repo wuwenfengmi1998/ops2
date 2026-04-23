@@ -156,7 +156,6 @@ function getStatusColorClass(status) {
 }
 
 function openStatusDialog(newStatus) {
-  if (newStatus === order.value?.OrderStatus) return;
   pendingStatus.value = newStatus;
   pendingComment.value = "";
   pendingPhotos.value = [];

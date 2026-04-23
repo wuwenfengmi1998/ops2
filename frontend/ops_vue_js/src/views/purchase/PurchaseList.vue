@@ -17,6 +17,7 @@ const totalCount = ref(0)
 const pageSize = ref(10)
 const currentPage = ref(1)
 const statusFilter = ref('')
+const searchQuery = ref('')
 const loading = ref(false)
 
 const statusOptions = [
@@ -45,6 +46,7 @@ async function fetchOrders() {
   try {
     const { errCode, data } = await purchaseApi.getOrders({
       status: statusFilter.value,
+      search: searchQuery.value,
       entries: pageSize.value,
       page: currentPage.value,
     })
@@ -99,6 +101,11 @@ function handleJumpPageInput(e) {
   }
 }
 
+function handleSearch() {
+  currentPage.value = 1
+  fetchOrders()
+}
+
 onMounted(fetchOrders)
 </script>
 
@@ -112,7 +119,7 @@ onMounted(fetchOrders)
 
       <!-- Toolbar -->
       <div class="flex flex-col gap-3 px-6 py-3 sm:flex-row sm:items-center">
-        <div class="flex gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <RouterLink to="/purchase/addorder" class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700">
             <IconPlus :size="16" />
             {{ t('purchase.add_part') }}
@@ -127,6 +134,23 @@ onMounted(fetchOrders)
               {{ t(opt.labelKey) }}
             </option>
           </select>
+        </div>
+        <!-- 关键词搜索框 -->
+        <div class="flex items-center gap-2 sm:ml-auto">
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="t('purchase.search_placeholder')"
+            class="w-48 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:placeholder-gray-500"
+            @input="handleSearch"
+            @keydown.enter="handleSearch"
+          />
+          <button
+            class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-gray-300 dark:hover:bg-dk-muted"
+            @click="handleSearch"
+          >
+            {{ t('purchase.search') }}
+          </button>
         </div>
       </div>
 
