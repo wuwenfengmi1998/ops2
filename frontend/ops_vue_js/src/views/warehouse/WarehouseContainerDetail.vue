@@ -590,7 +590,7 @@ onMounted(async () => {
                     <span class="font-medium max-w-xs truncate">{{ item.Name }}</span>
                   </div>
                 </td>
-                <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[140px] truncate">{{ item.serial_number || '—' }}</td>
+                <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[140px] truncate">{{ item.SerialNumber || '—' }}</td>
                 <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">{{ item.Remark || '—' }}</td>
                 <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
                 <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(item.CreatedAt) }}</td>

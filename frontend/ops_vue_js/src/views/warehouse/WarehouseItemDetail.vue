@@ -260,6 +260,16 @@ async function submitMove() {
   }
 }
 
+// ── 返回 ──
+function goBack() {
+  const cid = item.value?.ContainerID
+  if (cid) {
+    router.push(`/warehouse/container/${cid}`)
+  } else {
+    router.push('/warehouse/container')
+  }
+}
+
 // ── 删除 ──
 async function doDelete() {
   try {
@@ -312,7 +322,7 @@ onMounted(() => {
       <div class="flex items-center justify-between gap-2">
         <button
           class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
-          @click="router.back()"
+          @click="goBack"
         >
           <IconArrowLeft :size="14" />
           返回

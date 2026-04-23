@@ -114,7 +114,7 @@ async function fetchAllContainerMap() {
     const { errCode, data } = await warehouseApi.getContainers({ entries: 500, page: 1 })
     if (errCode === 0 && data) {
       const map = {}
-      for (const c of (data.containers || [])) map[c.id] = c.title
+      for (const c of (data.containers || [])) map[c.ID] = c.Title
       containerMap.value = map
     }
   } catch { /* ignore */ }

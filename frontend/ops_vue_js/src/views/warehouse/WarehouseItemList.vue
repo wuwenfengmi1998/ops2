@@ -63,11 +63,11 @@ async function fetchContainerMap() {
       allContainerCount.value = data.all_count || 0
       const map = {}
       for (const c of (data.containers || [])) {
-        map[c.id] = c.title
+        map[c.ID] = c.Title
       }
       for (const c of (data.containers || [])) {
-        if (c.child_count > 0) {
-          await fetchChildContainers(c.id, map)
+        if (c.ChildCount > 0) {
+          await fetchChildContainers(c.ID, map)
         }
       }
       containerMap.value = map
@@ -82,7 +82,7 @@ async function fetchChildContainers(parentId, map) {
     const { errCode, data } = await warehouseApi.getContainers({ entries: 500, page: 1, parent_id: parentId })
     if (errCode === 0 && data) {
       for (const c of (data.containers || [])) {
-        map[c.id] = c.title
+        map[c.ID] = c.Title
       }
     }
   } catch {
@@ -104,8 +104,8 @@ async function fetchItems() {
       canModifyItems.value = data.canModifyItems || []
       totalCount.value = data.all_count || 0
       stats.total = data.all_count || 0
-      stats.inContainer = items.value.filter(i => i.container_id != null).length
-      stats.unstored = items.value.filter(i => i.container_id == null).length
+      stats.inContainer = items.value.filter(i => i.ContainerID != null).length
+      stats.unstored = items.value.filter(i => i.ContainerID == null).length
     }
   } catch {
     toast.error(t('message.server_error'))
@@ -161,7 +161,7 @@ const pageNumbers = computed(() => {
 
 // ── 跳转物品详情 ──
 function goToDetail(item) {
-  router.push(`/warehouse/item/${item.id}`)
+  router.push(`/warehouse/item/${item.ID}`)
 }
 
 // ── 删除 ──
@@ -178,7 +178,7 @@ async function doDeleteItem() {
   if (!deleteTarget.value) return
   deletingItem.value = true
   try {
-    const { errCode } = await warehouseApi.deleteItem(deleteTarget.value.id)
+    const { errCode } = await warehouseApi.deleteItem(deleteTarget.value.ID)
     if (errCode === 0) {
       toast.success(t('message.delete_success'))
       confirmDelete.value = false
@@ -281,23 +281,23 @@ onMounted(() => {
           <tbody>
             <tr
               v-for="(item, idx) in items"
-              :key="item.id"
+              :key="item.ID"
               class="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
               @click="goToDetail(item)"
             >
-              <td class="px-5 py-3 font-medium max-w-[200px] truncate">{{ item.name }}</td>
-              <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[160px] truncate">{{ item.serial_number || '—' }}</td>
-              <td class="px-5 py-3 text-center text-sm">{{ item.quantity }}</td>
+              <td class="px-5 py-3 font-medium max-w-[200px] truncate">{{ item.Name }}</td>
+              <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[160px] truncate">{{ item.SerialNumber || '—' }}</td>
+              <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
               <td class="px-5 py-3">
-                <span v-if="item.container_id != null" class="inline-flex items-center gap-1 text-blue-600 text-sm">
+                <span v-if="item.ContainerID != null" class="inline-flex items-center gap-1 text-blue-600 text-sm">
                   <IconArrowRight :size="13" />
-                  <span class="truncate max-w-[140px]">{{ getContainerTitle(item.container_id) }}</span>
+                  <span class="truncate max-w-[140px]">{{ getContainerTitle(item.ContainerID) }}</span>
                 </span>
                 <span v-else class="inline-flex items-center gap-1 text-xs text-orange-500">
                   {{ t('warehouse.unstored_items') }}
                 </span>
               </td>
-              <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatDate(item.created_at) }}</td>
+              <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatDate(item.CreatedAt) }}</td>
               <td class="px-5 py-3 text-right" @click.stop>
                 <button
                   v-if="canModifyItem(idx)"
