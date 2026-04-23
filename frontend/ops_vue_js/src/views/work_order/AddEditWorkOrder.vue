@@ -3,14 +3,16 @@
  * 工单新增/编辑页面
  * - 路由有 :id 参数时为编辑模式，否则为新增模式
  * - 支持图片上传（复用 useDropzone 组件）
+ * - 支持关联物品搜索
  */
-import { reactive, ref, computed, onMounted, nextTick } from 'vue'
+import { reactive, ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { useValidation } from '@/composables'
 import { workOrderApi } from '@/api/work_order'
+import { warehouseApi } from '@/api/warehouse'
 import useDropzone from '@/components/useDropzone.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
@@ -30,6 +32,75 @@ const loading = ref(false)
 const pageLoading = ref(false)
 const pageError = ref('')
 const showDeleteConfirm = ref(false)
+
+// ==================== 关联物品搜索 ====================
+const itemSearchQuery = ref('')
+const itemSearchResults = ref([])
+const itemSearchLoading = ref(false)
+const showItemDropdown = ref(false)
+const selectedItem = ref(null)
+
+let searchTimer = null
+
+function onItemSearchInput() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(async () => {
+    itemSearchLoading.value = true
+    showItemDropdown.value = true
+    try {
+      let res
+      if (itemSearchQuery.value.trim().length > 0) {
+        // 有搜索词：搜索匹配物品
+        res = await warehouseApi.getItems({ search: itemSearchQuery.value.trim() })
+        if (res.errCode === 0 && res.data) {
+          itemSearchResults.value = (res.data.items || []).slice(0, 10)
+        } else {
+          itemSearchResults.value = []
+        }
+      } else {
+        // 无搜索词：显示最新5个物品
+        res = await warehouseApi.getItems({ page: 1, page_size: 5 })
+        if (res.errCode === 0 && res.data) {
+          // 按创建时间倒序（最新在前）
+          itemSearchResults.value = (res.data.items || []).sort((a, b) => {
+            const tsA = parseInt(a.CreatedAt || '0', 10)
+            const tsB = parseInt(b.CreatedAt || '0', 10)
+            return tsB - tsA
+          })
+        } else {
+          itemSearchResults.value = []
+        }
+      }
+    } catch {
+      itemSearchResults.value = []
+    } finally {
+      itemSearchLoading.value = false
+    }
+  }, 300)
+}
+
+function selectItem(item) {
+  selectedItem.value = item
+  linkedItemId.value = item.ID
+  itemSearchQuery.value = ''
+  itemSearchResults.value = []
+  showItemDropdown.value = false
+}
+
+function clearSelectedItem() {
+  selectedItem.value = null
+  linkedItemId.value = null
+}
+
+function handleClickOutside(e) {
+  if (!e.target.closest('.item-search-wrapper')) {
+    showItemDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
 
 // ==================== 表单数据 ====================
 const form = reactive({
@@ -57,7 +128,20 @@ onMounted(async () => {
         const prefill = JSON.parse(prefillStr)
         form.title = prefill.title || ''
         form.description = prefill.description || ''
-        linkedItemId.value = prefill.itemId || null
+
+        // 如果有物品ID，获取物品详情并自动选中
+        if (prefill.itemId) {
+          try {
+            const itemRes = await warehouseApi.getItem(prefill.itemId)
+            if (itemRes.errCode === 0 && itemRes.data) {
+              selectedItem.value = itemRes.data.item
+              linkedItemId.value = prefill.itemId
+            }
+          } catch {
+            // 获取物品详情失败，忽略
+          }
+        }
+
         localStorage.removeItem('prefill_work_order')
       } catch {
         // ignore
@@ -245,6 +329,72 @@ async function handleSubmit() {
             :placeholder="t('work_order.description_placeholder')"
             class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
           />
+        </div>
+
+        <!-- 关联物品搜索（仅新增模式） -->
+        <div v-if="!isEdit">
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t('work_order.linked_item') }}
+          </label>
+
+          <!-- 已选择物品显示 -->
+          <div v-if="selectedItem" class="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 px-3 py-2 dark:border-green-700 dark:bg-green-900/30">
+            <svg class="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8 4-8-4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <span class="text-sm text-green-800 dark:text-green-200">
+              {{ selectedItem.Name }}{{ selectedItem.SerialNumber ? ' - ' + selectedItem.SerialNumber : '' }}
+            </span>
+            <span class="ml-auto text-xs text-green-600 dark:text-green-400">{{ t('work_order.linked_item_selected') }}</span>
+            <button
+              type="button"
+              class="ml-2 text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+              @click="clearSelectedItem"
+            >
+              {{ t('work_order.clear_linked_item') }}
+            </button>
+          </div>
+
+          <!-- 搜索框 -->
+          <div v-else class="item-search-wrapper relative">
+            <input
+              v-model="itemSearchQuery"
+              type="text"
+              :placeholder="t('work_order.linked_item_placeholder')"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+              @input="onItemSearchInput"
+              @focus="itemSearchQuery || onItemSearchInput()"
+            />
+            <!-- 下拉结果 -->
+            <div
+              v-if="showItemDropdown && itemSearchResults.length > 0"
+              class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
+            >
+              <div
+                v-for="item in itemSearchResults"
+                :key="item.ID"
+                class="cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                @click="selectItem(item)"
+              >
+                <div class="font-medium text-gray-900 dark:text-white">{{ item.Name }}</div>
+                <div v-if="item.SerialNumber" class="text-xs text-gray-500 dark:text-gray-400">{{ item.SerialNumber }}</div>
+              </div>
+            </div>
+            <!-- 加载中 -->
+            <div
+              v-if="showItemDropdown && itemSearchLoading"
+              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+            >
+              {{ t('message.loading') }}
+            </div>
+            <!-- 无结果 -->
+            <div
+              v-if="showItemDropdown && !itemSearchLoading && itemSearchResults.length === 0 && itemSearchQuery.trim().length > 0"
+              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+            >
+              {{ t('work_order.linked_item_not_found') }}
+            </div>
+          </div>
         </div>
 
         <!-- 图片上传 -->

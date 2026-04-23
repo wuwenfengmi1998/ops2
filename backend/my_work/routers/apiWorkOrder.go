@@ -418,6 +418,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			ID           uint   `json:"ID"`
 			Name         string `json:"Name"`
 			SerialNumber string `json:"SerialNumber"`
+			ContainerID  *uint  `json:"ContainerID"`
 		}
 		var linkedItems []LinkedItem
 		var itemBinds []TabWarehouseItemWorkOrderBind
@@ -434,6 +435,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 					ID:           it.ID,
 					Name:         it.Name,
 					SerialNumber: it.SerialNumber,
+					ContainerID:  it.ContainerID,
 				})
 			}
 		}
@@ -498,6 +500,34 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 
 		oldStatus := order.CurrentStatus
 		models.DB.Model(&order).Update("current_status", from.Status)
+
+		// 如果状态变更为"已送还"，移除关联物品的容器
+		if from.Status == "returned" {
+			var itemBinds []TabWarehouseItemWorkOrderBind
+			models.DB.Where("work_order_id = ?", from.ID).Find(&itemBinds)
+			for _, bind := range itemBinds {
+				var item TabWarehouseItem
+				if models.DB.Where("id = ?", bind.ItemID).First(&item).Error == nil {
+					oldContainer := item.ContainerID
+					// 移除容器
+					item.ContainerID = nil
+					models.DB.Save(&item)
+					// 记录移动 commit
+					models.DB.Create(&TabWarehouseItemCommit{
+						ItemID:       item.ID,
+						UserID:       user.ID,
+						OldContainer: oldContainer,
+						NewContainer: nil,
+						Remark:       "工单送还: " + from.Comment,
+						IP:           ctx.ClientIP(),
+					})
+					// 旧容器 ItemCount -1
+					if oldContainer != nil {
+						models.DB.Model(&TabWarehouseContainer{}).Where("id = ?", *oldContainer).Update("item_count", models.DB.Raw("item_count - 1"))
+					}
+				}
+			}
+		}
 
 		comment := from.Comment
 		if comment == "" {

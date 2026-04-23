@@ -437,11 +437,14 @@ onUnmounted(() => {
                 v-for="item in linkedItems"
                 :key="item.ID"
                 :to="`/warehouse/item/${item.ID}`"
-                class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 transition-colors hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+                class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                :class="item.ContainerID
+                  ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50'
+                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-800/50'"
               >
                 <IconPackage :size="12" />
                 {{ item.Name }}
-                <span v-if="item.SerialNumber" class="text-green-500">-{{ item.SerialNumber }}</span>
+                <span v-if="item.SerialNumber" :class="item.ContainerID ? 'text-green-500' : 'text-gray-400'">-{{ item.SerialNumber }}</span>
               </RouterLink>
             </div>
           </div>
