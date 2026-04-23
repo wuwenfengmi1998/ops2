@@ -320,7 +320,7 @@ function formatDate(dateStr) {
       d = new Date(dateStr)
     }
     if (isNaN(d.getTime())) return '—'
-    return d.toLocaleDateString(isEn.value ? 'en-US' : 'zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    return d.toLocaleString(isEn.value ? 'en-US' : 'zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
   } catch { return dateStr }
 }
 
@@ -426,12 +426,13 @@ onMounted(() => {
                 <th class="px-6 py-3 font-medium w-24 text-center">{{ t('warehouse.child_containers') }}</th>
                 <th class="px-6 py-3 font-medium w-24 text-center">{{ t('warehouse.items') }}</th>
                 <th class="px-6 py-3 font-medium whitespace-nowrap w-44">{{ t('warehouse.created_at') }}</th>
+                <th class="px-6 py-3 font-medium whitespace-nowrap w-44">{{ t('warehouse.updated_at') }}</th>
                 <th class="px-6 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="containerLoading">
-                <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+                <td colspan="8" class="px-6 py-8 text-center text-gray-400">
                   <svg class="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -440,7 +441,7 @@ onMounted(() => {
                 </td>
               </tr>
               <tr v-else-if="containers.length === 0">
-                <td colspan="7" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
+                <td colspan="8" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
                   {{ t('warehouse.no_containers') }}
                 </td>
               </tr>
@@ -472,6 +473,7 @@ onMounted(() => {
                   </span>
                 </td>
                 <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ fmtTs(c.CreatedAt) }}</td>
+                <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ fmtTs(c.UpdatedAt) }}</td>
                 <td class="px-6 py-3">
                   <div class="flex items-center gap-1.5">
                     <img
@@ -548,15 +550,17 @@ onMounted(() => {
             <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400">
               <th class="px-6 py-3 font-medium">{{ t('warehouse.item_name') }}</th>
               <th class="px-6 py-3 font-medium">{{ t('warehouse.serial_number') }}</th>
+              <th class="px-6 py-3 font-medium">{{ t('warehouse.remark') }}</th>
               <th class="px-6 py-3 font-medium w-20 text-center">{{ t('warehouse.quantity') }}</th>
               <th class="px-6 py-3 font-medium">{{ t('warehouse.location') }}</th>
               <th class="px-6 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
+              <th class="px-6 py-3 font-medium whitespace-nowrap">{{ t('warehouse.updated_at') }}</th>
               <th class="px-6 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="itemLoading">
-              <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+              <td colspan="8" class="px-6 py-8 text-center text-gray-400">
                 <svg class="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -565,7 +569,7 @@ onMounted(() => {
               </td>
             </tr>
             <tr v-else-if="items.length === 0">
-              <td colspan="6" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
+              <td colspan="8" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
                 {{ t('warehouse.no_items') }}
               </td>
             </tr>
@@ -577,6 +581,7 @@ onMounted(() => {
             >
               <td class="px-6 py-3 font-medium max-w-[200px] truncate">{{ item.Name }}</td>
               <td class="px-6 py-3 max-w-[160px] truncate text-xs text-gray-500 dark:text-gray-400">{{ item.SerialNumber || '—' }}</td>
+              <td class="px-6 py-3 max-w-[200px] truncate text-xs text-gray-500 dark:text-gray-400">{{ item.Remark || '—' }}</td>
               <td class="px-6 py-3 text-center text-sm">{{ item.Quantity }}</td>
               <td class="px-6 py-3">
                 <span v-if="item.ContainerID != null" class="inline-flex items-center gap-1 text-sm text-blue-600">
@@ -588,6 +593,7 @@ onMounted(() => {
                 </span>
               </td>
               <td class="px-6 py-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">{{ formatDate(item.CreatedAt) }}</td>
+              <td class="px-6 py-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">{{ formatDate(item.UpdatedAt) }}</td>
               <td class="px-6 py-3">
                 <div class="flex items-center gap-1.5">
                   <img

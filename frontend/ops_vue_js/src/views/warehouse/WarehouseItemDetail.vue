@@ -52,6 +52,7 @@ const targetContainers = ref([])
 const targetSearch = ref('')
 const targetLoading = ref(false)
 const showTargetDropdown = ref(false)
+let targetDropdownTimer = null
 
 // ── 删除确认 ──
 const showDeleteConfirm = ref(false)
@@ -186,18 +187,39 @@ async function openMove() {
   showMove.value = true
 }
 
+function onTargetFocus() {
+  if (targetDropdownTimer) clearTimeout(targetDropdownTimer)
+  showTargetDropdown.value = true
+  loadTargetContainers(targetSearch.value)
+}
+
+function onTargetInput() {
+  if (targetDropdownTimer) clearTimeout(targetDropdownTimer)
+  showTargetDropdown.value = true
+  loadTargetContainers(targetSearch.value)
+}
+
+function closeTargetDropdown() {
+  targetDropdownTimer = setTimeout(() => {
+    showTargetDropdown.value = false
+  }, 150)
+}
+
 async function loadTargetContainers(search = '') {
   targetLoading.value = true
   try {
+    const isSearch = search.trim().length > 0
     const { errCode, data } = await warehouseApi.getContainers({
       search,
-      entries: 50,
+      all_levels: true,
+      entries: isSearch ? 50 : 10,
       page: 1,
     })
     if (errCode === 0) {
-      targetContainers.value = (data.containers ?? []).filter(
-        (c) => c.ID !== itemId.value && c.ID !== item.value?.ContainerID
+      const filtered = (data.containers ?? []).filter(
+        (c) => c.ID !== item.value?.ContainerID
       )
+      targetContainers.value = isSearch ? filtered : filtered.slice(0, 5)
     }
   } catch {
     targetContainers.value = []
@@ -389,6 +411,7 @@ onMounted(() => {
             {{ usersStore.getUsernameFromUserID(item.CreatorID) }}
           </span>
           <span>{{ t('warehouse.created_at') }}: {{ fmtTs(item.CreatedAt) }}</span>
+          <span v-if="item.UpdatedAt">{{ t('warehouse.updated_at') }}: {{ fmtTs(item.UpdatedAt) }}</span>
         </div>
       </div>
 
@@ -503,19 +526,21 @@ onMounted(() => {
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('warehouse.target_container') }}</label>
-            <div class="relative">
+            <div class="relative" @click.stop>
               <IconSearch class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" :size="15" />
               <input
                 v-model="targetSearch"
                 type="text"
                 :placeholder="t('warehouse.search_container')"
                 class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-                @focus="loadTargetContainers(''); showTargetDropdown = true"
-                @input="loadTargetContainers(targetSearch); showTargetDropdown = true"
+                @focus="onTargetFocus"
+                @input="onTargetInput"
+                @blur="closeTargetDropdown"
               />
               <div
-                v-if="showTargetDropdown && (targetContainers.length > 0 || targetLoading)"
+                v-if="showTargetDropdown"
                 class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card max-h-60 overflow-y-auto"
+                @mousedown.prevent
               >
                 <div v-if="targetLoading" class="px-3 py-2 text-xs text-gray-400">
                   <svg class="inline h-3.5 w-3.5 animate-spin mr-1" viewBox="0 0 24 24" fill="none">

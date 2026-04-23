@@ -13,25 +13,27 @@ import (
 // ---------- 数据表结构 ----------
 
 type TabWarehouseContainer struct {
-	ID         uint   `gorm:"primaryKey"`
-	Title      string `gorm:"size:255;not null;comment:容器名"`
-	Remark     string `gorm:"type:text;comment:描述"`
-	CreatedAt  string `gorm:"size:20;comment:创建日期"`
-	CreatorID  uint   `gorm:"not null;index;comment:创建者id"`
-	ParentID   *uint  `gorm:"index;comment:父容器id，nil=顶级"`
-	ItemCount  int    `gorm:"default:0;comment:直接子物品数量"`
-	ChildCount int    `gorm:"default:0;comment:子容器数量"`
+	ID         uint       `gorm:"primaryKey" json:"ID"`
+	Title      string     `gorm:"size:255;not null;comment:容器名" json:"Title"`
+	Remark     string     `gorm:"type:text;comment:描述" json:"Remark"`
+	CreatedAt  *time.Time `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
+	UpdatedAt  *time.Time `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
+	CreatorID  uint       `gorm:"not null;index;comment:创建者id" json:"CreatorID"`
+	ParentID   *uint      `gorm:"index;comment:父容器id，nil=顶级" json:"ParentID"`
+	ItemCount  int        `gorm:"default:0;comment:直接子物品数量" json:"ItemCount"`
+	ChildCount int        `gorm:"default:0;comment:子容器数量" json:"ChildCount"`
 }
 
 type TabWarehouseItem struct {
-	ID           uint   `gorm:"primaryKey"`
-	Name         string `gorm:"size:255;not null;comment:物品名"`
-	SerialNumber string `gorm:"size:255;comment:序列号"`
-	Remark       string `gorm:"type:text;comment:描述"`
-	Quantity     int    `gorm:"default:1;comment:数量"`
-	CreatedAt    string `gorm:"size:20;comment:创建日期"`
-	CreatorID    uint   `gorm:"not null;index;comment:创建者id"`
-	ContainerID  *uint  `gorm:"index;comment:所属容器id，nil=未入库"`
+	ID           uint       `gorm:"primaryKey" json:"ID"`
+	Name         string     `gorm:"size:255;not null;comment:物品名" json:"Name"`
+	SerialNumber string     `gorm:"size:255;comment:序列号" json:"SerialNumber"`
+	Remark       string     `gorm:"type:text;comment:描述" json:"Remark"`
+	Quantity     int        `gorm:"default:1;comment:数量" json:"Quantity"`
+	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
+	UpdatedAt    *time.Time `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
+	CreatorID    uint       `gorm:"not null;index;comment:创建者id" json:"CreatorID"`
+	ContainerID  *uint      `gorm:"index;comment:所属容器id，nil=未入库" json:"ContainerID"`
 }
 
 type TabWarehouseContainerFileBind struct {
@@ -192,7 +194,6 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		c := TabWarehouseContainer{
 			Title:     from.Title,
 			Remark:    from.Remark,
-			CreatedAt: strconv.FormatInt(time.Now().Unix(), 10),
 			CreatorID: user.ID,
 			ParentID: from.ParentID,
 		}
@@ -366,10 +367,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromList struct {
-			Search  string `json:"search"`
-			ParentID *uint `json:"parent_id"`
-			Entries int    `json:"entries"`
-			Page    int    `json:"page"`
+			Search    string `json:"search"`
+			ParentID  *uint  `json:"parent_id"`
+			AllLevels bool   `json:"all_levels"`
+			Entries   int    `json:"entries"`
+			Page      int    `json:"page"`
 		}
 		var from FromList
 		if err := decodeJSON(data, &from); err != nil {
@@ -390,8 +392,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 		if from.ParentID != nil {
 			query = query.Where("parent_id = ?", *from.ParentID)
-		} else if from.Search == "" {
-			// 无搜索时默认只显示顶级容器
+		} else if from.Search == "" && !from.AllLevels {
+			// 无搜索时默认只显示顶级容器（all_levels=true 时返回所有层级）
 			query = query.Where("parent_id IS NULL")
 		}
 		query.Count(&count)
@@ -568,7 +570,6 @@ func ApiWarehouse(r *gin.RouterGroup) {
 				SerialNumber: from.SerialNumber,
 				Remark:       from.Remark,
 				Quantity:     quantity,
-				CreatedAt:    strconv.FormatInt(time.Now().Unix(), 10),
 				CreatorID:    user.ID,
 				ContainerID:  from.ContainerID,
 			}

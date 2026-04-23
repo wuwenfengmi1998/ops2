@@ -390,6 +390,7 @@ onMounted(async () => {
             {{ usersStore.getUsernameFromUserID(container.CreatorID) }}
           </span>
           <span>{{ t('warehouse.created_at') }}: {{ fmtTs(container.CreatedAt) }}</span>
+          <span v-if="container.UpdatedAt">{{ t('warehouse.updated_at') }}: {{ fmtTs(container.UpdatedAt) }}</span>
           <span>{{ t('warehouse.child_containers') }}: {{ container.ChildCount }}</span>
           <span>{{ t('warehouse.items') }}: {{ container.ItemCount }}</span>
         </div>
@@ -428,13 +429,14 @@ onMounted(async () => {
                 <th class="px-5 py-3 font-medium w-24 text-center">{{ t('warehouse.child_containers') }}</th>
                 <th class="px-5 py-3 font-medium w-24 text-center">{{ t('warehouse.items') }}</th>
                 <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
+                <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.updated_at') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
                 <th class="px-5 py-3 font-medium w-24 text-right">{{ t('warehouse.actions') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loadingSub">
-                <td colspan="6" class="px-5 py-8 text-center">
+                <td colspan="7" class="px-5 py-8 text-center">
                   <svg class="mx-auto h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -442,7 +444,7 @@ onMounted(async () => {
                 </td>
               </tr>
               <tr v-else-if="subContainers.length === 0">
-                <td colspan="6" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
+                <td colspan="7" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
                   {{ t('warehouse.no_containers') }}
                 </td>
               </tr>
@@ -470,6 +472,7 @@ onMounted(async () => {
                   </span>
                 </td>
                 <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(c.CreatedAt) }}</td>
+                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(c.UpdatedAt) }}</td>
                 <td class="px-5 py-3">
                   <div class="flex items-center gap-1.5">
                     <img
@@ -552,15 +555,17 @@ onMounted(async () => {
               <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400">
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.item_name') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.serial_number') }}</th>
+                <th class="px-5 py-3 font-medium">{{ t('warehouse.remark') }}</th>
                 <th class="px-5 py-3 font-medium w-20 text-center">{{ t('warehouse.quantity') }}</th>
                 <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
+                <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.updated_at') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
                 <th class="px-5 py-3 font-medium w-20 text-right">{{ t('warehouse.actions') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loadingItems">
-                <td colspan="6" class="px-5 py-8 text-center">
+                <td colspan="8" class="px-5 py-8 text-center">
                   <svg class="mx-auto h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -568,7 +573,7 @@ onMounted(async () => {
                 </td>
               </tr>
               <tr v-else-if="items.length === 0">
-                <td colspan="6" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
+                <td colspan="8" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
                   {{ t('warehouse.no_items') }}
                 </td>
               </tr>
@@ -586,8 +591,10 @@ onMounted(async () => {
                   </div>
                 </td>
                 <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[140px] truncate">{{ item.serial_number || '—' }}</td>
+                <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">{{ item.Remark || '—' }}</td>
                 <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
                 <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(item.CreatedAt) }}</td>
+                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(item.UpdatedAt) }}</td>
                 <td class="px-5 py-3">
                   <div class="flex items-center gap-1.5">
                     <img

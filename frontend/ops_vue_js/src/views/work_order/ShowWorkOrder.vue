@@ -393,7 +393,10 @@ onUnmounted(() => {
               {{ usersStore.getUsernameFromUserID(order.UserID) }}
             </span>
           </div>
-          <span class="text-sm text-gray-400">{{ formatDate(order?.CreatedAt) }}</span>
+          <div class="text-sm text-gray-400 text-right">
+            <div>{{ t('work_order.created_at') }}: {{ formatDate(order?.CreatedAt) }}</div>
+            <div v-if="order?.UpdatedAt">{{ t('work_order.updated_at') }}: {{ formatDate(order.UpdatedAt) }}</div>
+          </div>
         </div>
 
         <!-- 状态快捷切换（所有登录用户可见） -->
