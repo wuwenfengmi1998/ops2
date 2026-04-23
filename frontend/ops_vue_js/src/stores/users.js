@@ -5,6 +5,8 @@ import { ref } from 'vue'
 import { usersApi } from '@/api/users';
 
 const usersInfo = ref([]);
+// 正在请求中的 promiseMap，同一 userID 只发一次请求
+const inflightRequests = new Map();
 
 export const useUsersStore = defineStore('users', () => {
 
@@ -13,16 +15,33 @@ export const useUsersStore = defineStore('users', () => {
     }
 
     function fetchUser(userID) {
-        // 缓存命中则不再请求（依赖 usersInfo 的响应式）
+        // 已缓存则直接返回
         if (getUserFromUserID(userID)) return
-        usersApi.getUserInfoFromUserID(userID).then((r) => {
+
+        // 同一请求已在飞中，等待它完成后再更新缓存引用
+        if (inflightRequests.has(userID)) return
+
+        // 立即占位：同步标记为"请求中"，同一帧内后续调用能命中
+        const placeholder = { UserID: userID, _loading: true }
+        usersInfo.value.push(placeholder)
+
+        const promise = usersApi.getUserInfoFromUserID(userID).then((r) => {
             if (r.errCode == 0 && r.raw.err_code == 0 && r.raw.return?.userinfo) {
-                // 防止并发写入重复数据
-                if (!usersInfo.value.find(item => item.UserID === userID)) {
-                    usersInfo.value.push(r.raw.return.userinfo)
+                const info = r.raw.return.userinfo
+                // 替换占位对象为真实数据
+                const idx = usersInfo.value.findIndex(item => item.UserID === userID)
+                if (idx !== -1) {
+                    usersInfo.value.splice(idx, 1, info)
                 }
+            } else {
+                // 请求失败，移除占位
+                usersInfo.value = usersInfo.value.filter(item => item.UserID !== userID)
             }
+        }).finally(() => {
+            inflightRequests.delete(userID)
         })
+
+        inflightRequests.set(userID, promise)
     }
 
     function getUsernameFromUserID(userID) {

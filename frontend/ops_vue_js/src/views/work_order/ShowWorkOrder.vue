@@ -33,6 +33,7 @@ const order = ref(null)
 const photos = ref([])
 const commits = ref([])
 const canModify = ref(false)
+const canCommit = ref(false)
 const loading = ref(true)
 const notFound = ref(false)
 
@@ -117,6 +118,7 @@ async function fetchOrder() {
     if (errCode === 0 && data) {
       order.value = data.order ?? null
       canModify.value = data.canModify ?? false
+      canCommit.value = data.canCommit ?? false
       photos.value = data.photos ?? []
       commits.value = data.commits ?? []
       // 初始化进度提交状态为当前状态
@@ -376,9 +378,9 @@ onUnmounted(() => {
           <span class="text-sm text-gray-400">{{ formatDate(order?.CreatedAt) }}</span>
         </div>
 
-        <!-- 状态快捷切换（有权限才显示） -->
+        <!-- 状态快捷切换（所有登录用户可见） -->
         <div
-          v-if="canModify"
+          v-if="canCommit"
           class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-6 py-3 dark:border-dk-muted"
         >
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('purchase.change_status') }}:</span>
@@ -439,8 +441,8 @@ onUnmounted(() => {
           <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('work_order.commit_history') }}</h3>
         </div>
 
-        <!-- 新增进度表单（有权限才显示） -->
-        <div v-if="canModify" class="border-t border-gray-100 px-6 py-5 dark:border-dk-muted">
+        <!-- 新增进度表单（所有登录用户可见） -->
+        <div v-if="canCommit" class="border-t border-gray-100 px-6 py-5 dark:border-dk-muted">
           <h4 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('work_order.add_commit') }}</h4>
 
           <!-- 第一行：进度状态、关联采购订单 -->

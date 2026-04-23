@@ -400,10 +400,13 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		}
 
 		canModify := canModifyWorkOrder(user.ID, order.UserID)
+		// 所有登录用户都可以提交进度
+		canCommit := true
 
 		ReturnJson(ctx, "apiOK", gin.H{
 			"order":     order,
 			"canModify": canModify,
+			"canCommit": canCommit,
 			"photos":    files,
 			"commits":   commitsWithPhotos,
 		})
@@ -454,11 +457,6 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		var order TabWorkOrder
 		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
 			ReturnJson(ctx, "order_not_found", nil)
-			return
-		}
-
-		if !canModifyWorkOrder(user.ID, order.UserID) {
-			ReturnJson(ctx, "no_permission", nil)
 			return
 		}
 
