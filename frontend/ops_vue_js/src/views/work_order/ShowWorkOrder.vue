@@ -61,6 +61,21 @@ const canSubmit = computed(() => {
   return hasSelectedOrders || hasComment || hasPhotos
 })
 
+// 所有 commits 中关联的采购订单（去重）
+const allPurchaseOrders = computed(() => {
+  const map = new Map()
+  for (const commit of commits.value) {
+    if (commit.purchaseOrders) {
+      for (const po of commit.purchaseOrders) {
+        if (!map.has(po.id)) {
+          map.set(po.id, po)
+        }
+      }
+    }
+  }
+  return [...map.values()]
+})
+
 // 点击外部关闭下拉框
 function onDocumentClick(e) {
   if (purchaseDropdownRef.value && !purchaseDropdownRef.value.contains(e.target)) {
@@ -309,13 +324,13 @@ onUnmounted(() => {
   <div class="mx-auto max-w-6xl px-6 py-6">
     <!-- 顶部操作栏 -->
     <div class="mb-4 flex items-center justify-between">
-      <RouterLink
-        to="/work_order"
+      <button
+        @click="$router.back()"
         class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-dk-card dark:hover:text-gray-200"
       >
         <IconChevronLeft :size="16" />
         {{ t('work_order.back_to_list') }}
-      </RouterLink>
+      </button>
       <RouterLink
         v-if="canModify && order"
         :to="`/work_order/edit/${order.ID}`"
@@ -410,6 +425,26 @@ onUnmounted(() => {
           <div v-if="order?.Description">
             <label class="mb-1 block text-xs font-medium text-gray-400">{{ t('work_order.description') }}</label>
             <p class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">{{ order.Description }}</p>
+          </div>
+          <!-- 关联采购订单汇总（去重） -->
+          <div v-if="allPurchaseOrders.length > 0">
+            <label class="mb-1 block text-xs font-medium text-gray-400">关联采购订单</label>
+            <div class="flex flex-wrap gap-2">
+              <RouterLink
+                v-for="po in allPurchaseOrders"
+                :key="po.id"
+                :to="`/purchase/showorder/${po.id}`"
+                class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+              >
+                #{{ po.id }} {{ po.title || '' }}
+                <span
+                  class="ml-1 rounded px-1.5 py-0.5 text-[10px]"
+                  :class="getPurchaseStatusClass(po.status)"
+                >
+                  {{ getPurchaseStatusLabel(po.status) }}
+                </span>
+              </RouterLink>
+            </div>
           </div>
         </div>
 

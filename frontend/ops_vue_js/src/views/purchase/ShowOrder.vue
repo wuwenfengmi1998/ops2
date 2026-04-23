@@ -341,13 +341,13 @@ onMounted(fetchOrder);
   <div class="mx-auto max-w-6xl px-6 py-6">
     <!-- 顶部操作栏：返回 + 编辑 -->
     <div class="mb-4 flex items-center justify-between">
-      <RouterLink
-        to="/purchase"
+      <button
+        @click="$router.back()"
         class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-dk-card dark:hover:text-gray-200"
       >
         <IconChevronLeft :size="16" />
         {{ t("purchase.back_to_list") }}
-      </RouterLink>
+      </button>
       <!-- 编辑按钮 -->
       <RouterLink
         v-if="canModify"
