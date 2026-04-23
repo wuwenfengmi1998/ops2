@@ -40,4 +40,9 @@ export const workOrderApi = {
   searchPurchaseOrders(search = '', limit = 5) {
     return api.post('/work_order/search_purchase_orders', { search, limit })
   },
+
+  /** 删除进度 */
+  deleteCommit(workOrderId, commitId) {
+    return api.post('/work_order/delete_commit', { workOrderId, commitId })
+  },
 }

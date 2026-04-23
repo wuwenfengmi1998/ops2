@@ -8,6 +8,7 @@ import { useUserStore } from '@/stores/user'
 import { useUsersStore } from '@/stores/users'
 import { workOrderApi } from '@/api/work_order'
 import useDropzone from '@/components/useDropzone.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
   IconChevronLeft,
   IconCheck,
@@ -39,7 +40,7 @@ const notFound = ref(false)
 const submittingCommit = ref(false)
 const commitStatus = ref('pending')
 const commitComment = ref('')
-const commitPhotos = ref([])
+const commitDropzoneRef = ref(null)
 
 // 采购订单关联相关
 const purchaseSearchQuery = ref('')
@@ -54,7 +55,7 @@ const purchaseDropdownRef = ref(null)
 const canSubmit = computed(() => {
   const hasSelectedOrders = selectedPurchaseOrders.value.length > 0
   const hasComment = !!commitComment.value
-  const hasPhotos = commitPhotos.value.length > 0
+  const hasPhotos = commitDropzoneRef.value?.return_files().filter(f => f.is_upload).length > 0
   // 订单、备注、上传图片都为空时才禁止提交
   return hasSelectedOrders || hasComment || hasPhotos
 })
@@ -138,18 +139,22 @@ async function handleCommit() {
   submittingCommit.value = true
   try {
     const purchaseOrderIds = selectedPurchaseOrders.value.map(p => p.id)
+    // 从 dropzone 获取已上传的文件 hash
+    const uploadedPhotos = commitDropzoneRef.value?.return_files()
+      .filter(f => f.is_upload)
+      .map(f => f.hash) ?? []
     const { errCode } = await workOrderApi.commit(
       orderId.value,
       commitStatus.value,
       commitComment.value,
-      commitPhotos.value,
+      uploadedPhotos,
       purchaseOrderIds,
     )
     if (errCode === 0) {
       toast.success(t('message.save_ok'))
       commitComment.value = ''
-      commitPhotos.value = []
       selectedPurchaseOrders.value = []
+      // 清空 dropzone（刷新组件即可）
       await fetchOrder()
     } else {
       toast.error(t('message.server_error'))
@@ -159,6 +164,47 @@ async function handleCommit() {
   } finally {
     submittingCommit.value = false
   }
+}
+
+// ==================== 删除进度 ====================
+const showDeleteCommitConfirm = ref(false)
+const pendingDeleteCommitId = ref(null)
+
+function handleDeleteCommit(commitId) {
+  pendingDeleteCommitId.value = commitId
+  showDeleteCommitConfirm.value = true
+}
+
+async function confirmDeleteCommit() {
+  if (!pendingDeleteCommitId.value) return
+  try {
+    const { errCode } = await workOrderApi.deleteCommit(orderId.value, pendingDeleteCommitId.value)
+    if (errCode === 0) {
+      toast.success(t('message.delete_ok'))
+      // 前端直接移除该 commit，保持滚动位置
+      commits.value = commits.value.filter(c => c.ID !== pendingDeleteCommitId.value)
+    } else {
+      toast.error(t('message.server_error'))
+    }
+  } catch {
+    toast.error(t('message.server_error'))
+  } finally {
+    pendingDeleteCommitId.value = null
+    showDeleteCommitConfirm.value = false
+  }
+}
+
+// 判断是否可以删除进度
+function canDeleteCommit(commit, index) {
+  // 最新状态（第0条）不显示删除按钮
+  if (index === 0) return false
+  // 订单创建者
+  if (order.value?.UserID === userStore.user?.ID) return true
+  // 进度创建者
+  if (commit.UserID === userStore.user?.ID) return true
+  // 管理员
+  if (userStore.user?.Type === 'admin') return true
+  return false
 }
 
 // ==================== 快捷切换状态 ====================
@@ -492,7 +538,7 @@ onUnmounted(() => {
           <div class="mb-3">
             <label class="mb-1 block text-xs font-medium text-gray-400">{{ t('work_order.commit_photos_label') }}</label>
             <useDropzone
-              v-model="commitPhotos"
+              ref="commitDropzoneRef"
               :maxFiles="10"
               :maxSize="10 * 1024 * 1024"
               accept="image/*"
@@ -502,11 +548,11 @@ onUnmounted(() => {
           <!-- 第四行：提交 -->
           <div class="flex justify-end">
             <button
-              :disabled="isCommitting || !canSubmit"
+              :disabled="submittingCommit || !canSubmit"
               class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               @click="handleCommit"
             >
-              {{ isCommitting ? '提交中...' : t('work_order.commit_submit') }}
+              {{ submittingCommit ? t('message.submitting') : t('work_order.commit_submit') }}
             </button>
           </div>
         </div>
@@ -516,9 +562,9 @@ onUnmounted(() => {
           <div v-if="commits.length === 0" class="py-4 text-sm text-gray-400">{{ t('work_order.no_commits') }}</div>
           <ol v-else class="relative border-l border-gray-200 dark:border-dk-muted">
             <li
-              v-for="commit in [...commits].reverse()"
+              v-for="(commit, index) in commits"
               :key="commit.ID"
-              class="mb-6 ml-4"
+              class="mb-6 ml-4 rounded-lg border border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-dk-muted dark:bg-dk-base/30"
             >
               <!-- 时间线圆点 -->
               <div
@@ -545,6 +591,15 @@ onUnmounted(() => {
                 </span>
                 <!-- 时间 -->
                 <time class="text-xs text-gray-400">{{ formatDate(commit.CreatedAt) }}</time>
+                <!-- 删除按钮 -->
+                <button
+                  v-if="canDeleteCommit(commit, index)"
+                  class="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 hover:border-red-300 dark:border-red-900/50 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                  @click="handleDeleteCommit(commit.ID)"
+                >
+                  <IconTrash :size="14" class="mr-1 inline align-middle" />
+                  删除
+                </button>
               </div>
 
               <!-- 备注文字 -->
@@ -606,4 +661,12 @@ onUnmounted(() => {
 
     </div>
   </div>
+
+  <!-- 删除进度确认弹窗 -->
+  <ConfirmDialog
+    v-model="showDeleteCommitConfirm"
+    :message="t('work_order.confirm_delete_commit')"
+    danger
+    @confirm="confirmDeleteCommit"
+  />
 </template>

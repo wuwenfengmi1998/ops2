@@ -259,9 +259,9 @@ async function handleSubmit() {
 
   <!-- 删除确认弹窗 -->
   <ConfirmDialog
-    v-if="showDeleteConfirm"
+    v-model="showDeleteConfirm"
     :message="t('work_order.confirm_delete')"
+    danger
     @confirm="doDelete"
-    @cancel="showDeleteConfirm = false"
   />
 </template>

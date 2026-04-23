@@ -35,4 +35,9 @@ export const purchaseApi = {
   deleteOrder(id) {
     return api.post('/purchase/deleteorder', { id })
   },
+
+  /** 删除状态记录 */
+  deleteCommit(orderId, commitId) {
+    return api.post('/purchase/delete_commit', { orderId, commitId })
+  },
 }

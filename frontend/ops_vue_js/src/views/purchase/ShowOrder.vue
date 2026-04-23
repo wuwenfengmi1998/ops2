@@ -7,6 +7,7 @@ import { usePageTitle } from "@/composables/usePageTitle";
 import { purchaseApi } from "@/api/purchase";
 import { useUserStore } from "@/stores/user";
 import { useUsersStore } from "@/stores/users";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import {
   IconChevronLeft,
   IconExternalLink,
@@ -43,6 +44,47 @@ const pendingComment = ref("");
 // 状态变更附带的图片
 const pendingPhotos = ref([]); // { hash, url, uploading, error }
 const photoInputRef = ref(null);
+
+// 删除进度相关
+const showDeleteConfirm = ref(false);
+const pendingDeleteCommitId = ref(null);
+
+// 判断是否可以删除进度
+function canDeleteCommit(commit, index) {
+  // 最新状态（第0条）不显示删除按钮
+  if (index === 0) return false;
+  // 订单创建者
+  if (order.value?.UserID === userStore.user?.ID) return true;
+  // 进度创建者
+  if (commit.userId === userStore.user?.ID) return true;
+  // 管理员
+  if (userStore.user?.Type === 'admin') return true;
+  return false;
+}
+
+function handleDeleteCommit(commitId) {
+  pendingDeleteCommitId.value = commitId;
+  showDeleteConfirm.value = true;
+}
+
+async function confirmDeleteCommit() {
+  if (!pendingDeleteCommitId.value) return;
+  try {
+    const { errCode } = await purchaseApi.deleteCommit(orderId.value, pendingDeleteCommitId.value);
+    if (errCode === 0) {
+      toast.success(t("message.delete_ok"));
+      // 前端直接移除该 commit，保持滚动位置
+      commits.value = commits.value.filter(c => c.id !== pendingDeleteCommitId.value);
+    } else {
+      toast.error(t("message.server_error"));
+    }
+  } catch {
+    toast.error(t("message.server_error"));
+  } finally {
+    pendingDeleteCommitId.value = null;
+    showDeleteConfirm.value = false;
+  }
+}
 
 // 状态选项
 const statusOptions = [
@@ -644,9 +686,9 @@ onMounted(fetchOrder);
           class="divide-y divide-gray-50 px-6 py-2 dark:divide-dk-muted/50"
         >
           <div
-            v-for="commit in commits"
+            v-for="(commit, index) in commits"
             :key="commit.id"
-            class="flex items-start gap-3 py-3"
+            class="flex items-start gap-3 py-3 rounded-lg border border-gray-100 bg-gray-50/50 px-4 my-2 dark:border-dk-muted dark:bg-dk-base/30"
           >
             <!-- 左侧：头像 + 用户名 -->
             <div class="flex w-20 flex-shrink-0 flex-col items-center gap-1">
@@ -697,6 +739,15 @@ onMounted(fetchOrder);
                 <span class="ml-auto text-xs text-gray-400">{{
                   formatDate(commit.createdAt)
                 }}</span>
+                <!-- 删除按钮 -->
+                <button
+                  v-if="canDeleteCommit(commit, index)"
+                  class="ml-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 hover:border-red-300 dark:border-red-900/50 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                  @click="handleDeleteCommit(commit.id)"
+                >
+                  <IconTrash :size="14" class="mr-1 inline align-middle" />
+                  删除
+                </button>
               </div>
               <p
                 v-if="commit.comment"
@@ -899,6 +950,14 @@ onMounted(fetchOrder);
       </div>
     </Transition>
   </Teleport>
+
+  <!-- 删除进度确认弹窗 -->
+  <ConfirmDialog
+    v-model="showDeleteConfirm"
+    :message="t('purchase.confirm_delete_commit')"
+    danger
+    @confirm="confirmDeleteCommit"
+  />
 </template>
 
 <style scoped>

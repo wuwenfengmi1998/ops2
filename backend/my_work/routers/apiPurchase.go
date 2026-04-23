@@ -350,6 +350,54 @@ func ApiPurchase(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
 
+	// 删除状态记录
+	r.POST("/delete_commit", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromDeleteCommit struct {
+			OrderID  uint `json:"orderId"`
+			CommitID uint `json:"commitId"`
+		}
+		var from FromDeleteCommit
+		if err := decodeJSON(data, &from); err != nil || from.OrderID == 0 || from.CommitID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+
+		// 获取订单信息
+		var order TabPurchaseOrder
+		if err := models.DB.Where("id = ?", from.OrderID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 获取进度信息
+		var commit TabPurchaseCommit
+		if err := models.DB.Where("id = ? AND order_id = ?", from.CommitID, from.OrderID).First(&commit).Error; err != nil {
+			ReturnJson(ctx, "commit_not_found", nil)
+			return
+		}
+
+		// 权限判断：订单创建者 或 进度创建者 或 管理员
+		isOrderCreator := user.ID == order.UserID
+		isCommitCreator := user.ID == commit.UserID
+		isAdmin := slices.Contains(purchaseAdmins, user.ID)
+
+		if !isOrderCreator && !isCommitCreator && !isAdmin {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
+		// 删除进度
+		models.DB.Where("id = ?", from.CommitID).Delete(&TabPurchaseCommit{})
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
 	r.POST("/getorders", func(ctx *gin.Context) {
 		isAuth, _, data := AuthenticationAuthority(ctx)
 		if isAuth {

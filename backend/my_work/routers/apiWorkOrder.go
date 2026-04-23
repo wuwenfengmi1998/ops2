@@ -354,7 +354,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 
 		// commits
 		var commits []TabWorkOrderCommit
-		models.DB.Where("work_order_id = ?", from.ID).Order("created_at ASC").Find(&commits)
+		models.DB.Where("work_order_id = ?", from.ID).Order("created_at DESC").Find(&commits)
 
 		// 为每条 commit 附加图片和采购订单
 		type CommitWithPhotos struct {
@@ -562,6 +562,58 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		models.DB.Where("work_order_id = ?", from.ID).Delete(&TabWorkOrderCommit{})
 		models.DB.Where("work_order_id = ?", from.ID).Delete(&TabWorkOrderLog{})
 		models.DB.Delete(&order)
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
+	// 删除进度
+	r.POST("/delete_commit", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromDeleteCommit struct {
+			WorkOrderID uint `json:"workOrderId"`
+			CommitID    uint `json:"commitId"`
+		}
+		var from FromDeleteCommit
+		if err := decodeJSON(data, &from); err != nil || from.WorkOrderID == 0 || from.CommitID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+
+		// 获取工单信息
+		var order TabWorkOrder
+		if err := models.DB.Where("id = ?", from.WorkOrderID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 获取进度信息
+		var commit TabWorkOrderCommit
+		if err := models.DB.Where("id = ? AND work_order_id = ?", from.CommitID, from.WorkOrderID).First(&commit).Error; err != nil {
+			ReturnJson(ctx, "commit_not_found", nil)
+			return
+		}
+
+		// 权限判断：工单创建者 或 进度创建者 或 管理员
+		isOrderCreator := user.ID == order.UserID
+		isCommitCreator := user.ID == commit.UserID
+		isAdmin := slices.Contains(workOrderAdmins, user.ID)
+
+		if !isOrderCreator && !isCommitCreator && !isAdmin {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
+		// 删除关联的采购订单绑定
+		models.DB.Where("commit_id = ?", from.CommitID).Delete(&TabWorkOrderPurchaseOrderBind{})
+		// 删除关联的图片
+		models.DB.Where("commit_id = ?", from.CommitID).Delete(&TabWorkOrderCommitFileBind{})
+		// 删除进度记录
+		models.DB.Where("id = ?", from.CommitID).Delete(&commit)
 
 		ReturnJson(ctx, "apiOK", nil)
 	})
