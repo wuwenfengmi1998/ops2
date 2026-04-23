@@ -403,7 +403,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		query.Count(&count)
 
 		var containers []TabWarehouseContainer
-		query.Order("created_at DESC").
+		query.Order("updated_at DESC, id DESC").
 			Offset(from.Entries * (from.Page - 1)).
 			Limit(from.Entries).
 			Find(&containers)
@@ -806,7 +806,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		query.Count(&count)
 
 		var items []TabWarehouseItem
-		query.Order("created_at DESC").
+		query.Order("updated_at DESC, id DESC").
 			Offset(from.Entries * (from.Page - 1)).
 			Limit(from.Entries).
 			Find(&items)
