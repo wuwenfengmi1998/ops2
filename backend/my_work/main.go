@@ -71,6 +71,7 @@ func main() {
 	routers.ApiScheduleInit()
 	routers.ApiPurchaseInit()
 	routers.ApiWorkOrderInit()
+	routers.ApiWarehouseInit()
 
 	//创建必要目录
 	for _, path := range models.ConfigsFile.Pahts {

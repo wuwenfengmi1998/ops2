@@ -75,9 +75,29 @@ const router = createRouter({
           component: () => import('@/views/work_order/ShowWorkOrder.vue'),
         },
         {
-          path: 'warehouse',
+          path: 'warehouse/container',
           name: 'warehouse',
-          component: () => import('@/views/WarehouseView.vue'),
+          component: () => import('@/views/warehouse/WarehouseContainerList.vue'),
+        },
+        {
+          path: 'warehouse/container/:id',
+          name: 'warehouse-container-detail',
+          component: () => import('@/views/warehouse/WarehouseContainerDetail.vue'),
+        },
+        {
+          path: 'warehouse/container/:id/add-item',
+          name: 'warehouse-add-item',
+          component: () => import('@/views/warehouse/WarehouseAddItem.vue'),
+        },
+        {
+          path: 'warehouse/item',
+          name: 'warehouse-item-list',
+          component: () => import('@/views/warehouse/WarehouseItemList.vue'),
+        },
+        {
+          path: 'warehouse/item/:id',
+          name: 'warehouse-item-detail',
+          component: () => import('@/views/warehouse/WarehouseItemDetail.vue'),
         },
         {
           path: 'admin',
@@ -140,7 +160,7 @@ router.beforeEach((to) => {
   const userStore = useUserStore()
 
   // 不需要登录的页面
-  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule','/warehouse', '/404']
+  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule', '/warehouse/container', '/warehouse/item', '/404']
   if (publicPages.includes(to.path)) return true
 
   // 未登录 → 跳转登录
