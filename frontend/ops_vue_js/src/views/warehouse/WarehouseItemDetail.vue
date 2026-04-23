@@ -38,7 +38,7 @@ const notFound = ref(false)
 const containerNames = reactive({})
 
 // ── Tab ──
-const activeTab = ref('history')
+const activeTab = ref('work_orders')
 
 // ── 编辑弹窗 ──
 const showEdit = ref(false)
@@ -104,6 +104,8 @@ function fmtTs(ts) {
   if (isNaN(d.getTime())) return '—'
   return d.toLocaleString()
 }
+
+
 
 // ── 拉取物品详情 ──
 async function fetchItem() {
@@ -430,15 +432,6 @@ onMounted(() => {
       <div class="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-dk-muted dark:bg-dk-base w-fit">
         <button
           class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
-          :class="activeTab === 'history'
-            ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
-            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
-          @click="activeTab = 'history'"
-        >
-          {{ t('warehouse.move_history') }} ({{ commits.length }})
-        </button>
-        <button
-          class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
           :class="activeTab === 'work_orders'
             ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
             : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
@@ -446,40 +439,15 @@ onMounted(() => {
         >
           {{ t('warehouse.work_orders') }} ({{ workOrders.length }})
         </button>
-      </div>
-
-      <!-- 移动历史 -->
-      <div v-if="activeTab === 'history'">
-        <div v-if="commits.length === 0" class="rounded-xl border border-gray-200 bg-white px-5 py-8 text-center text-sm text-gray-400 dark:border-dk-muted dark:bg-dk-card">
-          {{ t('warehouse.no_move_history') }}
-        </div>
-        <div v-else class="space-y-2">
-          <div
-            v-for="commit in commits"
-            :key="commit.ID"
-            class="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 dark:border-dk-muted dark:bg-dk-card"
-          >
-            <!-- 操作人头像 -->
-            <div class="flex-shrink-0">
-              <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">
-                {{ usersStore.getUsernameFromUserID(commit.UserID)?.slice(0, 1) || '?' }}
-              </div>
-            </div>
-            <!-- 路径 -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400">
-                <span>{{ usersStore.getUsernameFromUserID(commit.UserID) }}</span>
-                <span>{{ fmtTs(commit.CreatedAt) }}</span>
-              </div>
-              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-sm font-medium text-gray-700 dark:text-gray-200">
-                <span>{{ getContainerName(commit.OldContainer) }}</span>
-                <IconArrowRight :size="13" class="text-blue-500 flex-shrink-0" />
-                <span>{{ getContainerName(commit.NewContainer) }}</span>
-              </div>
-              <p v-if="commit.Remark" class="text-xs text-gray-400 mt-0.5">{{ commit.Remark }}</p>
-            </div>
-          </div>
-        </div>
+        <button
+          class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
+          :class="activeTab === 'history'
+            ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
+            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+          @click="activeTab = 'history'"
+        >
+          {{ t('warehouse.move_history') }} ({{ commits.length }})
+        </button>
       </div>
 
       <!-- 关联工单 -->
@@ -505,6 +473,41 @@ onMounted(() => {
               {{ getStatusLabel(wo.status) }}
             </span>
           </RouterLink>
+        </div>
+      </div>
+
+      <!-- 移动历史 -->
+      <div v-if="activeTab === 'history'">
+        <div v-if="commits.length === 0" class="rounded-xl border border-gray-200 bg-white px-5 py-8 text-center text-sm text-gray-400 dark:border-dk-muted dark:bg-dk-card">
+          {{ t('warehouse.no_move_history') }}
+        </div>
+        <div v-else class="space-y-2">
+          <div
+            v-for="commit in commits"
+            :key="commit.ID"
+            class="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 dark:border-dk-muted dark:bg-dk-card"
+          >
+            <!-- 操作人头像 -->
+            <div class="flex-shrink-0">
+              <img
+                :src="usersStore.getAvatarUrlFromUserID(commit.UserID)"
+                class="w-8 h-8 rounded-full object-cover"
+              />
+            </div>
+            <!-- 路径 -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap text-xs text-gray-400">
+                <span>{{ usersStore.getUsernameFromUserID(commit.UserID) || `User#${commit.UserID}` }}</span>
+                <span>{{ fmtTs(commit.CreatedAt) }}</span>
+              </div>
+              <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-sm font-medium text-gray-700 dark:text-gray-200">
+                <span>{{ getContainerName(commit.OldContainer) }}</span>
+                <IconArrowRight :size="13" class="text-blue-500 flex-shrink-0" />
+                <span>{{ getContainerName(commit.NewContainer) }}</span>
+              </div>
+              <p v-if="commit.Remark" class="text-xs text-gray-400 mt-0.5">{{ commit.Remark }}</p>
+            </div>
+          </div>
         </div>
       </div>
 

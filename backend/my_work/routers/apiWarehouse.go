@@ -50,14 +50,14 @@ type TabWarehouseItemFileBind struct {
 }
 
 type TabWarehouseItemCommit struct {
-	ID           uint      `gorm:"primaryKey"`
-	ItemID       uint      `gorm:"not null;index;comment:关联物品id"`
-	UserID       uint      `gorm:"not null;comment:操作人id"`
-	OldContainer *uint    `gorm:"index;comment:原容器id"`
-	NewContainer *uint    `gorm:"index;comment:新容器id"`
-	Remark       string    `gorm:"type:text;comment:备注"`
-	IP           string    `gorm:"size:50;comment:操作IP"`
-	CreatedAt    time.Time `gorm:"type:datetime;autoCreateTime"`
+	ID           uint      `gorm:"primaryKey" json:"ID"`
+	ItemID       uint      `gorm:"not null;index;comment:关联物品id" json:"ItemID"`
+	UserID       uint      `gorm:"not null;comment:操作人id" json:"UserID"`
+	OldContainer *uint    `gorm:"index;comment:原容器id" json:"OldContainer"`
+	NewContainer *uint    `gorm:"index;comment:新容器id" json:"NewContainer"`
+	Remark       string    `gorm:"type:text;comment:备注" json:"Remark"`
+	IP           string    `gorm:"size:50;comment:操作IP" json:"IP"`
+	CreatedAt    time.Time `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
 }
 
 type TabWarehouseLog struct {
