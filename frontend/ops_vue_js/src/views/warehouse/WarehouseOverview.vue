@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
+import { useUsersStore } from '@/stores/users'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { warehouseApi } from '@/api/warehouse'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -23,6 +24,7 @@ usePageTitle('warehouse.overview')
 const { t, locale } = useI18n()
 const router = useRouter()
 const toast = useToastStore()
+const usersStore = useUsersStore()
 
 const isEn = computed(() => locale.value === 'en')
 
@@ -37,6 +39,7 @@ const stats = reactive({
 //  容器相关
 // ═══════════════════════════════════════════════════════
 const containers = ref([])
+const canModifyContainers = ref([]) // 并行数组：与 containers 下标对应
 const containerTotal = ref(0)
 const containerPage = ref(1)
 const containerPageSize = ref(10)
@@ -68,6 +71,14 @@ function containerPageRange() {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
 
+// ── 权限判断 ──
+function canModifyContainer(index) {
+  return canModifyContainers.value[index] === true
+}
+function canModifyItem(index) {
+  return canModifyItems.value[index] === true
+}
+
 async function fetchContainerStats() {
   try {
     const { errCode, data } = await warehouseApi.getCount()
@@ -89,6 +100,7 @@ async function fetchContainers() {
     })
     if (errCode === 0) {
       containers.value = data.containers ?? []
+      canModifyContainers.value = data.canModifyContainers ?? []
       containerTotal.value = data.all_count ?? 0
     } else {
       toast.error(t('message.server_error'))
@@ -201,6 +213,7 @@ function jumpToContainer(id) {
 //  物品相关
 // ═══════════════════════════════════════════════════════
 const items = ref([])
+const canModifyItems = ref([]) // 并行数组：与 items 下标对应
 const itemTotal = ref(0)
 const itemPage = ref(1)
 const itemPageSize = ref(10)
@@ -220,6 +233,7 @@ async function fetchItems() {
     })
     if (errCode === 0 && data) {
       items.value = data.items || []
+      canModifyItems.value = data.canModifyItems || []
       itemTotal.value = data.all_count || 0
       itemStats.total = data.all_count || 0
       itemStats.inContainer = items.value.filter(i => i.ContainerID != null).length
@@ -412,7 +426,7 @@ onMounted(() => {
                 <th class="px-6 py-3 font-medium w-24 text-center">{{ t('warehouse.child_containers') }}</th>
                 <th class="px-6 py-3 font-medium w-24 text-center">{{ t('warehouse.items') }}</th>
                 <th class="px-6 py-3 font-medium whitespace-nowrap w-44">{{ t('warehouse.created_at') }}</th>
-                <th class="px-6 py-3 font-medium w-28 text-right">{{ t('warehouse.actions') }}</th>
+                <th class="px-6 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -432,7 +446,7 @@ onMounted(() => {
               </tr>
               <tr
                 v-else
-                v-for="c in containers"
+                v-for="(c, idx) in containers"
                 :key="c.ID"
                 class="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
                 @click="jumpToContainer(c.ID)"
@@ -458,30 +472,13 @@ onMounted(() => {
                   </span>
                 </td>
                 <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ fmtTs(c.CreatedAt) }}</td>
-                <td class="px-6 py-3 text-right" @click.stop>
-                  <div class="flex items-center justify-end gap-1">
-                    <button
-                      v-if="c.ChildCount === 0 && c.ItemCount === 0"
-                      class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-dk-muted"
-                      :title="t('warehouse.delete')"
-                      @click="confirmDeleteContainer(c.ID, c.Title, $event)"
-                    >
-                      <IconTrash :size="15" />
-                    </button>
-                    <button
-                      class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-500 dark:hover:bg-dk-muted"
-                      :title="t('warehouse.edit')"
-                      @click="openEditContainer(c.ID, $event)"
-                    >
-                      <IconEdit :size="15" />
-                    </button>
-                    <button
-                      class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-500 dark:hover:bg-dk-muted"
-                      :title="t('warehouse.view_items')"
-                      @click="jumpToContainer(c.ID)"
-                    >
-                      <IconChevronRight :size="15" />
-                    </button>
+                <td class="px-6 py-3">
+                  <div class="flex items-center gap-1.5">
+                    <img
+                      :src="usersStore.getAvatarUrlFromUserID(c.CreatorID)"
+                      class="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                    />
+                    <span class="truncate text-gray-600 dark:text-gray-400">{{ usersStore.getUsernameFromUserID(c.CreatorID) }}</span>
                   </div>
                 </td>
               </tr>
@@ -554,7 +551,7 @@ onMounted(() => {
               <th class="px-6 py-3 font-medium w-20 text-center">{{ t('warehouse.quantity') }}</th>
               <th class="px-6 py-3 font-medium">{{ t('warehouse.location') }}</th>
               <th class="px-6 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
-              <th class="px-6 py-3 font-medium w-16 text-right">{{ t('warehouse.actions') }}</th>
+              <th class="px-6 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -574,7 +571,7 @@ onMounted(() => {
             </tr>
             <tr
               v-else
-              v-for="item in items" :key="item.ID"
+              v-for="(item, idx) in items" :key="item.ID"
               class="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
               @click="goToItemDetail(item)"
             >
@@ -591,13 +588,14 @@ onMounted(() => {
                 </span>
               </td>
               <td class="px-6 py-3 whitespace-nowrap text-xs text-gray-400 dark:text-gray-500">{{ formatDate(item.CreatedAt) }}</td>
-              <td class="px-6 py-3 text-right" @click.stop>
-                <button
-                  class="flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  @click="askDeleteItem(item)"
-                >
-                  <IconTrash :size="14" />
-                </button>
+              <td class="px-6 py-3">
+                <div class="flex items-center gap-1.5">
+                  <img
+                    :src="usersStore.getAvatarUrlFromUserID(item.CreatorID)"
+                    class="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                  />
+                  <span class="truncate text-gray-600 dark:text-gray-400">{{ usersStore.getUsernameFromUserID(item.CreatorID) }}</span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -698,7 +696,6 @@ onMounted(() => {
     :message="t('warehouse.delete_confirm_msg', { name: deletingName })"
     :confirm-text="t('warehouse.delete')"
     :cancel-text="t('message.cancel')"
-    :confirm-loading="deleting"
     danger
     @confirm="doDeleteContainer"
   />
@@ -708,7 +705,6 @@ onMounted(() => {
     v-model="showDeleteItemConfirm"
     :title="t('warehouse.delete_item_title')"
     :message="t('warehouse.delete_item_msg', { name: deleteItemTarget?.name })"
-    :confirm-loading="deletingItem"
     @confirm="doDeleteItem"
   />
 </template>

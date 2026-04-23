@@ -3,6 +3,7 @@ package routers
 import (
 	"encoding/json"
 	"ops/models"
+	"slices"
 	"strconv"
 	"time"
 
@@ -82,6 +83,32 @@ type TabWarehouseItemWorkOrderBind struct {
 	CreatedAt   time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
+var (
+	warehouseUserGroup models.TabUserGroups_
+	warehouseAdmins   []uint
+)
+
+// updateWarehouseAdminsCash 刷新仓库管理员缓存
+func updateWarehouseAdminsCash() {
+	warehouseAdmins = nil
+	warehouseAdmins = append(warehouseAdmins, 1) // id=1 超级管理员
+	var binds []models.TabUserGroupBinds_
+	models.DB.Where("group_id = ?", warehouseUserGroup.ID).Find(&binds)
+	for _, item := range binds {
+		if !slices.Contains(warehouseAdmins, item.UserID) {
+			warehouseAdmins = append(warehouseAdmins, item.UserID)
+		}
+	}
+}
+
+// canModifyWarehouse 判断是否有权限修改/删除仓库资源（创建者或仓库管理员）
+func canModifyWarehouse(userID, creatorUserID uint) bool {
+	if slices.Contains(warehouseAdmins, userID) {
+		return true
+	}
+	return userID == creatorUserID
+}
+
 // ---------- 初始化 ----------
 
 func ApiWarehouseInit() {
@@ -94,6 +121,14 @@ func ApiWarehouseInit() {
 		&TabWarehouseLog{},
 		&TabWarehouseItemWorkOrderBind{},
 	)
+
+	warehouseUserGroup.Name = "warehouse_admin"
+	if models.DB.Where(&warehouseUserGroup).First(&warehouseUserGroup).Error == nil {
+		updateWarehouseAdminsCash()
+	} else {
+		warehouseUserGroup.Type = "usergroup"
+		models.DB.Create(&warehouseUserGroup)
+	}
 }
 
 // ---------- 路由注册 ----------
@@ -228,6 +263,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			return
 		}
 
+		if !canModifyWarehouse(user.ID, c.CreatorID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
 		oldContent, _ := json.Marshal(c)
 		models.DB.Model(&c).Updates(map[string]interface{}{
 			"title":  from.Title,
@@ -284,6 +324,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			return
 		}
 
+		if !canModifyWarehouse(user.ID, c.CreatorID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
 		// 检查是否有子容器或物品
 		if c.ChildCount > 0 || c.ItemCount > 0 {
 			ReturnJson(ctx, "container_not_empty", nil)
@@ -314,7 +359,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 
 	// 获取容器列表
 	r.POST("/list_container", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
 			return
@@ -357,15 +402,21 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			Limit(from.Entries).
 			Find(&containers)
 
+		canModifyContainers := make([]bool, len(containers))
+		for i, c := range containers {
+			canModifyContainers[i] = canModifyWarehouse(user.ID, c.CreatorID)
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
-			"all_count":   count,
-			"containers": containers,
+			"all_count":          count,
+			"containers":         containers,
+			"canModifyContainers": canModifyContainers,
 		})
 	})
 
 	// 获取容器详情
 	r.POST("/get_container", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
 			return
@@ -428,10 +479,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"container":    c,
-			"photos":       files,
-			"parent_chain": parentChain,
-			"depth":        depth,
+			"container":        c,
+			"photos":           files,
+			"parent_chain":     parentChain,
+			"depth":            depth,
+			"canModifyContainer": canModifyWarehouse(user.ID, c.CreatorID),
 		})
 	})
 
@@ -618,6 +670,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			return
 		}
 
+		if !canModifyWarehouse(user.ID, item.CreatorID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
 		oldContent, _ := json.Marshal(item)
 		models.DB.Model(&item).Updates(map[string]interface{}{
 			"name":          from.Name,
@@ -676,6 +733,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			return
 		}
 
+		if !canModifyWarehouse(user.ID, item.CreatorID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
 		// 所属容器 ItemCount -1
 		if item.ContainerID != nil {
 			models.DB.Model(&TabWarehouseContainer{}).Where("id = ?", *item.ContainerID).Update("item_count", models.DB.Raw("item_count - 1"))
@@ -703,7 +765,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 
 	// 获取物品列表
 	r.POST("/list_item", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
 			return
@@ -744,15 +806,21 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			Limit(from.Entries).
 			Find(&items)
 
+		canModifyItems := make([]bool, len(items))
+		for i, item := range items {
+			canModifyItems[i] = canModifyWarehouse(user.ID, item.CreatorID)
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
-			"all_count": count,
-			"items":     items,
+			"all_count":       count,
+			"items":           items,
+			"canModifyItems": canModifyItems,
 		})
 	})
 
 	// 获取物品详情
 	r.POST("/get_item", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
 			return
@@ -807,10 +875,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"item":        item,
-			"photos":      files,
-			"commits":     commits,
-			"work_orders": workOrders,
+			"item":          item,
+			"photos":        files,
+			"commits":       commits,
+			"work_orders":   workOrders,
+			"canModifyItem": canModifyWarehouse(user.ID, item.CreatorID),
 		})
 	})
 

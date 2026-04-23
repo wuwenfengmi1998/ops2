@@ -31,6 +31,7 @@ const item = ref(null)
 const photos = ref([])
 const commits = ref([])
 const workOrders = ref([])
+const canModifyItem = ref(false)
 const loadingDetail = ref(true)
 const notFound = ref(false)
 
@@ -39,16 +40,6 @@ const containerNames = reactive({})
 
 // ── Tab ──
 const activeTab = ref('work_orders')
-
-// ── 编辑弹窗 ──
-const showEdit = ref(false)
-const editForm = reactive({
-  name: '',
-  serial_number: '',
-  remark: '',
-  quantity: 1,
-})
-const submittingEdit = ref(false)
 
 // ── 移动弹窗 ──
 const showMove = ref(false)
@@ -118,6 +109,7 @@ async function fetchItem() {
       photos.value = data.photos ?? []
       commits.value = data.commits ?? []
       workOrders.value = data.work_orders ?? []
+      canModifyItem.value = data.canModifyItem === true
       loadContainerNames()
     } else {
       notFound.value = true
@@ -182,43 +174,6 @@ function openLinkWorkOrder() {
   }
   localStorage.setItem('prefill_work_order', JSON.stringify(prefillData))
   router.push('/work_order/add')
-}
-
-// ── 编辑 ──
-function openEdit() {
-  editForm.name = item.value?.Name ?? ''
-  editForm.serial_number = item.value?.SerialNumber ?? ''
-  editForm.remark = item.value?.Remark ?? ''
-  editForm.quantity = item.value?.Quantity ?? 1
-  showEdit.value = true
-}
-
-async function submitEdit() {
-  if (!editForm.name.trim()) {
-    toast.error(t('warehouse.item_name_required'))
-    return
-  }
-  submittingEdit.value = true
-  try {
-    const { errCode } = await warehouseApi.updateItem({
-      id: itemId.value,
-      name: editForm.name.trim(),
-      serial_number: editForm.serial_number.trim(),
-      remark: editForm.remark.trim(),
-      quantity: editForm.quantity > 0 ? editForm.quantity : 1,
-    })
-    if (errCode === 0) {
-      toast.success(t('message.save_success'))
-      showEdit.value = false
-      fetchItem()
-    } else {
-      toast.error(t('message.server_error'))
-    }
-  } catch {
-    toast.error(t('message.server_error'))
-  } finally {
-    submittingEdit.value = false
-  }
 }
 
 // ── 移动 ──
@@ -356,13 +311,15 @@ onMounted(() => {
             {{ t('warehouse.move_item') }}
           </button>
           <button
+            v-if="canModifyItem"
             class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
-            @click="openEdit"
+            @click="router.push(`/warehouse/item/edit/${itemId}`)"
           >
             <IconEdit :size="14" />
             {{ t('warehouse.edit') }}
           </button>
           <button
+            v-if="canModifyItem"
             class="inline-flex items-center gap-1.5 rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:bg-dk-base dark:text-red-400 dark:hover:bg-red-900/20"
             @click="showDeleteConfirm = true"
           >
@@ -423,7 +380,14 @@ onMounted(() => {
 
         <!-- 元信息 -->
         <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
-          <span>{{ t('warehouse.created_by') }}: {{ usersStore.getUsernameFromUserID(item.CreatorID) }}</span>
+          <span class="flex items-center gap-1">
+            <span>{{ t('warehouse.created_by') }}:</span>
+            <img
+              :src="usersStore.getAvatarUrlFromUserID(item.CreatorID)"
+              class="w-4 h-4 rounded-full object-cover"
+            />
+            {{ usersStore.getUsernameFromUserID(item.CreatorID) }}
+          </span>
           <span>{{ t('warehouse.created_at') }}: {{ fmtTs(item.CreatedAt) }}</span>
         </div>
       </div>
@@ -513,77 +477,6 @@ onMounted(() => {
 
     </template>
   </div>
-
-  <!-- 编辑弹窗 -->
-  <Transition name="fade">
-    <div
-      v-if="showEdit"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      @click.self="showEdit = false"
-    >
-        <div class="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-xl dark:border-dk-muted dark:bg-dk-card">
-          <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-white">{{ t('warehouse.edit_item') }}</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('warehouse.item_name') }} *</label>
-              <input
-                v-model="editForm.name"
-                type="text"
-                :placeholder="t('warehouse.item_name_placeholder')"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-                @keyup.enter="submitEdit"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('warehouse.serial_number') }}</label>
-              <input
-                v-model="editForm.serial_number"
-                type="text"
-                :placeholder="t('warehouse.serial_number_placeholder')"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('warehouse.quantity') }}</label>
-              <input
-                v-model.number="editForm.quantity"
-                type="number"
-                min="1"
-                class="w-28 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('warehouse.remark') }}</label>
-              <textarea
-                v-model="editForm.remark"
-                :placeholder="t('warehouse.remark_placeholder')"
-                rows="3"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              ></textarea>
-            </div>
-          </div>
-          <div class="mt-4 flex justify-end gap-2">
-            <button
-              class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white hover:bg-gray-50 dark:hover:bg-dk-muted"
-              @click="showEdit = false"
-            >
-              {{ t('message.cancel') }}
-            </button>
-            <button
-              class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              :disabled="submittingEdit"
-              @click="submitEdit"
-            >
-              <svg v-if="submittingEdit" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              {{ t('message.save') }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
 
   <!-- 移动弹窗 -->
   <Transition name="fade">

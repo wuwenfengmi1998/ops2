@@ -226,11 +226,11 @@ function return_files() {
 function loadInitialFiles() {
   if (!dropzoneInstance || !prop.initialFiles?.length) return;
 
+  // 每次调用时先清空已有文件，避免重复追加
+  files.splice(0, files.length)
+
   prop.initialFiles.forEach((f) => {
-    // 构造 Dropzone 期望的 mock file 对象
-    //console.log(f);
-    // 填充上传结果字段
-    const url = `/api/files/get/${f.Sha256}`;
+    const url = `/api/files/get/${f.Sha256}`
     const mockFile = {
       name: f.Name,
       size: f.Size,
@@ -238,17 +238,17 @@ function loadInitialFiles() {
       status: Dropzone.SUCCESS,
       accepted: true,
       upload: { uuid: f.Sha256 },
-      isInput:true,
+      isInput: true,
       previewElement: null,
       _removeLink: null,
-    };
-    // 通知 Dropzone "这是一个已存在的文件，不要上传"
-    // dropzoneInstance.emit("addedfile", mockFile);
-    // dropzoneInstance.emit("complete", mockFile);
-    // dropzoneInstance.files.push(mockFile);
-    // dropzoneInstance.emit("thumbnail", mockFile, url);
+    }
 
-    dropzoneInstance.displayExistingFile(mockFile, url);
+    // displayExistingFile 会触发 addedfile 事件，但我们需要手动 push 到 files 数组，
+    // 所以传 false 阻止事件触发，由我们自己 push，同时手动绑定 lightbox
+    dropzoneInstance.displayExistingFile(mockFile, url, false)
+
+    // 为已有文件的预览元素绑定 lightbox 点击事件
+    clik_file_event(mockFile)
 
     files.push({
       uuid: f.Sha256,
@@ -258,8 +258,8 @@ function loadInitialFiles() {
       file_name: f.Name,
       file_size: f.Size,
       is_upload: true,
-    });
-  });
+    })
+  })
 }
 
 // 组件挂载时初始化
@@ -277,6 +277,7 @@ onUnmounted(() => {
 
 defineExpose({
   return_files,
+  loadInitialFiles,
 });
 </script>
 

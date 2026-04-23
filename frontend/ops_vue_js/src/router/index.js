@@ -95,6 +95,11 @@ const router = createRouter({
           component: () => import('@/views/warehouse/WarehouseItemDetail.vue'),
         },
         {
+          path: 'warehouse/item/edit/:id',
+          name: 'warehouse-item-edit',
+          component: () => import('@/views/warehouse/WarehouseItemEdit.vue'),
+        },
+        {
           path: 'admin',
           name: 'admin',
           component: () => import('@/views/AdminView.vue'),

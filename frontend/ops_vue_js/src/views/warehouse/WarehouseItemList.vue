@@ -22,6 +22,7 @@ const toast = useToastStore()
 
 // ── 状态 ──
 const items = ref([])
+const canModifyItems = ref([]) // 并行数组：与 items 下标对应
 const totalCount = ref(0)
 const pageSize = ref(10)
 const currentPage = ref(1)
@@ -47,6 +48,11 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value) |
 function getContainerTitle(cid) {
   if (cid == null) return `<span class="text-gray-400">${t('warehouse.unstored_items')}</span>`
   return containerMap.value[cid] || `#${cid}`
+}
+
+// ── 权限判断 ──
+function canModifyItem(idx) {
+  return canModifyItems.value[idx] === true
 }
 
 // ── 获取容器名映射 ──
@@ -95,6 +101,7 @@ async function fetchItems() {
     })
     if (errCode === 0 && data) {
       items.value = data.items || []
+      canModifyItems.value = data.canModifyItems || []
       totalCount.value = data.all_count || 0
       stats.total = data.all_count || 0
       stats.inContainer = items.value.filter(i => i.container_id != null).length
@@ -273,7 +280,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr
-              v-for="item in items"
+              v-for="(item, idx) in items"
               :key="item.id"
               class="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
               @click="goToDetail(item)"
@@ -293,6 +300,7 @@ onMounted(() => {
               <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ formatDate(item.created_at) }}</td>
               <td class="px-5 py-3 text-right" @click.stop>
                 <button
+                  v-if="canModifyItem(idx)"
                   class="inline-flex items-center justify-center w-7 h-7 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                   @click="askDelete(item)"
                 >
@@ -347,7 +355,6 @@ onMounted(() => {
     v-model="confirmDelete"
     :title="t('warehouse.delete_item_title')"
     :message="t('warehouse.delete_item_msg', { name: deleteTarget?.name })"
-    :confirm-loading="deletingItem"
     @confirm="doDeleteItem"
   />
 </template>
