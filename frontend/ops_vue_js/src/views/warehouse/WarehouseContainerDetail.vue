@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
@@ -70,9 +70,6 @@ function itemPageRange() {
   if (end - start < 4) start = Math.max(1, end - 4)
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 }
-
-// ── Tab ──
-const activeTab = ref('sub_containers')
 
 // ── 新增子容器弹窗 ──
 const showAddSub = ref(false)
@@ -156,12 +153,6 @@ async function fetchItems() {
     loadingItems.value = false
   }
 }
-
-// ── 切 tab 时加载对应数据 ──
-watch(activeTab, (tab) => {
-  if (tab === 'sub_containers') fetchSubContainers()
-  else fetchItems()
-})
 
 // ── 新增子容器 ──
 async function submitAddSub() {
@@ -256,9 +247,8 @@ async function doDelete() {
 // ── 初始化 ──
 onMounted(async () => {
   await fetchContainer()
-  if (activeTab.value === 'sub_containers') {
-    fetchSubContainers()
-  }
+  fetchSubContainers()
+  fetchItems()
 })
 </script>
 
@@ -354,30 +344,8 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Tab 切换 -->
-      <div class="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-dk-muted dark:bg-dk-base w-fit">
-        <button
-          class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
-          :class="activeTab === 'sub_containers'
-            ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
-            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
-          @click="activeTab = 'sub_containers'"
-        >
-          {{ t('warehouse.child_containers') }} ({{ container.ChildCount }})
-        </button>
-        <button
-          class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
-          :class="activeTab === 'items'
-            ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
-            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
-          @click="activeTab = 'items'"
-        >
-          {{ t('warehouse.items') }} ({{ container.ItemCount }})
-        </button>
-      </div>
-
       <!-- 子容器列表 -->
-      <div v-if="activeTab === 'sub_containers'" class="rounded-xl border border-gray-200 bg-white shadow dark:border-dk-muted dark:bg-dk-card">
+      <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-dk-muted dark:bg-dk-card">
         <!-- 工具栏 -->
         <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 dark:border-dk-muted">
           <div class="relative flex-1 max-w-xs">
@@ -493,7 +461,7 @@ onMounted(async () => {
       </div>
 
       <!-- 物品列表 -->
-      <div v-if="activeTab === 'items'" class="rounded-xl border border-gray-200 bg-white shadow dark:border-dk-muted dark:bg-dk-card">
+      <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-dk-muted dark:bg-dk-card">
         <!-- 工具栏 -->
         <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 dark:border-dk-muted">
           <div class="relative flex-1 max-w-xs">

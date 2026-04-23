@@ -52,7 +52,6 @@ const navItems = computed(() => [
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
   { label: t("appname.warehouse"), to: "/warehouse/container" },
-  { label: t("appname.warehouse_items"), to: "/warehouse/item" },
 ]);
 </script>
 

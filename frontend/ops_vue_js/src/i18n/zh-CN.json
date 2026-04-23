@@ -155,6 +155,8 @@
   "warehouse": {
     "container_list": "容器列表",
     "container_detail": "容器详情",
+    "overview": "仓库总览",
+    "containers": "容器",
     "item_list": "物品列表",
     "add_container": "新增容器",
     "edit_container": "编辑容器",

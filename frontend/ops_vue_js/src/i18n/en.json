@@ -155,6 +155,8 @@
   "warehouse": {
     "container_list": "Container List",
     "container_detail": "Container Detail",
+    "overview": "Warehouse Overview",
+    "containers": "Containers",
     "item_list": "Item List",
     "add_container": "Add Container",
     "edit_container": "Edit Container",
