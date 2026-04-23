@@ -7,33 +7,37 @@ import (
 	"strconv"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/gin-gonic/gin"
 )
 
 // ---------- 数据表结构 ----------
 
 type TabWarehouseContainer struct {
-	ID         uint       `gorm:"primaryKey" json:"ID"`
-	Title      string     `gorm:"size:255;not null;comment:容器名" json:"Title"`
-	Remark     string     `gorm:"type:text;comment:描述" json:"Remark"`
-	CreatedAt  *time.Time `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
-	UpdatedAt  *time.Time `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
-	CreatorID  uint       `gorm:"not null;index;comment:创建者id" json:"CreatorID"`
-	ParentID   *uint      `gorm:"index;comment:父容器id，nil=顶级" json:"ParentID"`
-	ItemCount  int        `gorm:"default:0;comment:直接子物品数量" json:"ItemCount"`
-	ChildCount int        `gorm:"default:0;comment:子容器数量" json:"ChildCount"`
+	ID         uint           `gorm:"primaryKey" json:"ID"`
+	Title      string         `gorm:"size:255;not null;comment:容器名" json:"Title"`
+	Remark     string         `gorm:"type:text;comment:描述" json:"Remark"`
+	CreatedAt  *time.Time     `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
+	UpdatedAt  *time.Time     `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatorID  uint           `gorm:"not null;index;comment:创建者id" json:"CreatorID"`
+	ParentID   *uint          `gorm:"index;comment:父容器id，nil=顶级" json:"ParentID"`
+	ItemCount  int            `gorm:"default:0;comment:直接子物品数量" json:"ItemCount"`
+	ChildCount int            `gorm:"default:0;comment:子容器数量" json:"ChildCount"`
 }
 
 type TabWarehouseItem struct {
-	ID           uint       `gorm:"primaryKey" json:"ID"`
-	Name         string     `gorm:"size:255;not null;comment:物品名" json:"Name"`
-	SerialNumber string     `gorm:"size:255;comment:序列号" json:"SerialNumber"`
-	Remark       string     `gorm:"type:text;comment:描述" json:"Remark"`
-	Quantity     int        `gorm:"default:1;comment:数量" json:"Quantity"`
-	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
-	UpdatedAt    *time.Time `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
-	CreatorID    uint       `gorm:"not null;index;comment:创建者id" json:"CreatorID"`
-	ContainerID  *uint      `gorm:"index;comment:所属容器id，nil=未入库" json:"ContainerID"`
+	ID           uint           `gorm:"primaryKey" json:"ID"`
+	Name         string         `gorm:"size:255;not null;comment:物品名" json:"Name"`
+	SerialNumber string         `gorm:"size:255;comment:序列号" json:"SerialNumber"`
+	Remark       string         `gorm:"type:text;comment:描述" json:"Remark"`
+	Quantity     int            `gorm:"default:1;comment:数量" json:"Quantity"`
+	CreatedAt    *time.Time     `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
+	UpdatedAt    *time.Time     `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatorID    uint           `gorm:"not null;index;comment:创建者id" json:"CreatorID"`
+	ContainerID  *uint          `gorm:"index;comment:所属容器id，nil=未入库" json:"ContainerID"`
 }
 
 type TabWarehouseContainerFileBind struct {
