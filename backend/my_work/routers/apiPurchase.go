@@ -447,7 +447,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 					//读取条目
 					var getorders []TabPurchaseOrder
-					query.Order("created_at DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
+					query.Order("updated_at DESC, id DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
 
 					ReturnJson(ctx, "apiOK", map[string]interface{}{
 						"all_count":  count,

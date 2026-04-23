@@ -400,7 +400,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 状态快捷切换（所有登录用户可见） -->
-        <div
+        <!-- <div
           v-if="canCommit"
           class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-6 py-3 dark:border-dk-muted"
         >
@@ -418,7 +418,7 @@ onUnmounted(() => {
             <IconCheck v-if="order?.CurrentStatus === opt.value" :size="12" />
             {{ t(opt.labelKey) }}
           </button>
-        </div>
+        </div> -->
 
         <!-- 工单基本信息 -->
         <div class="space-y-4 px-6 py-5">

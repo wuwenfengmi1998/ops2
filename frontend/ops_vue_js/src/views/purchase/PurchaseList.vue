@@ -162,8 +162,8 @@ onMounted(fetchOrders)
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">No.</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-48">{{ t('purchase.item_name') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-64">{{ t('purchase.purpose') }}</th>
-              
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-32">{{ t('purchase.created_at') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-32">{{ t('purchase.updated_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-32">{{ t('purchase.status') }}</th>
             </tr>
           </thead>
@@ -187,6 +187,7 @@ onMounted(fetchOrders)
               <td class="px-6 py-3 max-w-[200px] truncate font-medium text-gray-900 dark:text-white">{{ order.Title }}</td>
               <td class="px-6 py-3 max-w-[200px] truncate text-gray-600 dark:text-gray-300">{{ order.Remark || '-' }}</td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.CreatedAt) }}</td>
+              <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.UpdatedAt) }}</td>
               <td class="px-6 py-3">
                 <span
                   class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
