@@ -528,9 +528,10 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			quantity = 1
 		}
 
-		// 查重：Name + SerialNumber 相同则更新容器
+		// 查重：仅当序列号非空时，Name+SerialNumber 相同则更新容器；无序列号直接新建
 		var existingItem TabWarehouseItem
-		exists := models.DB.Where("name = ? AND serial_number = ?", from.Name, from.SerialNumber).First(&existingItem).Error == nil
+		exists := from.SerialNumber != "" &&
+			models.DB.Where("name = ? AND serial_number = ?", from.Name, from.SerialNumber).First(&existingItem).Error == nil
 
 		var itemID uint
 		var oldContainer *uint
