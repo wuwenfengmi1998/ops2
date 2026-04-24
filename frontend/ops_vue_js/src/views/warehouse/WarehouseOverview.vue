@@ -45,7 +45,6 @@ const containerPage = ref(1)
 const containerPageSize = ref(10)
 const containerSearch = ref('')
 const containerLoading = ref(false)
-const containerMap = ref({}) // id -> title
 
 // 新增/编辑弹窗
 const showContainerForm = ref(false)
@@ -107,17 +106,6 @@ async function fetchContainers() {
     }
   } catch { /* interceptor handled */ }
   finally { containerLoading.value = false }
-}
-
-async function fetchAllContainerMap() {
-  try {
-    const { errCode, data } = await warehouseApi.getContainers({ entries: 500, page: 1 })
-    if (errCode === 0 && data) {
-      const map = {}
-      for (const c of (data.containers || [])) map[c.ID] = c.Title
-      containerMap.value = map
-    }
-  } catch { /* ignore */ }
 }
 
 function goContainerPage(page) {
@@ -304,10 +292,6 @@ async function doDeleteItem() {
   finally { deletingItem.value = false }
 }
 
-function getContainerTitle(cid) {
-  return containerMap.value[cid] || `#${cid}`
-}
-
 // ── 工具函数 ──
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -349,7 +333,7 @@ function fmtTs(ts) {
 onMounted(() => {
   fetchContainerStats()
   fetchContainers()
-  fetchAllContainerMap().then(() => fetchItems())
+  fetchItems()
 })
 </script>
 
@@ -584,9 +568,9 @@ onMounted(() => {
               <td class="px-6 py-3 max-w-[200px] truncate text-xs text-gray-500 dark:text-gray-400">{{ item.Remark || '—' }}</td>
               <td class="px-6 py-3 text-center text-sm">{{ item.Quantity }}</td>
               <td class="px-6 py-3">
-                <span v-if="item.ContainerID != null" class="inline-flex items-center gap-1 text-sm text-blue-600">
+                <span v-if="item.ContainerBreadcrumb" class="inline-flex items-center gap-1 text-sm text-blue-600">
                   <IconArrowRight :size="13" />
-                  <span class="max-w-[140px] truncate">{{ getContainerTitle(item.ContainerID) }}</span>
+                  <span class="max-w-[200px] truncate">{{ item.ContainerBreadcrumb }}</span>
                 </span>
                 <span v-else class="inline-flex items-center gap-1 text-xs text-orange-500">
                   {{ t('warehouse.unstored_items') }}

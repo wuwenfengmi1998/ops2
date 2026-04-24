@@ -29,65 +29,9 @@ const currentPage = ref(1)
 const search = ref('')
 const loading = ref(false)
 
-// 容器名映射表
-const containerMap = ref({})
-const allContainerCount = ref(0)
-
-const isEn = computed(() => locale.value === 'en')
-
-// ── 统计数据 ──
-const stats = reactive({
-  total: 0,
-  inContainer: 0,
-  unstored: 0,
-})
-
-// ── 分页信息 ──
-const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value) || 1)
-
-function getContainerTitle(cid) {
-  if (cid == null) return `<span class="text-gray-400">${t('warehouse.unstored_items')}</span>`
-  return containerMap.value[cid] || `#${cid}`
-}
-
 // ── 权限判断 ──
 function canModifyItem(idx) {
   return canModifyItems.value[idx] === true
-}
-
-// ── 获取容器名映射 ──
-async function fetchContainerMap() {
-  try {
-    const { errCode, data } = await warehouseApi.getContainers({ entries: 500, page: 1 })
-    if (errCode === 0 && data) {
-      allContainerCount.value = data.all_count || 0
-      const map = {}
-      for (const c of (data.containers || [])) {
-        map[c.ID] = c.Title
-      }
-      for (const c of (data.containers || [])) {
-        if (c.ChildCount > 0) {
-          await fetchChildContainers(c.ID, map)
-        }
-      }
-      containerMap.value = map
-    }
-  } catch {
-    // ignore
-  }
-}
-
-async function fetchChildContainers(parentId, map) {
-  try {
-    const { errCode, data } = await warehouseApi.getContainers({ entries: 500, page: 1, parent_id: parentId })
-    if (errCode === 0 && data) {
-      for (const c of (data.containers || [])) {
-        map[c.ID] = c.Title
-      }
-    }
-  } catch {
-    // ignore
-  }
 }
 
 // ── 获取物品列表 ──
@@ -205,9 +149,7 @@ function formatDate(dateStr) {
   }
 }
 
-onMounted(() => {
-  fetchContainerMap().then(fetchItems)
-})
+onMounted(fetchItems)
 </script>
 
 <template>
@@ -289,9 +231,9 @@ onMounted(() => {
               <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[160px] truncate">{{ item.SerialNumber || '—' }}</td>
               <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
               <td class="px-5 py-3">
-                <span v-if="item.ContainerID != null" class="inline-flex items-center gap-1 text-blue-600 text-sm">
+                <span v-if="item.ContainerBreadcrumb" class="inline-flex items-center gap-1 text-blue-600 text-sm">
                   <IconArrowRight :size="13" />
-                  <span class="truncate max-w-[140px]">{{ getContainerTitle(item.ContainerID) }}</span>
+                  <span class="truncate max-w-[200px]">{{ item.ContainerBreadcrumb }}</span>
                 </span>
                 <span v-else class="inline-flex items-center gap-1 text-xs text-orange-500">
                   {{ t('warehouse.unstored_items') }}

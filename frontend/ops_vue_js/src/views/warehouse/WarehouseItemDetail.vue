@@ -38,6 +38,7 @@ const notFound = ref(false)
 
 // ── 容器名缓存 ──
 const containerNames = reactive({})
+const containerBreadcrumb = ref('')
 
 // ── Tab ──
 const activeTab = ref('work_orders')
@@ -112,6 +113,7 @@ async function fetchItem() {
       commits.value = data.commits ?? []
       workOrders.value = data.work_orders ?? []
       canModifyItem.value = data.canModifyItem === true
+      containerBreadcrumb.value = data.container_breadcrumb ?? ''
       loadContainerNames()
     } else {
       notFound.value = true
@@ -375,12 +377,13 @@ onMounted(() => {
               <span>{{ t('warehouse.quantity') }}: {{ item.Quantity }}</span>
               <span>{{ t('warehouse.location') }}:
                 <RouterLink
-                  v-if="item.ContainerID"
+                  v-if="containerBreadcrumb"
                   :to="`/warehouse/container/${item.ContainerID}`"
                   class="text-blue-500 hover:underline ml-1"
                 >
-                  {{ containerNames[item.ContainerID] || `#${item.ContainerID}` }}
+                  {{ containerBreadcrumb }}
                 </RouterLink>
+                <span v-else-if="item.ContainerID" class="text-blue-500 ml-1">{{ `#${item.ContainerID}` }}</span>
                 <span v-else class="text-orange-500 ml-1">{{ t('warehouse.unstored') }}</span>
               </span>
             </div>
@@ -499,9 +502,9 @@ onMounted(() => {
                 <span>{{ fmtTs(commit.CreatedAt) }}</span>
               </div>
               <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-sm font-medium text-gray-700 dark:text-gray-200">
-                <span>{{ getContainerName(commit.OldContainer) }}</span>
+                <span>{{ commit.OldContainerBreadcrumb || t('warehouse.unstored') }}</span>
                 <IconArrowRight :size="13" class="text-blue-500 flex-shrink-0" />
-                <span>{{ getContainerName(commit.NewContainer) }}</span>
+                <span>{{ commit.NewContainerBreadcrumb || t('warehouse.unstored') }}</span>
               </div>
               <p v-if="commit.Remark" class="text-xs text-gray-400 mt-0.5">{{ commit.Remark }}</p>
             </div>
@@ -526,12 +529,13 @@ onMounted(() => {
             {{ t('warehouse.current_location') }}:
             <span class="font-medium text-gray-700 dark:text-gray-300">
               <RouterLink
-                v-if="item?.ContainerID"
+                v-if="containerBreadcrumb"
                 :to="`/warehouse/container/${item.ContainerID}`"
                 class="text-blue-500 hover:underline"
               >
-                {{ containerNames[item.ContainerID] || `#${item.ContainerID}` }}
+                {{ containerBreadcrumb }}
               </RouterLink>
+              <span v-else-if="item?.ContainerID">#{{ item.ContainerID }}</span>
               <span v-else class="text-orange-500">{{ t('warehouse.unstored') }}</span>
             </span>
           </div>

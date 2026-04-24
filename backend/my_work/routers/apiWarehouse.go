@@ -115,6 +115,47 @@ func canModifyWarehouse(userID, creatorUserID uint) bool {
 	return userID == creatorUserID
 }
 
+// buildContainerBreadcrumb 根据容器 ID 和映射表构建面包屑路径（如 "仓库A / 柜子B / 抽屉C"）
+func buildContainerBreadcrumb(containerID uint, containerMap map[uint]TabWarehouseContainer) string {
+	parts := []string{}
+	visited := map[uint]bool{}
+	cur := containerID
+	for cur != 0 && !visited[cur] {
+		visited[cur] = true
+		c, ok := containerMap[cur]
+		if !ok {
+			// 映射表中没有，查询数据库补全
+			var missing TabWarehouseContainer
+			if models.DB.Where("id = ?", cur).First(&missing).Error == nil {
+				containerMap[cur] = missing
+				parts = append([]string{missing.Title}, parts...)
+				if missing.ParentID == nil {
+					break
+				}
+				cur = *missing.ParentID
+				continue
+			}
+			break
+		}
+		parts = append([]string{c.Title}, parts...)
+		if c.ParentID == nil {
+			break
+		}
+		cur = *c.ParentID
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	result := ""
+	for i, p := range parts {
+		if i > 0 {
+			result += " / "
+		}
+		result += p
+	}
+	return result
+}
+
 // ---------- 初始化 ----------
 
 func ApiWarehouseInit() {
@@ -382,7 +423,10 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			ReturnJson(ctx, "jsonErr", nil)
 			return
 		}
-		if from.Entries <= 0 || from.Entries > 300 {
+		if from.AllLevels && from.Entries <= 0 {
+			from.Entries = 5000
+		}
+		if from.Entries <= 0 || (!from.AllLevels && from.Entries > 300) {
 			from.Entries = 10
 		}
 		if from.Page <= 0 {
@@ -813,13 +857,45 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			Find(&items)
 
 		canModifyItems := make([]bool, len(items))
+		// 收集所有涉及的容器 ID
+		containerIDs := make(map[uint]bool)
 		for i, item := range items {
 			canModifyItems[i] = canModifyWarehouse(user.ID, item.CreatorID)
+			if item.ContainerID != nil {
+				containerIDs[*item.ContainerID] = true
+			}
+		}
+
+		// 批量查询容器，构建 ID→Container 映射
+		containerMap := make(map[uint]TabWarehouseContainer)
+		if len(containerIDs) > 0 {
+			ids := make([]uint, 0, len(containerIDs))
+			for id := range containerIDs {
+				ids = append(ids, id)
+			}
+			var containers []TabWarehouseContainer
+			models.DB.Where("id IN ?", ids).Find(&containers)
+			for _, c := range containers {
+				containerMap[c.ID] = c
+			}
+		}
+
+		// 为每个物品计算面包屑
+		type ItemWithBreadcrumb struct {
+			TabWarehouseItem
+			ContainerBreadcrumb string `json:"ContainerBreadcrumb"`
+		}
+		itemsWithBreadcrumb := make([]ItemWithBreadcrumb, len(items))
+		for i, item := range items {
+			itemsWithBreadcrumb[i] = ItemWithBreadcrumb{TabWarehouseItem: item}
+			if item.ContainerID != nil {
+				itemsWithBreadcrumb[i].ContainerBreadcrumb = buildContainerBreadcrumb(*item.ContainerID, containerMap)
+			}
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
 			"all_count":       count,
-			"items":           items,
+			"items":           itemsWithBreadcrumb,
 			"canModifyItems": canModifyItems,
 		})
 	})
@@ -863,6 +939,24 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		var commits []TabWarehouseItemCommit
 		models.DB.Where("item_id = ?", from.ID).Order("created_at DESC").Find(&commits)
 
+		// 为 commits 构建容器面包屑
+		type CommitWithBreadcrumb struct {
+			TabWarehouseItemCommit
+			OldContainerBreadcrumb string `json:"OldContainerBreadcrumb"`
+			NewContainerBreadcrumb string `json:"NewContainerBreadcrumb"`
+		}
+		commitMap := make(map[uint]TabWarehouseContainer)
+		commitsWithBreadcrumb := make([]CommitWithBreadcrumb, len(commits))
+		for i, c := range commits {
+			commitsWithBreadcrumb[i] = CommitWithBreadcrumb{TabWarehouseItemCommit: c}
+			if c.OldContainer != nil {
+				commitsWithBreadcrumb[i].OldContainerBreadcrumb = buildContainerBreadcrumb(*c.OldContainer, commitMap)
+			}
+			if c.NewContainer != nil {
+				commitsWithBreadcrumb[i].NewContainerBreadcrumb = buildContainerBreadcrumb(*c.NewContainer, commitMap)
+			}
+		}
+
 		// 关联工单
 		var woBinds []TabWarehouseItemWorkOrderBind
 		models.DB.Where("item_id = ?", from.ID).Find(&woBinds)
@@ -883,9 +977,16 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", gin.H{
 			"item":          item,
 			"photos":        files,
-			"commits":       commits,
+			"commits":       commitsWithBreadcrumb,
 			"work_orders":   workOrders,
 			"canModifyItem": canModifyWarehouse(user.ID, item.CreatorID),
+			"container_breadcrumb": func() string {
+				if item.ContainerID == nil {
+					return ""
+				}
+				m := make(map[uint]TabWarehouseContainer)
+				return buildContainerBreadcrumb(*item.ContainerID, m)
+			}(),
 		})
 	})
 
