@@ -18,6 +18,7 @@ type TabWarehouseContainer struct {
 	ID         uint           `gorm:"primaryKey" json:"ID"`
 	Title      string         `gorm:"size:255;not null;comment:容器名" json:"Title"`
 	Remark     string         `gorm:"type:text;comment:描述" json:"Remark"`
+	Color      string         `gorm:"size:20;default:#3788d9;comment:颜色" json:"Color"`
 	CreatedAt  *time.Time     `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
 	UpdatedAt  *time.Time     `gorm:"type:datetime;autoUpdateTime" json:"UpdatedAt"`
 	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
@@ -191,9 +192,10 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromAdd struct {
-			Title    string `json:"title"`
-			Remark   string `json:"remark"`
-			ParentID *uint  `json:"parent_id"`
+			Title    string   `json:"title"`
+			Remark   string   `json:"remark"`
+			Color    string   `json:"color"`
+			ParentID *uint    `json:"parent_id"`
 			Photos   []string `json:"photos"`
 		}
 		var from FromAdd
@@ -236,11 +238,16 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			}
 		}
 
+		color := from.Color
+		if color == "" {
+			color = "#3788d9"
+		}
 		c := TabWarehouseContainer{
 			Title:     from.Title,
 			Remark:    from.Remark,
+			Color:     color,
 			CreatorID: user.ID,
-			ParentID: from.ParentID,
+			ParentID:  from.ParentID,
 		}
 		models.DB.Create(&c)
 
@@ -284,10 +291,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromUpdate struct {
-			ID       uint    `json:"id"`
-			Title    string  `json:"title"`
-			Remark   string  `json:"remark"`
-			Photos   []string `json:"photos"`
+			ID     uint     `json:"id"`
+			Title  string   `json:"title"`
+			Remark string   `json:"remark"`
+			Color  string   `json:"color"`
+			Photos []string `json:"photos"`
 		}
 		var from FromUpdate
 		if err := decodeJSON(data, &from); err != nil || from.ID == 0 || from.Title == "" {
@@ -315,10 +323,14 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		oldContent, _ := json.Marshal(c)
-		models.DB.Model(&c).Updates(map[string]interface{}{
+		updateData := map[string]interface{}{
 			"title":  from.Title,
 			"remark": from.Remark,
-		})
+		}
+		if from.Color != "" {
+			updateData["color"] = from.Color
+		}
+		models.DB.Model(&c).Updates(updateData)
 
 		// 重建图片绑定
 		models.DB.Where("container_id = ?", from.ID).Delete(&TabWarehouseContainerFileBind{})

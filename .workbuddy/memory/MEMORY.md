@@ -217,18 +217,68 @@ pending(待处理) → checked(已检查) → parts_ordered(已下单零件) →
 
 ### Web 前端 (`frontend/ops_vue_js/`)
 
+**技术栈**: Vue 3 + Vite 7 + Pinia + Vue Router + Vue I18n
+
+**项目结构**:
+```
+src/
+├── api/              # API 封装层
+│   ├── index.js      # Axios 实例 + 拦截器 + 统一调用接口
+│   ├── auth.js       # 认证 API (登录/注册/用户信息/密码修改)
+│   ├── purchase.js   # 采购订单 API
+│   ├── warehouse.js  # 仓库管理 API
+│   ├── work_order.js # 工单管理 API
+│   ├── schedule.js   # 日程管理 API
+│   └── users.js      # 其他用户信息 API
+├── components/       # 公共组件
+├── composables/      # Vue 组合式函数 (Hooks)
+├── i18n/             # 国际化 (en.json, zh-CN.json)
+├── layouts/          # 页面布局 (AuthLayout, DefaultLayout)
+├── router/           # 路由配置
+├── stores/           # Pinia 状态管理
+├── views/            # 页面视图
+└── main.js           # 应用入口
+```
+
 **API 封装** (`src/api/index.js`):
-- 基础 URL: `/api`
-- 请求自动注入 `userCookieValue`
-- 响应统一处理：err_code=-44 表示 Cookie 过期，自动登出
-- 返回格式: `{ errCode, data }`
+- 基于 Axios，基础 URL: `/api`
+- 请求拦截器自动注入 `userCookieValue`
+- 响应拦截器处理 Cookie 过期 (err_code: -44)
+- 统一返回 `{ errCode, data, raw }` 格式
+- 支持文件上传 (FormData)
 
 **路由** (`src/router/index.js`):
 - 使用 `createWebHashHistory`（hash 模式）
 - 认证页面: `/login`, `/register`, `/forgot_password`
 - 需要登录的页面在白名单外
 
+**页面视图** (`src/views/`):
+| 模块 | 页面 |
+|------|------|
+| 首页 | `HomeView.vue` |
+| 日程 | `ScheduleView.vue` (FullCalendar) |
+| 采购 | `PurchaseList.vue`, `addorder.vue`, `ShowOrder.vue`, `editorder.vue` |
+| 工单 | `WorkOrderList.vue`, `AddEditWorkOrder.vue`, `ShowWorkOrder.vue` |
+| 仓库 | `WarehouseOverview.vue`, `WarehouseContainerList.vue`, `WarehouseContainerDetail.vue`, `WarehouseItemList.vue`, `WarehouseItemDetail.vue`, `WarehouseAddItem.vue`, `WarehouseItemEdit.vue` |
+| 设置 | `AccountView.vue`, `ContactView.vue`, `SecurityView.vue` |
+
+**状态管理** (`src/stores/`):
+- `user.js`: 用户状态 (登录/登出/会话恢复/用户信息)
+- `toast.js`: 全局 Toast 通知
+- `users.js`: 其他用户信息缓存
+
+**样式方案**:
+- Tailwind CSS v4
+- Tabler Icons
+- 亮色/暗色模式支持
+
 **国际化**: `src/i18n/en.json`, `zh-CN.json`
+- 覆盖模块: week, errorpage, appname, tagadder, dropzone, cropper, purchase, work_order, warehouse, purchase_addorder, schedule, home, message, settings, button, footer, cost_type, order_status
+
+**构建配置** (`vite.config.js`):
+- 输出目录: `../../backend/my_work/dist`
+- 开发代理: `/api` → `http://127.0.0.1:8080`
+- 路径别名: `@` → `./src`
 
 ### 移动端 (`frontend/ops2_uniapp/`)
 
