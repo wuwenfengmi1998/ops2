@@ -143,6 +143,7 @@ onMounted(fetchOrders)
             <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base">
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">No.</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('work_order.title') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">描述</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.created_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.updated_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-36">{{ t('work_order.status') }}</th>
@@ -150,7 +151,7 @@ onMounted(fetchOrders)
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" class="px-6 py-8 text-center text-gray-400">
+              <td colspan="6" class="px-6 py-8 text-center text-gray-400">
                 <svg class="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -159,7 +160,7 @@ onMounted(fetchOrders)
               </td>
             </tr>
             <tr v-else-if="orders.length === 0">
-              <td colspan="5" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
+              <td colspan="6" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
                 暂无工单
               </td>
             </tr>
@@ -172,6 +173,7 @@ onMounted(fetchOrders)
             >
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400">{{ order.ID }}</td>
               <td class="px-6 py-3 font-medium text-gray-900 dark:text-white max-w-xs truncate">{{ order.Title }}</td>
+              <td class="px-6 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ order.Description || '—' }}</td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.CreatedAt) }}</td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.UpdatedAt) }}</td>
               <td class="px-6 py-3">
