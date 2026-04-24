@@ -234,16 +234,49 @@ func ApiPurchase(r *gin.RouterGroup) {
 			commitResps = append(commitResps, resp)
 		}
 
-		// 判断当前用户是否可以修改
-		canModify := canModifyPurchase(user.ID, order.UserID)
+	// 查询关联工单（通过 TabWorkOrderPurchaseOrderBind 表）
+	type WorkOrderInfo struct {
+		ID            uint   `json:"id"`
+		Title         string `json:"title"`
+		CurrentStatus string `json:"status"`
+	}
+	var linkedWorkOrders []WorkOrderInfo
+	var woBinds []TabWorkOrderPurchaseOrderBind
+	models.DB.Where("purchase_order_id = ?", from.ID).Find(&woBinds)
+	if len(woBinds) > 0 {
+		woIDSet := make(map[uint]bool)
+		var woIDs []uint
+		for _, wb := range woBinds {
+			if !woIDSet[wb.WorkOrderID] {
+				woIDSet[wb.WorkOrderID] = true
+				woIDs = append(woIDs, wb.WorkOrderID)
+			}
+		}
+		var workOrders []TabWorkOrder
+		models.DB.Where("id IN ?", woIDs).Find(&workOrders)
+		for _, wo := range workOrders {
+			linkedWorkOrders = append(linkedWorkOrders, WorkOrderInfo{
+				ID:            wo.ID,
+				Title:         wo.Title,
+				CurrentStatus: wo.CurrentStatus,
+			})
+		}
+	}
+	if linkedWorkOrders == nil {
+		linkedWorkOrders = []WorkOrderInfo{}
+	}
 
-		ReturnJson(ctx, "apiOK", gin.H{
-			"order":     order,
-			"canModify": canModify,
-			"costs":     costs,
-			"photos":    files,
-			"commits":   commitResps,
-		})
+	// 判断当前用户是否可以修改
+	canModify := canModifyPurchase(user.ID, order.UserID)
+
+	ReturnJson(ctx, "apiOK", gin.H{
+		"order":        order,
+		"canModify":    canModify,
+		"costs":        costs,
+		"photos":       files,
+		"commits":      commitResps,
+		"workOrders":   linkedWorkOrders,
+	})
 	})
 
 	// 更新订单状态（可附带评论）
@@ -798,6 +831,61 @@ func ApiPurchase(r *gin.RouterGroup) {
 			"returned": count.Returned,
 			"total":   count.Total,
 		})
+	})
+
+	// 搜索工单（用于采购订单关联）
+	r.POST("/search_work_orders", func(ctx *gin.Context) {
+		isAuth, _, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromSearch struct {
+			Search string `json:"search"`
+			Limit  int    `json:"limit"`
+		}
+		var from FromSearch
+		if err := decodeJSON(data, &from); err != nil {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+		if from.Limit <= 0 || from.Limit > 20 {
+			from.Limit = 5
+		}
+
+		query := models.DB.Model(&TabWorkOrder{})
+		if from.Search != "" {
+			var id uint
+			if _, err := parsefmt.Sscanf(from.Search, "%d", &id); err == nil && id > 0 {
+				query = query.Where("id = ?", id)
+			} else {
+				query = query.Where("title LIKE ? OR description LIKE ?",
+					"%"+from.Search+"%", "%"+from.Search+"%")
+			}
+		}
+
+		var orders []TabWorkOrder
+		query.Order("updated_at DESC, id DESC").Limit(from.Limit).Find(&orders)
+
+		type WorkOrderInfo struct {
+			ID     uint   `json:"id"`
+			Title  string `json:"title"`
+			Status string `json:"status"`
+		}
+		var result []WorkOrderInfo
+		for _, o := range orders {
+			result = append(result, WorkOrderInfo{
+				ID:     o.ID,
+				Title:  o.Title,
+				Status: o.CurrentStatus,
+			})
+		}
+		if result == nil {
+			result = []WorkOrderInfo{}
+		}
+
+		ReturnJson(ctx, "apiOK", gin.H{"orders": result})
 	})
 
 }

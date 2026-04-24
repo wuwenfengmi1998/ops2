@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter, RouterLink } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useToastStore } from "@/stores/toast";
@@ -17,6 +17,8 @@ import {
   IconX,
   IconUpload,
   IconTrash,
+  IconSearch,
+  IconFile,
 } from "@tabler/icons-vue";
 
 usePageTitle("purchase.order_detail");
@@ -33,6 +35,7 @@ const order = ref(null);
 const costs = ref([]);
 const photos = ref([]);
 const commits = ref([]);
+const workOrders = ref([]);
 const canModify = ref(false);
 const loading = ref(true);
 const notFound = ref(false);
@@ -40,6 +43,20 @@ const updatingStatus = ref(false);
 const showStatusDialog = ref(false);
 const pendingStatus = ref("");
 const pendingComment = ref("");
+
+// 工单关联搜索
+const workOrderSearchQuery = ref('')
+const workOrderSearchResults = ref([])
+const workOrderSearchLoading = ref(false)
+const workOrderDropdownVisible = ref(false)
+const workOrderDropdownRef = ref(null)
+let workOrderSearchTimer = null
+
+function onDocumentClick(e) {
+  if (workOrderDropdownRef.value && !workOrderDropdownRef.value.contains(e.target)) {
+    workOrderDropdownVisible.value = false
+  }
+}
 
 // 状态变更附带的图片
 const pendingPhotos = ref([]); // { hash, url, uploading, error }
@@ -323,6 +340,7 @@ async function fetchOrder() {
       costs.value = data.costs ?? [];
       photos.value = data.photos ?? [];
       commits.value = data.commits ?? [];
+      workOrders.value = data.workOrders ?? [];
     } else {
       notFound.value = true;
     }
@@ -333,7 +351,61 @@ async function fetchOrder() {
   }
 }
 
-onMounted(fetchOrder);
+// ── 工单搜索 ──
+async function searchWorkOrders() {
+  workOrderSearchLoading.value = true
+  try {
+    const { errCode, data } = await purchaseApi.searchWorkOrders(workOrderSearchQuery.value, 10)
+    if (errCode === 0) {
+      workOrderSearchResults.value = data.orders || []
+    }
+  } catch {
+    workOrderSearchResults.value = []
+  } finally {
+    workOrderSearchLoading.value = false
+  }
+}
+
+function onWorkOrderSearchInput() {
+  workOrderDropdownVisible.value = true
+  clearTimeout(workOrderSearchTimer)
+  workOrderSearchTimer = setTimeout(() => searchWorkOrders(), 300)
+}
+
+function getWorkOrderStatusClass(status) {
+  const map = {
+    pending:       'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+    checked:       'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400',
+    parts_ordered: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+    repaired:      'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
+    returned:      'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+    unrepairable:  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
+  }
+  return map[status] || 'bg-gray-100 text-gray-600'
+}
+
+function getWorkOrderStatusLabel(status) {
+  return t(`work_order.status_${status}`) || status
+}
+
+function openNewWorkOrder() {
+  if (!order.value) return
+  const prefillData = {
+    purchaseOrderId: order.value.ID,
+    purchaseOrderTitle: order.value.Title,
+  }
+  localStorage.setItem('prefill_work_order', JSON.stringify(prefillData))
+  router.push('/work_order/add')
+}
+
+onMounted(() => {
+  fetchOrder()
+  document.addEventListener('click', onDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClick)
+})
 </script>
 
 <template>
@@ -671,11 +743,46 @@ onMounted(fetchOrder);
         </div>
       </div>
 
+      <!-- 关联工单 -->
+      <div class="rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card">
+        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-dk-muted">
+          <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400">
+            {{ t('work_order.list_title') }}
+          </h4>
+
+        </div>
+
+        <!-- 已关联工单列表 -->
+        <div v-if="workOrders.length > 0" class="space-y-2 px-6 py-4">
+          <RouterLink
+            v-for="wo in workOrders"
+            :key="wo.id"
+            :to="`/work_order/show/${wo.id}`"
+            class="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-3 hover:shadow transition-shadow dark:border-dk-muted dark:bg-dk-base dark:hover:shadow-none"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <IconFile :size="16" class="text-blue-500 flex-shrink-0" />
+              <span class="font-medium text-sm text-gray-900 truncate dark:text-white">#{{ wo.id }} {{ wo.title }}</span>
+            </div>
+            <span
+              class="flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium"
+              :class="getWorkOrderStatusClass(wo.status)"
+            >
+              {{ getWorkOrderStatusLabel(wo.status) }}
+            </span>
+          </RouterLink>
+        </div>
+        <div v-else class="px-6 py-8 text-center text-sm text-gray-400">
+          {{ t('warehouse.no_work_orders') }}
+        </div>
+      </div>
+
       <!-- 状态记录（Commit History） -->
       <div
         class="rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
       >
         <div class="border-b border-gray-100 px-6 py-4 dark:border-dk-muted">
+
           <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400">
             {{ t("purchase.commit_history") }}
           </h4>

@@ -40,4 +40,9 @@ export const purchaseApi = {
   deleteCommit(orderId, commitId) {
     return api.post('/purchase/delete_commit', { orderId, commitId })
   },
+
+  /** 搜索工单（用于采购订单关联） */
+  searchWorkOrders(search = '', limit = 5) {
+    return api.post('/purchase/search_work_orders', { search, limit })
+  },
 }
