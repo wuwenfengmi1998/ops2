@@ -289,7 +289,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="p-4 max-w-5xl mx-auto space-y-4">
+  <div class="p-4 max-w-7xl mx-auto space-y-4">
 
     <!-- 加载 -->
     <div v-if="loadingDetail" class="flex justify-center py-16">
