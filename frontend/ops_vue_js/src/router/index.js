@@ -75,6 +75,10 @@ const router = createRouter({
           component: () => import('@/views/work_order/ShowWorkOrder.vue'),
         },
         {
+          path: 'warehouse',
+          redirect: '/warehouse/container',
+        },
+        {
           path: 'warehouse/container',
           name: 'warehouse',
           component: () => import('@/views/warehouse/WarehouseOverview.vue'),

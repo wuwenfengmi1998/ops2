@@ -35,7 +35,10 @@ function toggleLocale() {
 }
 
 function isActive(path) {
-  return route.path === path;
+  if (path === '/') {
+    return route.path === '/'
+  }
+  return route.path.startsWith(path)
 }
 
 function handleLogout() {
@@ -51,7 +54,7 @@ const navItems = computed(() => [
   { label: t("appname.schedule"), to: "/schedule" },
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
-  { label: t("appname.warehouse"), to: "/warehouse/container" },
+  { label: t("appname.warehouse"), to: "/warehouse" },
 ]);
 </script>
 
