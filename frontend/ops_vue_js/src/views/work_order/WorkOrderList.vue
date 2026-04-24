@@ -107,7 +107,7 @@ onMounted(fetchOrders)
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl px-6 py-6">
+  <div class="mx-auto max-w-7xl px-6 py-6">
     <div class="flex flex-col gap-6 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card">
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-dk-muted">
