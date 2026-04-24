@@ -37,8 +37,8 @@ const statusOptions = [
 
 const statusColorMap = {
   pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
-  checked: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
-  parts_ordered: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400',
+  checked: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400',
+  parts_ordered: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
   repaired: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
   returned: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
   unrepairable: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
