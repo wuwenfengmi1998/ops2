@@ -10,12 +10,13 @@ echo "正在安装 $APP_NAME..."
 # 获取 git 版本信息
 GIT_VERSION=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+BUILD_TIME=$(date '+%Y%m%d_%H%M%S')
 
 echo "  Git Version : $GIT_VERSION"
 echo "  Git Commit : $GIT_COMMIT"
 echo "  Build Time : $BUILD_TIME"
 
+# 组装 ldflags（BUILD_TIME 已无空格，无需额外引号）
 LDFLAGS="-s -w"
 LDFLAGS="$LDFLAGS -X main.GitVersion=$GIT_VERSION"
 LDFLAGS="$LDFLAGS -X main.GitCommit=$GIT_COMMIT"
