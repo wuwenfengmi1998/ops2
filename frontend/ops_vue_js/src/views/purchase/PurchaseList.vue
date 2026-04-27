@@ -196,6 +196,8 @@ onMounted(fetchOrders)
                     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400': order.OrderStatus === 'ordered',
                     'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400': order.OrderStatus === 'arrived',
                     'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400': order.OrderStatus === 'received',
+                    'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': order.OrderStatus === 'lost',
+                    'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300': order.OrderStatus === 'returned',
                   }"
                 >
                   {{ t('purchase.status_' + order.OrderStatus) }}
