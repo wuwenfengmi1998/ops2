@@ -12,6 +12,13 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
+// 由 install.sh 编译时通过 -ldflags -X 注入
+var (
+	GitVersion = "dev"
+	GitCommit  = "unknown"
+	BuildTime  = "unknown"
+)
+
 func main() {
 
 	fmt.Println("OPS Backend Service started")
@@ -100,6 +107,11 @@ func main() {
 		fs.ServeHTTP(c.Writer, c.Request)
 		c.Abort()
 	})
+
+	// 将编译注入的版本信息传给 routers 包
+	routers.GitVersion = GitVersion
+	routers.GitCommit = GitCommit
+	routers.BuildTime = BuildTime
 
 	// API路由
 	routers.ApiRoot(r.Group("/api"))

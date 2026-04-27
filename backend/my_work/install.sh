@@ -7,9 +7,23 @@ LOG_PATH="/var/log/$APP_NAME"
 
 echo "正在安装 $APP_NAME..."
 
+# 获取 git 版本信息
+GIT_VERSION=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+
+echo "  Git Version : $GIT_VERSION"
+echo "  Git Commit : $GIT_COMMIT"
+echo "  Build Time : $BUILD_TIME"
+
+LDFLAGS="-s -w"
+LDFLAGS="$LDFLAGS -X main.GitVersion=$GIT_VERSION"
+LDFLAGS="$LDFLAGS -X main.GitCommit=$GIT_COMMIT"
+LDFLAGS="$LDFLAGS -X main.BuildTime=$BUILD_TIME"
+
 # 编译应用
 echo "编译应用..."
-CGO_ENABLED=0 GOOS=linux go build -o $APP_NAME -ldflags="-s -w" main.go
+CGO_ENABLED=0 GOOS=linux go build -o $APP_NAME -ldflags="$LDFLAGS" main.go
 
 # 先停止服务
 sudo systemctl stop $APP_NAME
