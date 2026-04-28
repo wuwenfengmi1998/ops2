@@ -112,7 +112,7 @@
         .then(data => {
           loading.style.display = 'none';
           if (data.success && data.file) {
-            version.textContent = '版本: ' + data.date;
+            version.textContent = data.filename + ' (' + data.date + ')';
             window.location.href = data.file;
           } else {
             content.style.display = 'block';
