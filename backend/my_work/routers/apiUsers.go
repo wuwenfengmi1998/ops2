@@ -66,6 +66,64 @@ type TabUserCookie struct {
 	Remember  bool      `gorm:"default:false"`
 }
 
+// TabUserLoginFailLog 用户登录失败日志表
+type TabUserLoginFailLog struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement"`
+	Username  string    `gorm:"size:100;index"`                                // 尝试登录的用户名
+	UserID    uint      `gorm:"index;default:0"`                               // 用户ID（如果用户存在）
+	IP        string    `gorm:"size:64"`                                       // 登录IP
+	UserAgent string    `gorm:"size:512"`                                      // User-Agent
+	Reason    string    `gorm:"size:64"`                                       // 失败原因：password_error / user_not_found
+	Count     int       `gorm:"default:1"`                                     // 连续失败次数
+	CreatedAt time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"`       // 首次失败时间
+	UpdatedAt time.Time `gorm:"type:datetime;index;default:CURRENT_TIMESTAMP"` // 最后失败时间
+}
+
+var (
+	sysUserGroup TabUserGroups
+	sysAdmins    []uint
+)
+
+func updateSysAdminsCash() {
+
+}
+
+// recordLoginFail 记录登录失败日志，更新连续失败次数
+func recordLoginFail(ctx *gin.Context, username string, userID uint, reason string) {
+	// 获取客户端IP和UserAgent
+	ip := ctx.ClientIP()
+	userAgent := ctx.GetHeader("User-Agent")
+
+	// 查找是否有该用户最近的失败记录（24小时内）
+	var existingLog TabUserLoginFailLog
+	err := models.DB.Where("username = ? AND reason = ? AND updated_at > ?",
+		username, reason, time.Now().Add(-24*time.Hour)).
+		Order("id DESC").First(&existingLog).Error
+
+	if err == nil {
+		// 存在最近失败的记录，更新次数
+		models.DB.Model(&existingLog).Updates(map[string]interface{}{
+			"count":      existingLog.Count + 1,
+			"ip":         ip,
+			"user_agent": userAgent,
+			"updated_at": time.Now(),
+		})
+	} else {
+		// 不存在，创建新记录
+		newLog := TabUserLoginFailLog{
+			Username:  username,
+			UserID:    userID,
+			IP:        ip,
+			UserAgent: userAgent,
+			Reason:    reason,
+			Count:     1,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		models.DB.Create(&newLog)
+	}
+}
+
 func HashUserPass(user *TabUser) {
 	switch models.ConfigsUser.PassHashType {
 	case "text":
@@ -119,6 +177,8 @@ func ApiUserInit() {
 
 	models.DB.AutoMigrate(&TabUserCookie{})
 
+	models.DB.AutoMigrate(&TabUserLoginFailLog{})
+
 	//创建admin用户
 	var user TabUser
 	user.Name = "admin"
@@ -156,6 +216,8 @@ func ApiUserInit() {
 		models.DB.Create(&usergroupbind) // 传入指针
 	}
 
+	//更新系统管理员列表
+	updateSysAdminsCash()
 }
 
 type From_user_add struct {
@@ -542,17 +604,23 @@ func ApiUser(r *gin.RouterGroup) {
 							}
 							models.DB.Create(&cookie) // 传入指针
 
+							// 登录成功，清除该用户的失败记录
+							models.DB.Where("username = ?", loginuser.Username).Delete(&TabUserLoginFailLog{})
+
 							redata := map[string]interface{}{
 								"cookie": cookie,
 							}
 
 							ReturnJson(ctx, "apiOK", redata)
 						} else {
+							// 密码错误，记录失败日志
+							recordLoginFail(ctx, loginuser.Username, getuser.ID, "password_error")
 							ReturnJson(ctx, "userPassIncorrect", nil)
 						}
 
 					} else {
-						//用户不存在
+						//用户不存在，记录失败日志
+						recordLoginFail(ctx, loginuser.Username, 0, "user_not_found")
 						ReturnJson(ctx, "userNameNoFund", nil)
 					}
 
