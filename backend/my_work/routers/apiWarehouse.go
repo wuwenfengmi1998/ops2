@@ -253,8 +253,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 
 		// 绑定图片
 		for _, hash := range from.Photos {
-			var findFile TabFileInfo_
-			if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
+			var findFile TabFileInfo
+			if models.DB.Where(&TabFileInfo{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
 				models.DB.Create(&TabWarehouseContainerFileBind{
 					ContainerID: c.ID,
 					FileID:     findFile.ID,
@@ -335,8 +335,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		// 重建图片绑定
 		models.DB.Where("container_id = ?", from.ID).Delete(&TabWarehouseContainerFileBind{})
 		for _, hash := range from.Photos {
-			var findFile TabFileInfo_
-			if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
+			var findFile TabFileInfo
+			if models.DB.Where(&TabFileInfo{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
 				models.DB.Create(&TabWarehouseContainerFileBind{
 					ContainerID: from.ID,
 					FileID:      findFile.ID,
@@ -535,7 +535,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		for _, b := range binds {
 			fileIDs = append(fileIDs, b.FileID)
 		}
-		var files []TabFileInfo_
+		var files []TabFileInfo
 		if len(fileIDs) > 0 {
 			models.DB.Where("id IN ?", fileIDs).Find(&files)
 		}
@@ -639,8 +639,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 
 			// 绑定图片
 			for _, hash := range from.Photos {
-				var findFile TabFileInfo_
-				if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
+				var findFile TabFileInfo
+				if models.DB.Where(&TabFileInfo{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
 					models.DB.Create(&TabWarehouseItemFileBind{
 						ItemID:    item.ID,
 						FileID:    findFile.ID,
@@ -668,8 +668,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 
 		// 新增/更新时绑定图片
 		for _, hash := range from.Photos {
-			var findFile TabFileInfo_
-			if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
+			var findFile TabFileInfo
+			if models.DB.Where(&TabFileInfo{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
 				// 检查是否已绑定，避免重复
 				var count int64
 				models.DB.Model(&TabWarehouseItemFileBind{}).Where("item_id = ? AND file_id = ?", itemID, findFile.ID).Count(&count)
@@ -748,8 +748,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		// 重建图片绑定
 		models.DB.Where("item_id = ?", from.ID).Delete(&TabWarehouseItemFileBind{})
 		for _, hash := range from.Photos {
-			var findFile TabFileInfo_
-			if models.DB.Where(&TabFileInfo_{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
+			var findFile TabFileInfo
+			if models.DB.Where(&TabFileInfo{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
 				models.DB.Create(&TabWarehouseItemFileBind{
 					ItemID:    from.ID,
 					FileID:    findFile.ID,
@@ -942,7 +942,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		for _, b := range binds {
 			fileIDs = append(fileIDs, b.FileID)
 		}
-		var files []TabFileInfo_
+		var files []TabFileInfo
 		if len(fileIDs) > 0 {
 			models.DB.Where("id IN ?", fileIDs).Find(&files)
 		}

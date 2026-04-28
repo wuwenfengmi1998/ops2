@@ -166,7 +166,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 
 		// 绑定图片
 		for _, hash := range from.Photos {
-			findFile := TabFileInfo_{Sha256: hash, Type: "image"}
+			findFile := TabFileInfo{Sha256: hash, Type: "image"}
 			if models.DB.Where(&findFile).First(&findFile).Error == nil {
 				models.DB.Create(&TabWorkOrderFileBind{
 					WorkOrderID: order.ID,
@@ -257,7 +257,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		// 重建图片绑定
 		models.DB.Where("work_order_id = ?", from.ID).Delete(&TabWorkOrderFileBind{})
 		for _, hash := range from.Photos {
-			findFile := TabFileInfo_{Sha256: hash, Type: "image"}
+			findFile := TabFileInfo{Sha256: hash, Type: "image"}
 			if models.DB.Where(&findFile).First(&findFile).Error == nil {
 				models.DB.Create(&TabWorkOrderFileBind{
 					WorkOrderID: from.ID,
@@ -357,7 +357,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		for _, b := range binds {
 			fileIDs = append(fileIDs, b.FileID)
 		}
-		var files []TabFileInfo_
+		var files []TabFileInfo
 		if len(fileIDs) > 0 {
 			models.DB.Where("id IN ?", fileIDs).Find(&files)
 		}
@@ -369,12 +369,12 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		// 为每条 commit 附加图片和采购订单
 		type CommitWithPhotos struct {
 			TabWorkOrderCommit
-			Photos         []TabFileInfo_      `json:"photos"`
+			Photos         []TabFileInfo      `json:"photos"`
 			PurchaseOrders []PurchaseOrderInfo `json:"purchaseOrders"`
 		}
 		var commitsWithPhotos []CommitWithPhotos
 		for _, c := range commits {
-			item := CommitWithPhotos{TabWorkOrderCommit: c, Photos: []TabFileInfo_{}, PurchaseOrders: []PurchaseOrderInfo{}}
+			item := CommitWithPhotos{TabWorkOrderCommit: c, Photos: []TabFileInfo{}, PurchaseOrders: []PurchaseOrderInfo{}}
 
 			// 附加图片
 			var fileBinds []TabWorkOrderCommitFileBind
@@ -547,7 +547,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 
 		// 绑定进度图片
 		for _, hash := range from.Photos {
-			findFile := TabFileInfo_{Sha256: hash, Type: "image"}
+			findFile := TabFileInfo{Sha256: hash, Type: "image"}
 			if models.DB.Where(&findFile).First(&findFile).Error == nil {
 				models.DB.Create(&TabWorkOrderCommitFileBind{
 					CommitID:    commit.ID,

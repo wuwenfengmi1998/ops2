@@ -34,7 +34,7 @@ func ReturnJson(ctx *gin.Context, errMsg string, data map[string]interface{}) {
 
 }
 
-func ReturnFile(ctx *gin.Context, file_info *TabFileInfo_, preview bool) {
+func ReturnFile(ctx *gin.Context, file_info *TabFileInfo, preview bool) {
 	if preview {
 		ctx.File(file_info.Path)
 	} else {

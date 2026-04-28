@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type TabFileInfo_ struct {
+type TabFileInfo struct {
 	ID     uint      `gorm:"primaryKey;autoIncrement"`
 	Name   string    `gorm:"not null;size:256;index"` // 前端报告的文件名
 	Size   int64     `gorm:"not null"`
@@ -31,7 +31,7 @@ func file_save() {
 
 func ApiFilesInit() {
 
-	models.DB.AutoMigrate(&TabFileInfo_{})
+	models.DB.AutoMigrate(&TabFileInfo{})
 }
 
 func ApiFiles(r *gin.RouterGroup) {
@@ -55,7 +55,7 @@ func ApiFiles(r *gin.RouterGroup) {
 			download = false
 		}
 		if isPartOK {
-			file_info := TabFileInfo_{
+			file_info := TabFileInfo{
 				Sha256: hash,
 			}
 			if models.DB.Where(&file_info).First(&file_info).Error == nil {
@@ -127,7 +127,7 @@ func ApiFiles(r *gin.RouterGroup) {
 									}
 									//记录到数据库
 									//先检查数据库有没有数据
-									fund_file_info := TabFileInfo_{
+									fund_file_info := TabFileInfo{
 										Name:   filename,
 										Size:   file.Size,
 										Sha256: hash_str,
@@ -135,7 +135,7 @@ func ApiFiles(r *gin.RouterGroup) {
 										Type:   "image",
 										UserID: user.ID,
 									}
-									fund_file_info2 := TabFileInfo_{}
+									fund_file_info2 := TabFileInfo{}
 
 									models.DB.Where(&fund_file_info).Find(&fund_file_info2)
 
