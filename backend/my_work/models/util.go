@@ -51,13 +51,9 @@ func Md5Str(str string) string {
 	return hashString2
 }
 
-
-
 func IsExpired(expireTime time.Time) bool {
 	return expireTime.Before(time.Now())
 }
-
-
 
 // 判断邮箱是否合法
 func IsEmailValid(email string) bool {
