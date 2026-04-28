@@ -50,12 +50,7 @@ type TabWorkOrder struct {
 	DeletedAt     gorm.DeletedAt `gorm:"index"`
 }
 
-type TabWorkOrderFileBind struct {
-	ID          uint       `gorm:"primarykey"`
-	WorkOrderID uint       `gorm:"not null;index;comment:关联工单ID"`
-	FileID      uint       `gorm:"not null;comment:关联文件ID"`
-	CreatedAt   *time.Time `gorm:"type:datetime;autoCreateTime"`
-}
+
 
 type TabWorkOrderCommit struct {
 	ID          uint       `gorm:"primarykey"`
@@ -81,22 +76,7 @@ type TabWorkOrderLog struct {
 	CreatedAt   *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
-type TabWorkOrderCommitFileBind struct {
-	ID          uint       `gorm:"primarykey"`
-	CommitID    uint       `gorm:"not null;index;comment:关联进度ID"`
-	FileID      uint       `gorm:"not null;comment:关联文件ID"`
-	WorkOrderID uint       `gorm:"not null;index;comment:关联工单ID"`
-	CreatedAt   *time.Time `gorm:"type:datetime;autoCreateTime"`
-}
 
-// TabWorkOrderPurchaseOrderBind 工单与采购订单的关联表
-type TabWorkOrderPurchaseOrderBind struct {
-	ID              uint       `gorm:"primarykey"`
-	WorkOrderID     uint       `gorm:"not null;index;comment:关联工单ID"`
-	CommitID        uint       `gorm:"not null;index;comment:关联进度ID"`
-	PurchaseOrderID uint       `gorm:"not null;comment:关联采购订单ID"`
-	CreatedAt       *time.Time `gorm:"type:datetime;autoCreateTime"`
-}
 
 // PurchaseOrderInfo 采购订单简要信息
 type PurchaseOrderInfo struct {
@@ -109,11 +89,10 @@ type PurchaseOrderInfo struct {
 
 func ApiWorkOrderInit() {
 	models.DB.AutoMigrate(&TabWorkOrder{})
-	models.DB.AutoMigrate(&TabWorkOrderFileBind{})
+	
 	models.DB.AutoMigrate(&TabWorkOrderCommit{})
 	models.DB.AutoMigrate(&TabWorkOrderLog{})
-	models.DB.AutoMigrate(&TabWorkOrderCommitFileBind{})
-	models.DB.AutoMigrate(&TabWorkOrderPurchaseOrderBind{})
+
 
 	workOrderUserGroup.Name = "work_order_admin"
 	if models.DB.Where(&workOrderUserGroup).First(&workOrderUserGroup).Error == nil {

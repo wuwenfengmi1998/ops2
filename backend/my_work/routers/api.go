@@ -1,14 +1,8 @@
 package routers
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-
 	"github.com/gin-gonic/gin"
 )
-
-var ErrorCode map[string]interface{}
 
 // 版本信息，由 main.go 在启动前赋值（值来自 -ldflags 注入）
 var (
@@ -16,21 +10,6 @@ var (
 	GitCommit  = "unknown"
 	BuildTime  = "unknown"
 )
-
-func init() {
-	//读取默认配置
-	fmt.Println("尝试读取错误码文件")
-	data, err := os.ReadFile("./defConfig/errorCodes.json")
-	if err != nil {
-
-		fmt.Println("读取错误码文件失败", err)
-	}
-
-	if err := json.Unmarshal(data, &ErrorCode); err != nil {
-		fmt.Println("解析错误码文件失败", err)
-	}
-
-}
 
 // 把数据分离成cookie和json
 func SeparateData(ctx *gin.Context) (map[string]interface{}, string) {
@@ -67,9 +46,9 @@ func ApiRoot(r *gin.RouterGroup) {
 	r.GET("/", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", gin.H{
 			"isOpsApiRoot": true,
-			"version":       GitVersion,
-			"gitCommit":     GitCommit,
-			"buildTime":     BuildTime,
+			"version":      GitVersion,
+			"gitCommit":    GitCommit,
+			"buildTime":    BuildTime,
 		})
 	})
 

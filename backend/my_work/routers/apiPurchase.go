@@ -92,12 +92,7 @@ type TabPurchaseCosts struct {
 	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
-type TabPurchaseFileBind struct {
-	ID        uint       `gorm:"primarykey"`
-	OrderID   uint       `gorm:"not null"`
-	FileID    uint       `gorm:"not null"`
-	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
-}
+
 
 // TabPurchaseCommit 记录订单状态变更及评论
 type TabPurchaseCommit struct {
@@ -130,7 +125,7 @@ func ApiPurchaseInit() {
 
 	models.DB.AutoMigrate(&TabPurchaseOrder{})
 	models.DB.AutoMigrate(&TabPurchaseCosts{})
-	models.DB.AutoMigrate(&TabPurchaseFileBind{})
+
 	models.DB.AutoMigrate(&TabPurchaseLog{})
 	models.DB.AutoMigrate(&TabPurchaseCommit{})
 

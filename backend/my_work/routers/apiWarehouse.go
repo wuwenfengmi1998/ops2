@@ -41,28 +41,12 @@ type TabWarehouseItem struct {
 	ContainerID  *uint          `gorm:"index;comment:所属容器id，nil=未入库" json:"ContainerID"`
 }
 
-type TabWarehouseContainerFileBind struct {
-	ID          uint      `gorm:"primaryKey"`
-	ContainerID uint      `gorm:"not null;index;comment:关联容器id"`
-	FileID      uint      `gorm:"not null;comment:关联文件id"`
-	CreatorID   uint      `gorm:"not null;comment:上传人id"`
-	CreatedAt   time.Time `gorm:"type:datetime;autoCreateTime"`
-}
-
-type TabWarehouseItemFileBind struct {
-	ID        uint      `gorm:"primaryKey"`
-	ItemID    uint      `gorm:"not null;index;comment:关联物品id"`
-	FileID    uint      `gorm:"not null;comment:关联文件id"`
-	CreatorID uint      `gorm:"not null;comment:上传人id"`
-	CreatedAt time.Time `gorm:"type:datetime;autoCreateTime"`
-}
-
 type TabWarehouseItemCommit struct {
 	ID           uint      `gorm:"primaryKey" json:"ID"`
 	ItemID       uint      `gorm:"not null;index;comment:关联物品id" json:"ItemID"`
 	UserID       uint      `gorm:"not null;comment:操作人id" json:"UserID"`
-	OldContainer *uint    `gorm:"index;comment:原容器id" json:"OldContainer"`
-	NewContainer *uint    `gorm:"index;comment:新容器id" json:"NewContainer"`
+	OldContainer *uint     `gorm:"index;comment:原容器id" json:"OldContainer"`
+	NewContainer *uint     `gorm:"index;comment:新容器id" json:"NewContainer"`
 	Remark       string    `gorm:"type:text;comment:备注" json:"Remark"`
 	IP           string    `gorm:"size:50;comment:操作IP" json:"IP"`
 	CreatedAt    time.Time `gorm:"type:datetime;autoCreateTime" json:"CreatedAt"`
@@ -81,18 +65,9 @@ type TabWarehouseLog struct {
 	CreatedAt  time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
-type TabWarehouseItemWorkOrderBind struct {
-	ID          uint      `gorm:"primaryKey"`
-	ItemID      uint      `gorm:"not null;index;comment:关联物品id"`
-	WorkOrderID uint      `gorm:"not null;index;comment:关联工单id"`
-	Remark      string    `gorm:"size:500;comment:备注"`
-	CreatorID   uint      `gorm:"not null;comment:绑定人id"`
-	CreatedAt   time.Time `gorm:"type:datetime;autoCreateTime"`
-}
-
 var (
 	warehouseUserGroup TabUserGroups
-	warehouseAdmins   []uint
+	warehouseAdmins    []uint
 )
 
 // updateWarehouseAdminsCash 刷新仓库管理员缓存
@@ -163,11 +138,8 @@ func ApiWarehouseInit() {
 	models.DB.AutoMigrate(
 		&TabWarehouseContainer{},
 		&TabWarehouseItem{},
-		&TabWarehouseContainerFileBind{},
-		&TabWarehouseItemFileBind{},
 		&TabWarehouseItemCommit{},
 		&TabWarehouseLog{},
-		&TabWarehouseItemWorkOrderBind{},
 	)
 
 	warehouseUserGroup.Name = "warehouse_admin"
@@ -257,8 +229,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			if models.DB.Where(&TabFileInfo{Sha256: hash, Type: "image"}).First(&findFile).Error == nil {
 				models.DB.Create(&TabWarehouseContainerFileBind{
 					ContainerID: c.ID,
-					FileID:     findFile.ID,
-					CreatorID:  user.ID,
+					FileID:      findFile.ID,
+					CreatorID:   user.ID,
 				})
 			}
 		}
@@ -470,8 +442,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"all_count":          count,
-			"containers":         containers,
+			"all_count":           count,
+			"containers":          containers,
 			"canModifyContainers": canModifyContainers,
 		})
 	})
@@ -541,10 +513,10 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"container":        c,
-			"photos":           files,
-			"parent_chain":     parentChain,
-			"depth":            depth,
+			"container":          c,
+			"photos":             files,
+			"parent_chain":       parentChain,
+			"depth":              depth,
 			"canModifyContainer": canModifyWarehouse(user.ID, c.CreatorID),
 		})
 	})
@@ -558,11 +530,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromAdd struct {
-			Name         string  `json:"name"`
-			SerialNumber string  `json:"serial_number"`
-			Remark       string  `json:"remark"`
-			Quantity     int     `json:"quantity"`
-			ContainerID  *uint   `json:"container_id"`
+			Name         string   `json:"name"`
+			SerialNumber string   `json:"serial_number"`
+			Remark       string   `json:"remark"`
+			Quantity     int      `json:"quantity"`
+			ContainerID  *uint    `json:"container_id"`
 			Photos       []string `json:"photos"`
 		}
 		var from FromAdd
@@ -705,11 +677,11 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromUpdate struct {
-			ID           uint    `json:"id"`
-			Name         string  `json:"name"`
-			SerialNumber string  `json:"serial_number"`
-			Remark       string  `json:"remark"`
-			Quantity     int     `json:"quantity"`
+			ID           uint     `json:"id"`
+			Name         string   `json:"name"`
+			SerialNumber string   `json:"serial_number"`
+			Remark       string   `json:"remark"`
+			Quantity     int      `json:"quantity"`
 			Photos       []string `json:"photos"`
 		}
 		var from FromUpdate
@@ -906,8 +878,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"all_count":       count,
-			"items":           itemsWithBreadcrumb,
+			"all_count":      count,
+			"items":          itemsWithBreadcrumb,
 			"canModifyItems": canModifyItems,
 		})
 	})
@@ -1011,9 +983,9 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromMove struct {
-			ItemID       uint    `json:"item_id"`
-			NewContainer *uint   `json:"new_container"`
-			Remark       string  `json:"remark"`
+			ItemID       uint   `json:"item_id"`
+			NewContainer *uint  `json:"new_container"`
+			Remark       string `json:"remark"`
 		}
 		var from FromMove
 		if err := decodeJSON(data, &from); err != nil || from.ItemID == 0 {
@@ -1095,7 +1067,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", gin.H{
 			"container_total": count.ContainerTotal,
 			"item_total":      count.ItemTotal,
-			"unstored_items":   count.UnstoredItems,
+			"unstored_items":  count.UnstoredItems,
 		})
 	})
 }
