@@ -85,7 +85,27 @@ var (
 )
 
 func updateSysAdminsCash() {
+	// 查询 admins 用户组的 ID
+	var adminGroup TabUserGroups
+	if models.DB.Where("name = ?", "admins").First(&adminGroup).Error != nil {
+		// admins 组不存在，清空缓存
+		sysAdmins = []uint{}
+		return
+	}
 
+	// 查询 admins 组的所有成员
+	var binds []TabUserGroupBinds
+	if models.DB.Where("group_id = ?", adminGroup.ID).Find(&binds).Error != nil {
+		sysAdmins = []uint{}
+		return
+	}
+
+	// 更新缓存
+	newAdmins := make([]uint, 0, len(binds))
+	for _, bind := range binds {
+		newAdmins = append(newAdmins, bind.UserID)
+	}
+	sysAdmins = newAdmins
 }
 
 // recordLoginFail 记录登录失败日志，更新连续失败次数

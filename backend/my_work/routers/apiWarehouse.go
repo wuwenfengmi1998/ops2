@@ -210,6 +210,14 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			}
 		}
 
+		// 查重：同层级下 Title 不能重复
+		// var dupContainer TabWarehouseContainer
+		// dupQuery := models.DB.Where("title = ? AND parent_id = ? AND deleted_at IS NULL", from.Title, from.ParentID)
+		// if dupQuery.First(&dupContainer).Error == nil {
+		// 	ReturnJson(ctx, "container_title_exist", nil)
+		// 	return
+		// }
+
 		color := from.Color
 		if color == "" {
 			color = "#3788d9"
