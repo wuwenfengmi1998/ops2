@@ -4,7 +4,8 @@ import { useUserStore } from '@/stores/user'
 import { useUsersStore } from '@/stores/users'
 import { useToastStore } from '@/stores/toast'
 import { authApi } from '@/api/auth'
-import { IconSearch, IconRefresh, IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { IconSearch, IconRefresh, IconChevronLeft, IconChevronRight, IconPlus, IconX } from '@tabler/icons-vue'
 
 const toast = useToastStore()
 
@@ -48,6 +49,17 @@ const userDetailInfo = ref(null)
 const userDetailLoading = ref(false)
 const newPassword = ref('')
 const resetPasswordLoading = ref(false)
+
+// 确认弹窗相关
+const showConfirmDialog = ref(false)
+const confirmDialogConfig = ref({
+  title: '确认',
+  message: '',
+  confirmText: '确认',
+  cancelText: '取消',
+  danger: false,
+  onConfirm: null,
+})
 
 const tabs = [
   { id: 'users', label: '用户管理' },
@@ -106,6 +118,13 @@ function onPageChange(page) {
 
 const totalPages = computed(() => Math.ceil(userTotal.value / userPageSize.value))
 const groupMemberTotalPages = computed(() => Math.ceil(groupMemberTotal.value / groupMemberPageSize.value))
+
+// 添加成员弹窗相关
+const showAddMemberDialog = ref(false)
+const addMemberSearch = ref('')
+const addMemberSearchResults = ref([])
+const addMemberLoading = ref(false)
+const addMemberSearchLoading = ref(false)
 const loginFailLogTotalPages = computed(() => Math.ceil(loginFailLogTotal.value / loginFailLogPageSize.value))
 
 async function fetchGroups() {
@@ -158,6 +177,97 @@ function selectGroup(group) {
 function onGroupMemberPageChange(page) {
   groupMemberPage.value = page
   fetchGroupMembers()
+}
+
+async function openAddMemberDialog() {
+  showAddMemberDialog.value = true
+  addMemberSearch.value = ''
+  addMemberSearchResults.value = []
+}
+
+function closeAddMemberDialog() {
+  showAddMemberDialog.value = false
+  addMemberSearch.value = ''
+  addMemberSearchResults.value = []
+}
+
+async function searchUsersToAdd() {
+  if (!addMemberSearch.value.trim()) {
+    addMemberSearchResults.value = []
+    return
+  }
+  addMemberSearchLoading.value = true
+  try {
+    const res = await authApi.getUsers({
+      page: 1,
+      page_size: 10,
+      search: addMemberSearch.value,
+    })
+    if (res.errCode === 0) {
+      // 过滤掉已经在组中的用户
+      const existingMemberIds = new Set(groupMembers.value.map(m => m.id))
+      addMemberSearchResults.value = (res.data.users || []).filter(u => !existingMemberIds.has(u.id))
+    }
+  } catch {
+    // 错误已由拦截器处理
+  } finally {
+    addMemberSearchLoading.value = false
+  }
+}
+
+async function addGroupMember(userId) {
+  if (!selectedGroup.value) return
+  addMemberLoading.value = true
+  try {
+    const res = await authApi.addGroupMember(selectedGroup.value.id, userId)
+    if (res.errCode === 0) {
+      toast.success('成员添加成功')
+      fetchGroupMembers()
+      // 从搜索结果中移除已添加的用户
+      addMemberSearchResults.value = addMemberSearchResults.value.filter(u => u.id !== userId)
+    } else {
+      toast.error(res.raw?.err_msg || '添加失败')
+    }
+  } catch {
+    // 错误已由拦截器处理
+  } finally {
+    addMemberLoading.value = false
+  }
+}
+
+function openConfirmDialog(config) {
+  confirmDialogConfig.value = { ...confirmDialogConfig.value, ...config }
+  showConfirmDialog.value = true
+}
+
+function handleConfirm() {
+  if (confirmDialogConfig.value.onConfirm) {
+    confirmDialogConfig.value.onConfirm()
+  }
+  showConfirmDialog.value = false
+}
+
+async function removeGroupMember(userId) {
+  if (!selectedGroup.value) return
+  openConfirmDialog({
+    title: '移除成员',
+    message: '确定要移除该成员吗？',
+    confirmText: '移除',
+    danger: true,
+    onConfirm: async () => {
+      try {
+        const res = await authApi.removeGroupMember(selectedGroup.value.id, userId)
+        if (res.errCode === 0) {
+          toast.success('成员移除成功')
+          fetchGroupMembers()
+        } else {
+          toast.error(res.raw?.err_msg || '移除失败')
+        }
+      } catch {
+        // 错误已由拦截器处理
+      }
+    },
+  })
 }
 
 async function fetchLoginFailLogs() {
@@ -482,21 +592,9 @@ onMounted(() => {
                         : 'hover:bg-gray-50 dark:hover:bg-dk-base'
                     ]"
                   >
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center">
                       <div>
                         <div class="font-medium text-gray-900 dark:text-dk-text">{{ group.name }}</div>
-                        <div class="text-xs text-gray-500 dark:text-dk-subtle">
-                          {{ group.memberCount }} 位成员
-                        </div>
-                      </div>
-                      <div class="flex -space-x-1">
-                        <img
-                          v-for="memberId in group.memberIDs?.slice(0, 3)"
-                          :key="memberId"
-                          :src="usersStore.getAvatarUrlFromUserID(memberId)"
-                          class="h-6 w-6 rounded-full border-2 border-white object-cover dark:border-dk-card"
-                          :title="usersStore.getUsernameFromUserID(memberId)"
-                        />
                       </div>
                     </div>
                   </button>
@@ -515,6 +613,12 @@ onMounted(() => {
                     <h3 class="font-semibold text-gray-900 dark:text-dk-text">{{ selectedGroup.name }}</h3>
                     <p class="text-sm text-gray-500 dark:text-dk-subtle">共 {{ groupMemberTotal }} 位成员</p>
                   </div>
+                  <button
+                    @click="openAddMemberDialog"
+                    class="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    <IconPlus :size="16" /> 添加成员
+                  </button>
                 </div>
 
                 <div class="overflow-hidden rounded-md border border-gray-200 dark:border-dk-muted">
@@ -524,14 +628,15 @@ onMounted(() => {
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">用户</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">邮箱</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">类型</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">操作</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white dark:divide-dk-muted dark:bg-dk-card">
                       <tr v-if="groupMembersLoading" class="text-center">
-                        <td colspan="3" class="py-8 text-gray-500 dark:text-dk-subtle">加载中...</td>
+                        <td colspan="4" class="py-8 text-gray-500 dark:text-dk-subtle">加载中...</td>
                       </tr>
                       <tr v-else-if="groupMembers.length === 0" class="text-center">
-                        <td colspan="3" class="py-8 text-gray-500 dark:text-dk-subtle">暂无成员</td>
+                        <td colspan="4" class="py-8 text-gray-500 dark:text-dk-subtle">暂无成员</td>
                       </tr>
                       <tr v-for="member in groupMembers" :key="member.id" class="hover:bg-gray-50 dark:hover:bg-dk-base">
                         <td class="whitespace-nowrap px-4 py-3">
@@ -556,6 +661,14 @@ onMounted(() => {
                           >
                             {{ member.type }}
                           </span>
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-3 text-sm">
+                          <button
+                            @click="removeGroupMember(member.id)"
+                            class="text-red-600 hover:text-red-700 dark:text-red-400"
+                          >
+                            移除
+                          </button>
                         </td>
                       </tr>
                     </tbody>
@@ -873,4 +986,104 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- 添加成员弹窗 -->
+  <div
+    v-if="showAddMemberDialog"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    @click.self="closeAddMemberDialog"
+  >
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dk-card">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-dk-text">添加成员到 {{ selectedGroup?.name }}</h3>
+        <button
+          @click="closeAddMemberDialog"
+          class="text-gray-400 hover:text-gray-600 dark:text-dk-subtle dark:hover:text-dk-text"
+        >
+          <IconX :size="20" />
+        </button>
+      </div>
+
+      <!-- 搜索框 -->
+      <div class="mb-4">
+        <div class="flex gap-2">
+          <input
+            v-model="addMemberSearch"
+            type="text"
+            placeholder="搜索用户名或邮箱..."
+            class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
+            @keyup.enter="searchUsersToAdd"
+          />
+          <button
+            @click="searchUsersToAdd"
+            :disabled="addMemberSearchLoading"
+            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ addMemberSearchLoading ? '搜索中...' : '搜索' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 搜索结果 -->
+      <div class="max-h-64 overflow-y-auto">
+        <div v-if="addMemberSearchLoading" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
+          搜索中...
+        </div>
+        <div v-else-if="addMemberSearchResults.length === 0 && addMemberSearch" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
+          未找到匹配的用户
+        </div>
+        <div v-else-if="!addMemberSearch" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
+          输入关键词搜索用户
+        </div>
+        <div v-else class="space-y-2">
+          <div
+            v-for="user in addMemberSearchResults"
+            :key="user.id"
+            class="flex items-center justify-between rounded-md border border-gray-200 p-3 dark:border-dk-muted"
+          >
+            <div class="flex items-center gap-3">
+              <img
+                :src="usersStore.getAvatarUrlFromUserID(user.id)"
+                class="h-8 w-8 rounded-full object-cover"
+                alt="avatar"
+              />
+              <div>
+                <div class="text-sm font-medium text-gray-900 dark:text-dk-text">
+                  {{ usersStore.getUsernameFromUserID(user.id) || user.name }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-dk-subtle">{{ user.email }}</div>
+              </div>
+            </div>
+            <button
+              @click="addGroupMember(user.id)"
+              :disabled="addMemberLoading"
+              class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              添加
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button
+          @click="closeAddMemberDialog"
+          class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dk-muted dark:text-dk-text dark:hover:bg-dk-base"
+        >
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认弹窗 -->
+  <ConfirmDialog
+    v-model="showConfirmDialog"
+    :title="confirmDialogConfig.title"
+    :message="confirmDialogConfig.message"
+    :confirm-text="confirmDialogConfig.confirmText"
+    :cancel-text="confirmDialogConfig.cancelText"
+    :danger="confirmDialogConfig.danger"
+    @confirm="handleConfirm"
+  />
 </template>

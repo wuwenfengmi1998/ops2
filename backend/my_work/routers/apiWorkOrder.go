@@ -17,7 +17,7 @@ var (
 )
 
 // updateWorkOrderAdminsCash 刷新工单管理员缓存
-func updateWorkOrderAdminsCash() {
+func WorkOrderUpdateAdminsCash() {
 	workOrderAdmins = nil
 	workOrderAdmins = append(workOrderAdmins, 1) // id=1 超级管理员
 	var binds []TabUserGroupBinds
@@ -50,8 +50,6 @@ type TabWorkOrder struct {
 	DeletedAt     gorm.DeletedAt `gorm:"index"`
 }
 
-
-
 type TabWorkOrderCommit struct {
 	ID          uint       `gorm:"primarykey"`
 	WorkOrderID uint       `gorm:"not null;index;comment:关联工单ID"`
@@ -76,8 +74,6 @@ type TabWorkOrderLog struct {
 	CreatedAt   *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
-
-
 // PurchaseOrderInfo 采购订单简要信息
 type PurchaseOrderInfo struct {
 	ID     uint   `json:"id"`
@@ -89,14 +85,13 @@ type PurchaseOrderInfo struct {
 
 func ApiWorkOrderInit() {
 	models.DB.AutoMigrate(&TabWorkOrder{})
-	
+
 	models.DB.AutoMigrate(&TabWorkOrderCommit{})
 	models.DB.AutoMigrate(&TabWorkOrderLog{})
 
-
 	workOrderUserGroup.Name = "work_order_admin"
 	if models.DB.Where(&workOrderUserGroup).First(&workOrderUserGroup).Error == nil {
-		updateWorkOrderAdminsCash()
+		WorkOrderUpdateAdminsCash()
 	} else {
 		workOrderUserGroup.Type = "usergroup"
 		models.DB.Create(&workOrderUserGroup)
@@ -348,7 +343,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		// 为每条 commit 附加图片和采购订单
 		type CommitWithPhotos struct {
 			TabWorkOrderCommit
-			Photos         []TabFileInfo      `json:"photos"`
+			Photos         []TabFileInfo       `json:"photos"`
 			PurchaseOrders []PurchaseOrderInfo `json:"purchaseOrders"`
 		}
 		var commitsWithPhotos []CommitWithPhotos

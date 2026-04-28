@@ -2,8 +2,8 @@ package routers
 
 import (
 	"encoding/json"
-	"ops/models"
 	parsefmt "fmt"
+	"ops/models"
 	"slices"
 	"strings"
 	"time"
@@ -18,7 +18,7 @@ var (
 )
 
 // 更新管理员成员缓存
-func updatePurchaseAdminsCash() {
+func PurchaseUpdateAdminsCash() {
 	purchaseAdmins = nil
 	// id 1 是系统管理员
 	purchaseAdmins = append(purchaseAdmins, 1)
@@ -92,8 +92,6 @@ type TabPurchaseCosts struct {
 	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
-
-
 // TabPurchaseCommit 记录订单状态变更及评论
 type TabPurchaseCommit struct {
 	ID        uint       `gorm:"primarykey"`
@@ -132,7 +130,7 @@ func ApiPurchaseInit() {
 	//先检查用户组有没有这个key  purchase
 	purchaseUserGroup.Name = "purchase_admin"
 	if models.DB.Where(&purchaseUserGroup).First(&purchaseUserGroup).Error == nil {
-		updatePurchaseAdminsCash()
+		PurchaseUpdateAdminsCash()
 	} else {
 		purchaseUserGroup.Type = "usergroup"
 		models.DB.Create(&purchaseUserGroup)
@@ -229,49 +227,49 @@ func ApiPurchase(r *gin.RouterGroup) {
 			commitResps = append(commitResps, resp)
 		}
 
-	// 查询关联工单（通过 TabWorkOrderPurchaseOrderBind 表）
-	type WorkOrderInfo struct {
-		ID            uint   `json:"id"`
-		Title         string `json:"title"`
-		CurrentStatus string `json:"status"`
-	}
-	var linkedWorkOrders []WorkOrderInfo
-	var woBinds []TabWorkOrderPurchaseOrderBind
-	models.DB.Where("purchase_order_id = ?", from.ID).Find(&woBinds)
-	if len(woBinds) > 0 {
-		woIDSet := make(map[uint]bool)
-		var woIDs []uint
-		for _, wb := range woBinds {
-			if !woIDSet[wb.WorkOrderID] {
-				woIDSet[wb.WorkOrderID] = true
-				woIDs = append(woIDs, wb.WorkOrderID)
+		// 查询关联工单（通过 TabWorkOrderPurchaseOrderBind 表）
+		type WorkOrderInfo struct {
+			ID            uint   `json:"id"`
+			Title         string `json:"title"`
+			CurrentStatus string `json:"status"`
+		}
+		var linkedWorkOrders []WorkOrderInfo
+		var woBinds []TabWorkOrderPurchaseOrderBind
+		models.DB.Where("purchase_order_id = ?", from.ID).Find(&woBinds)
+		if len(woBinds) > 0 {
+			woIDSet := make(map[uint]bool)
+			var woIDs []uint
+			for _, wb := range woBinds {
+				if !woIDSet[wb.WorkOrderID] {
+					woIDSet[wb.WorkOrderID] = true
+					woIDs = append(woIDs, wb.WorkOrderID)
+				}
+			}
+			var workOrders []TabWorkOrder
+			models.DB.Where("id IN ?", woIDs).Find(&workOrders)
+			for _, wo := range workOrders {
+				linkedWorkOrders = append(linkedWorkOrders, WorkOrderInfo{
+					ID:            wo.ID,
+					Title:         wo.Title,
+					CurrentStatus: wo.CurrentStatus,
+				})
 			}
 		}
-		var workOrders []TabWorkOrder
-		models.DB.Where("id IN ?", woIDs).Find(&workOrders)
-		for _, wo := range workOrders {
-			linkedWorkOrders = append(linkedWorkOrders, WorkOrderInfo{
-				ID:            wo.ID,
-				Title:         wo.Title,
-				CurrentStatus: wo.CurrentStatus,
-			})
+		if linkedWorkOrders == nil {
+			linkedWorkOrders = []WorkOrderInfo{}
 		}
-	}
-	if linkedWorkOrders == nil {
-		linkedWorkOrders = []WorkOrderInfo{}
-	}
 
-	// 判断当前用户是否可以修改
-	canModify := canModifyPurchase(user.ID, order.UserID)
+		// 判断当前用户是否可以修改
+		canModify := canModifyPurchase(user.ID, order.UserID)
 
-	ReturnJson(ctx, "apiOK", gin.H{
-		"order":        order,
-		"canModify":    canModify,
-		"costs":        costs,
-		"photos":       files,
-		"commits":      commitResps,
-		"workOrders":   linkedWorkOrders,
-	})
+		ReturnJson(ctx, "apiOK", gin.H{
+			"order":      order,
+			"canModify":  canModify,
+			"costs":      costs,
+			"photos":     files,
+			"commits":    commitResps,
+			"workOrders": linkedWorkOrders,
+		})
 	})
 
 	// 更新订单状态（可附带评论）
@@ -432,46 +430,46 @@ func ApiPurchase(r *gin.RouterGroup) {
 			//fmt.Println(user)
 			// DebugPrintJson(data)
 
-				type From_purchase_getorders struct {
-					Search  string
-					Status  string
-					Entries int
-					Page    int
+			type From_purchase_getorders struct {
+				Search  string
+				Status  string
+				Entries int
+				Page    int
+			}
+
+			var jsondata From_purchase_getorders
+			if err := decodeJSON(data, &jsondata); err == nil {
+				//fmt.Println(jsondata)
+
+				is_data_ok := true
+
+				if jsondata.Entries <= 0 || jsondata.Entries > 300 {
+					is_data_ok = false
+				}
+				if jsondata.Page <= 0 {
+					is_data_ok = false
 				}
 
-				var jsondata From_purchase_getorders
-				if err := decodeJSON(data, &jsondata); err == nil {
-					//fmt.Println(jsondata)
+				if is_data_ok {
 
-					is_data_ok := true
-
-					if jsondata.Entries <= 0 || jsondata.Entries > 300 {
-						is_data_ok = false
-					}
-					if jsondata.Page <= 0 {
-						is_data_ok = false
-					}
-
-					if is_data_ok {
-
-						//读取有多少条目
-						var count int64
-						query := models.DB.Model(TabPurchaseOrder{})
-						if jsondata.Search != "" {
-							// 精确匹配订单 ID
-							var id uint
-							if _, err := parsefmt.Sscanf(jsondata.Search, "%d", &id); err == nil && id > 0 {
-								query = query.Where("id = ?", id)
-							} else {
-								// 模糊匹配标题和用途（Remark）
-								query = query.Where("title LIKE ? OR remark LIKE ?",
-									"%"+jsondata.Search+"%", "%"+jsondata.Search+"%")
-							}
+					//读取有多少条目
+					var count int64
+					query := models.DB.Model(TabPurchaseOrder{})
+					if jsondata.Search != "" {
+						// 精确匹配订单 ID
+						var id uint
+						if _, err := parsefmt.Sscanf(jsondata.Search, "%d", &id); err == nil && id > 0 {
+							query = query.Where("id = ?", id)
+						} else {
+							// 模糊匹配标题和用途（Remark）
+							query = query.Where("title LIKE ? OR remark LIKE ?",
+								"%"+jsondata.Search+"%", "%"+jsondata.Search+"%")
 						}
-						if jsondata.Status != "" {
-							query = query.Where("order_status = ?", jsondata.Status)
-						}
-						query.Count(&count)
+					}
+					if jsondata.Status != "" {
+						query = query.Where("order_status = ?", jsondata.Status)
+					}
+					query.Count(&count)
 
 					//读取条目
 					var getorders []TabPurchaseOrder
@@ -820,11 +818,11 @@ func ApiPurchase(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", map[string]interface{}{
 			"pending":  count.Pending,
 			"ordered":  count.Ordered,
-			"arrived": count.Arrived,
+			"arrived":  count.Arrived,
 			"received": count.Received,
-			"lost":    count.Lost,
+			"lost":     count.Lost,
 			"returned": count.Returned,
-			"total":   count.Total,
+			"total":    count.Total,
 		})
 	})
 

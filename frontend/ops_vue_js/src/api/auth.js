@@ -36,6 +36,16 @@ export const authApi = {
     return api.post('/admin/group_members', { group_id: groupId, ...params })
   },
 
+  /** 添加用户组成员（仅管理员可访问） */
+  addGroupMember(groupId, userId) {
+    return api.post('/admin/add_group_member', { group_id: groupId, user_id: userId })
+  },
+
+  /** 移除用户组成员（仅管理员可访问） */
+  removeGroupMember(groupId, userId) {
+    return api.post('/admin/remove_group_member', { group_id: groupId, user_id: userId })
+  },
+
   /** 获取用户详细信息（仅管理员可访问） */
   getUserDetail(userId) {
     return api.post('/admin/user_detail', { user_id: userId })

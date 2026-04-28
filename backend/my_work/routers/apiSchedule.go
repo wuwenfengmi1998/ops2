@@ -40,7 +40,7 @@ type TabScheduleLog struct {
 	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime;comment:操作时间"`
 }
 type fromAddEvent struct {
-	ID uint 	 `json:"id"`
+	ID    uint   `json:"id"`
 	Title string `json:"title" binding:"required"` // 日程标题
 	Start string `json:"start" binding:"required"` // 开始日期
 	End   string `json:"end" binding:"required"`   // 结束日期
@@ -53,27 +53,27 @@ type fromGetEvents struct {
 }
 
 var (
-	userGroup TabUserGroups
+	userGroup      TabUserGroups
 	scheduleAdmins []uint
 )
 
-//更新管理员成员缓存
-func updateAdminsCash(){
-//先清空切片
-scheduleAdmins=nil
+// 更新管理员成员缓存
+func ScheduleUpdateAdminsCash() {
+	//先清空切片
+	scheduleAdmins = nil
 
-//获取管理员用户组id
-//id 1是系统管理员 直接appen
-	scheduleAdmins=append(scheduleAdmins, 1)
+	//获取管理员用户组id
+	//id 1是系统管理员 直接appen
+	scheduleAdmins = append(scheduleAdmins, 1)
 	//读取所有绑定了这个用户组的用户id
 	var usergroupbind []TabUserGroupBinds
-	usergroupbindfind:= TabUserGroupBinds{
+	usergroupbindfind := TabUserGroupBinds{
 		GroupID: userGroup.ID,
 	}
 	models.DB.Where(&usergroupbindfind).Find(&usergroupbind)
-	for _ , item:= range usergroupbind{
-		if !slices.Contains(scheduleAdmins,item.UserID){
-			scheduleAdmins=append(scheduleAdmins, item.UserID)
+	for _, item := range usergroupbind {
+		if !slices.Contains(scheduleAdmins, item.UserID) {
+			scheduleAdmins = append(scheduleAdmins, item.UserID)
 		}
 	}
 
@@ -83,11 +83,11 @@ func ApiScheduleInit() {
 	//先初始化数据表
 	models.DB.AutoMigrate(&TabSchedule{})
 	models.DB.AutoMigrate(&TabScheduleLog{})
-	
+
 	//先检查用户组有没有这个key
 	userGroup.Name = "schedule_admin"
 	if models.DB.Where(&userGroup).First(&userGroup).Error == nil {
-		updateAdminsCash()
+		ScheduleUpdateAdminsCash()
 	} else {
 		userGroup.Type = "usergroup"
 		models.DB.Create(&userGroup)
@@ -115,7 +115,7 @@ func ApiSchedule(r *gin.RouterGroup) {
 					//已登录 进一步判断编辑权限
 					temp["edit"] = false
 
-					if slices.Contains(scheduleAdmins,user.ID){
+					if slices.Contains(scheduleAdmins, user.ID) {
 						temp["edit"] = true
 					}
 					if item.UserID == user.ID {
@@ -149,29 +149,29 @@ func ApiSchedule(r *gin.RouterGroup) {
 			var from fromAddEvent
 			if err := mapstructure.Decode(data, &from); err == nil {
 				//先从数据库拉取原始event数据
-				 oldEvent:=TabSchedule{}
-				 if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error==nil{
+				oldEvent := TabSchedule{}
+				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error == nil {
 					//需要先判断修改权限
-					var isCanEdit=false
-					if slices.Contains(scheduleAdmins,user.ID){ //用户id是管理员
+					var isCanEdit = false
+					if slices.Contains(scheduleAdmins, user.ID) { //用户id是管理员
 						isCanEdit = true
 					}
-					if oldEvent.UserID==user.ID{//event是用户创建的
+					if oldEvent.UserID == user.ID { //event是用户创建的
 						isCanEdit = true
 					}
-					if isCanEdit{
+					if isCanEdit {
 						tosql := TabSchedule{}
 						tosql.DeletedAt.Scan(time.Now())
 						//fmt.Println(tosql)
-						findEvent:=TabSchedule{
+						findEvent := TabSchedule{
 							ID: oldEvent.ID,
 						}
-						if models.DB.Where(&findEvent).Updates(&tosql).Error==nil{
+						if models.DB.Where(&findEvent).Updates(&tosql).Error == nil {
 							//应该修改完了  写日志
 							//把最新数据再读出来
 							models.DB.Where(&findEvent).First(&findEvent)
 							newContent, _ := json.Marshal(findEvent) //转 JSON
-							oldContent, _ := json.Marshal(oldEvent) //转 JSON
+							oldContent, _ := json.Marshal(oldEvent)  //转 JSON
 							tosqllog := TabScheduleLog{
 								UserID:     user.ID,
 								ScheduleID: oldEvent.ID,
@@ -182,13 +182,13 @@ func ApiSchedule(r *gin.RouterGroup) {
 							}
 							models.DB.Create(&tosqllog)
 							ReturnJson(ctx, "apiOK", nil)
-						}else{
+						} else {
 							ReturnJson(ctx, "apiErr", nil)
 						}
-					}else{
+					} else {
 						ReturnJson(ctx, "schedule_permission_denied", nil)
 					}
-				}else{
+				} else {
 					ReturnJson(ctx, "schedule_event_not_find", nil)
 				}
 			} else {
@@ -201,24 +201,24 @@ func ApiSchedule(r *gin.RouterGroup) {
 	})
 
 	r.POST("/editevent", func(ctx *gin.Context) {
-	isAuth, user, data := AuthenticationAuthority(ctx)
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if isAuth {
-			
+
 			var from fromAddEvent
 			if err := mapstructure.Decode(data, &from); err == nil {
 				//先从数据库拉取原始event数据
-				oldEvent:=TabSchedule{}
-				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error==nil{
+				oldEvent := TabSchedule{}
+				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error == nil {
 					//需要先判断修改权限
-					var isCanEdit=false
-					if slices.Contains(scheduleAdmins,user.ID){ //用户id是管理员
+					var isCanEdit = false
+					if slices.Contains(scheduleAdmins, user.ID) { //用户id是管理员
 						isCanEdit = true
 					}
-					if oldEvent.UserID==user.ID{//event是用户创建的
+					if oldEvent.UserID == user.ID { //event是用户创建的
 						isCanEdit = true
 					}
 
-					if isCanEdit{
+					if isCanEdit {
 						tosql := TabSchedule{
 							// UserID:    user.ID,  //如果是管理员修改的话会覆盖掉创建者的id
 							Title:     from.Title,
@@ -228,16 +228,16 @@ func ApiSchedule(r *gin.RouterGroup) {
 						}
 						//fmt.Println(tosql)
 
-						findEvent:=TabSchedule{
+						findEvent := TabSchedule{
 							ID: oldEvent.ID,
 						}
 
-						if models.DB.Where(&findEvent).Updates(&tosql).Error==nil{
+						if models.DB.Where(&findEvent).Updates(&tosql).Error == nil {
 							//应该修改完了  写日志
 							//把最新数据再读出来
 							models.DB.Where(&findEvent).First(&findEvent)
 							newContent, _ := json.Marshal(findEvent) //转 JSON
-							oldContent, _ := json.Marshal(oldEvent) //转 JSON
+							oldContent, _ := json.Marshal(oldEvent)  //转 JSON
 							tosqllog := TabScheduleLog{
 								UserID:     user.ID,
 								ScheduleID: oldEvent.ID,
@@ -249,21 +249,17 @@ func ApiSchedule(r *gin.RouterGroup) {
 							models.DB.Create(&tosqllog)
 							ReturnJson(ctx, "apiOK", nil)
 
-
-						}else{
+						} else {
 							ReturnJson(ctx, "apiErr", nil)
 						}
-						
-					}else{
+
+					} else {
 						ReturnJson(ctx, "schedule_permission_denied", nil)
 					}
 
-				}else{
+				} else {
 					ReturnJson(ctx, "schedule_event_not_find", nil)
 				}
-
-				
-				
 
 			} else {
 				ReturnJson(ctx, "jsonErr", nil)

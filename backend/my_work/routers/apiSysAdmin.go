@@ -156,15 +156,15 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			return
 		}
 
-		var params struct {
-			GroupID  uint `json:"group_id"`
-			Page     int  `json:"page"`
-			PageSize int  `json:"page_size"`
-		}
-		if err := mapstructure.Decode(data, &params); err != nil {
-			params.Page = 1
-			params.PageSize = 20
-		}
+	var params struct {
+		GroupID  float64 `json:"group_id" mapstructure:"group_id"`
+		Page     float64 `json:"page" mapstructure:"page"`
+		PageSize float64 `json:"page_size" mapstructure:"page_size"`
+	}
+	if err := mapstructure.Decode(data, &params); err != nil {
+		params.Page = 1
+		params.PageSize = 20
+	}
 		if params.Page < 1 {
 			params.Page = 1
 		}
@@ -179,12 +179,21 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			return
 		}
 
-		offset := (params.Page - 1) * params.PageSize
+		groupID := uint(params.GroupID)
+		page := int(params.Page)
+		pageSize := int(params.PageSize)
+		if page < 1 {
+			page = 1
+		}
+		if pageSize < 1 || pageSize > 100 {
+			pageSize = 20
+		}
+		offset := (page - 1) * pageSize
 
 		var binds []TabUserGroupBinds
 		var total int64
-		models.DB.Model(&TabUserGroupBinds{}).Where("group_id = ?", params.GroupID).Count(&total)
-		models.DB.Where("group_id = ?", params.GroupID).Order("id ASC").Offset(offset).Limit(params.PageSize).Find(&binds)
+		models.DB.Model(&TabUserGroupBinds{}).Where("group_id = ?", groupID).Count(&total)
+		models.DB.Where("group_id = ?", groupID).Order("id ASC").Offset(offset).Limit(pageSize).Find(&binds)
 
 		// 获取成员用户信息
 		var members []map[string]interface{}
@@ -209,12 +218,12 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 		}
 
 		var redata map[string]interface{} = make(map[string]interface{})
-		redata["group_id"] = params.GroupID
+		redata["group_id"] = groupID
 		redata["group_name"] = group.Name
 		redata["members"] = members
 		redata["total"] = total
-		redata["page"] = params.Page
-		redata["page_size"] = params.PageSize
+		redata["page"] = page
+		redata["page_size"] = pageSize
 		ReturnJson(ctx, "apiOK", redata)
 	})
 
@@ -316,7 +325,131 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
 
-	// 获取登录失败日志（仅系统管理员可访问）
+	// 添加用户组成员（仅系统管理员可访问）
+	r.POST("/add_group_member", func(ctx *gin.Context) {
+		isAuth, adminUser, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		if !SysAdminCheck(adminUser.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
+			return
+		}
+
+		var params struct {
+			GroupID float64 `json:"group_id" mapstructure:"group_id"`
+			UserID  float64 `json:"user_id" mapstructure:"user_id"`
+		}
+		if err := mapstructure.Decode(data, &params); err != nil || params.GroupID == 0 || params.UserID == 0 {
+			ReturnJson(ctx, "parameErr", nil)
+			return
+		}
+
+		// 验证用户组是否存在
+		var group TabUserGroups
+		if models.DB.First(&group, uint(params.GroupID)).Error != nil {
+			ReturnJson(ctx, "groupNotFound", nil)
+			return
+		}
+
+		// 验证用户是否存在
+		var user TabUser
+		if models.DB.First(&user, uint(params.UserID)).Error != nil {
+			ReturnJson(ctx, "userNotFound", nil)
+			return
+		}
+
+		// 检查绑定是否已存在
+		var existingBind TabUserGroupBinds
+		if models.DB.Where("group_id = ? AND user_id = ?", uint(params.GroupID), uint(params.UserID)).First(&existingBind).Error == nil {
+			ReturnJson(ctx, "userAlreadyInGroup", nil)
+			return
+		}
+
+	// 创建绑定
+	newBind := TabUserGroupBinds{
+		UserID:  uint(params.UserID),
+		GroupID: uint(params.GroupID),
+	}
+	if err := models.DB.Create(&newBind).Error; err != nil {
+		ReturnJson(ctx, "dbErr", nil)
+		return
+	}
+
+	// 根据组名刷新对应的权限缓存
+	switch group.Name {
+	case "admins":
+		updateSysAdminsCash()
+	case "schedule_admin":
+		ScheduleUpdateAdminsCash()
+	case "purchase_admin":
+		PurchaseUpdateAdminsCash()
+	case "work_order_admin":
+		WorkOrderUpdateAdminsCash()
+	case "warehouse_admin":
+		WarehouseUpdateAdminsCash()
+	}
+
+	ReturnJson(ctx, "apiOK", nil)
+})
+
+// 移除用户组成员（仅系统管理员可访问）
+	r.POST("/remove_group_member", func(ctx *gin.Context) {
+		isAuth, adminUser, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		if !SysAdminCheck(adminUser.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
+			return
+		}
+
+		var params struct {
+			GroupID float64 `json:"group_id" mapstructure:"group_id"`
+			UserID  float64 `json:"user_id" mapstructure:"user_id"`
+		}
+		if err := mapstructure.Decode(data, &params); err != nil || params.GroupID == 0 || params.UserID == 0 {
+			ReturnJson(ctx, "parameErr", nil)
+			return
+		}
+
+		// 验证用户组是否存在
+		var group TabUserGroups
+		if models.DB.First(&group, uint(params.GroupID)).Error != nil {
+			ReturnJson(ctx, "groupNotFound", nil)
+			return
+		}
+
+	// 删除绑定
+	if err := models.DB.Where("group_id = ? AND user_id = ?", uint(params.GroupID), uint(params.UserID)).Delete(&TabUserGroupBinds{}).Error; err != nil {
+		ReturnJson(ctx, "dbErr", nil)
+		return
+	}
+
+	// 根据组名刷新对应的权限缓存
+	switch group.Name {
+	case "admins":
+		updateSysAdminsCash()
+	case "schedule_admin":
+		ScheduleUpdateAdminsCash()
+	case "purchase_admin":
+		PurchaseUpdateAdminsCash()
+	case "work_order_admin":
+		WorkOrderUpdateAdminsCash()
+	case "warehouse_admin":
+		WarehouseUpdateAdminsCash()
+	}
+
+	ReturnJson(ctx, "apiOK", nil)
+})
+
+// 获取登录失败日志（仅系统管理员可访问）
 	r.POST("/login_fail_logs", func(ctx *gin.Context) {
 		isAuth, _, data := AuthenticationAuthority(ctx)
 		if !isAuth {

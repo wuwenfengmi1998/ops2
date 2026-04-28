@@ -71,7 +71,7 @@ var (
 )
 
 // updateWarehouseAdminsCash 刷新仓库管理员缓存
-func updateWarehouseAdminsCash() {
+func WarehouseUpdateAdminsCash() {
 	warehouseAdmins = nil
 	warehouseAdmins = append(warehouseAdmins, 1) // id=1 超级管理员
 	var binds []TabUserGroupBinds
@@ -144,7 +144,7 @@ func ApiWarehouseInit() {
 
 	warehouseUserGroup.Name = "warehouse_admin"
 	if models.DB.Where(&warehouseUserGroup).First(&warehouseUserGroup).Error == nil {
-		updateWarehouseAdminsCash()
+		WarehouseUpdateAdminsCash()
 	} else {
 		warehouseUserGroup.Type = "usergroup"
 		models.DB.Create(&warehouseUserGroup)
