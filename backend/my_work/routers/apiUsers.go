@@ -575,8 +575,6 @@ func ApiUser(r *gin.RouterGroup) {
 		isAuth, user, _ := AuthenticationAuthority(ctx)
 		if isAuth {
 			//载入用户info
-
-			//fmt.Println(userInfo)
 			var redata map[string]interface{} = make(map[string]interface{})
 
 			info := GetUserInfoFromUserID(user.ID)
@@ -586,10 +584,47 @@ func ApiUser(r *gin.RouterGroup) {
 			user.Salt = ""
 			redata["user"] = user
 
+			// 只返回当前用户是否为系统管理员，不暴露完整列表
+			isSysAdmin := false
+			for _, adminID := range sysAdmins {
+				if adminID == user.ID {
+					isSysAdmin = true
+					break
+				}
+			}
+			redata["isSysAdmin"] = isSysAdmin
+
 			ReturnJson(ctx, "apiOK", redata)
 
 		}
 	})
+
+	// 获取系统管理员列表（仅系统管理员可访问）
+	r.POST("/sysadmins", func(ctx *gin.Context) {
+		isAuth, user, _ := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		isSysAdmin := false
+		for _, adminID := range sysAdmins {
+			if adminID == user.ID {
+				isSysAdmin = true
+				break
+			}
+		}
+		if !isSysAdmin {
+			ReturnJson(ctx, "permission_denied", nil)
+			return
+		}
+
+		var redata map[string]interface{} = make(map[string]interface{})
+		redata["sysAdmins"] = sysAdmins
+		ReturnJson(ctx, "apiOK", redata)
+	})
+
 	//用户登陆
 	r.POST("/login", func(ctx *gin.Context) {
 		var loginuser From_user_login

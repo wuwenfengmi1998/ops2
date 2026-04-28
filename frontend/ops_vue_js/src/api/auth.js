@@ -16,6 +16,11 @@ export const authApi = {
     return api.post('/users/getinfo', {})
   },
 
+  /** 获取系统管理员列表（仅管理员可访问） */
+  sysAdmins() {
+    return api.post('/users/sysadmins', {})
+  },
+
   /** 修改密码 */
   changePassword(oldPass, newPass) {
     return api.post('/users/changePassword', { oldpass: oldPass, newpass: newPass })

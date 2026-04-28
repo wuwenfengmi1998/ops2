@@ -108,6 +108,12 @@ const router = createRouter({
           name: 'admin',
           component: () => import('@/views/AdminView.vue'),
         },
+        {
+          path: 'sysadmin',
+          name: 'sysadmin',
+          component: () => import('@/views/SysAdminView.vue'),
+          meta: { requireSysAdmin: true },
+        },
       ],
     },
 
@@ -170,6 +176,11 @@ router.beforeEach((to) => {
   // 未登录 → 跳转登录
   if (!userStore.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  // 需要系统管理员权限
+  if (to.meta.requireSysAdmin && !userStore.isSysAdmin) {
+    return { name: 'home' }
   }
 
   return true

@@ -11,6 +11,7 @@ import {
   IconSettings,
   IconMenu2,
   IconX,
+  IconShield,
 } from "@tabler/icons-vue";
 
 const { t, locale } = useI18n();
@@ -148,6 +149,15 @@ const navItems = computed(() => [
               >
                 <IconSettings :size="16" />
                 {{ t("message.user_settings") }}
+              </RouterLink>
+              <RouterLink
+                v-if="userStore.isSysAdmin"
+                to="/sysadmin"
+                class="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                @click="userDropdownOpen = false"
+              >
+                <IconShield :size="16" />
+                系统管理
               </RouterLink>
               <hr class="my-1 border-gray-200 dark:border-dk-muted" />
               <button
