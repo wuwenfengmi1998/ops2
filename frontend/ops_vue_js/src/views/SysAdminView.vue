@@ -2,8 +2,11 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useUsersStore } from '@/stores/users'
+import { useToastStore } from '@/stores/toast'
 import { authApi } from '@/api/auth'
 import { IconSearch, IconRefresh, IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
+
+const toast = useToastStore()
 
 const usersStore = useUsersStore()
 
@@ -37,6 +40,14 @@ const loginFailLogSearch = ref('')
 const loginFailLogPage = ref(1)
 const loginFailLogPageSize = ref(20)
 const loginFailLogTotal = ref(0)
+
+// 用户详情相关
+const showUserDetail = ref(false)
+const userDetail = ref(null)
+const userDetailInfo = ref(null)
+const userDetailLoading = ref(false)
+const newPassword = ref('')
+const resetPasswordLoading = ref(false)
 
 const tabs = [
   { id: 'users', label: '用户管理' },
@@ -204,6 +215,64 @@ function getReasonClass(reason) {
   return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
 }
 
+async function openUserDetail(user) {
+  userDetail.value = user
+  showUserDetail.value = true
+  userDetailLoading.value = true
+  try {
+    // 获取用户详细信息
+    const res = await authApi.getUserDetail(user.id)
+    if (res.errCode === 0) {
+      userDetail.value = res.data.user || user
+      userDetailInfo.value = res.data.userinfo || null
+    }
+  } catch {
+    // 错误已由拦截器处理
+  } finally {
+    userDetailLoading.value = false
+  }
+}
+
+function closeUserDetail() {
+  showUserDetail.value = false
+  userDetail.value = null
+  userDetailInfo.value = null
+  newPassword.value = ''
+}
+
+async function resetUserPassword() {
+  if (!newPassword.value || newPassword.value.length < 6) {
+    toast.warning('密码长度至少为6位')
+    return
+  }
+  if (!userDetail.value) return
+
+  resetPasswordLoading.value = true
+  try {
+    const res = await authApi.resetUserPassword(userDetail.value.id, newPassword.value)
+    if (res.errCode === 0) {
+      toast.success('密码修改成功')
+      newPassword.value = ''
+    } else {
+      toast.error(res.raw?.err_msg || '密码修改失败')
+    }
+  } catch {
+    // 错误已由拦截器处理
+  } finally {
+    resetPasswordLoading.value = false
+  }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString()
+}
+
+function formatGender(gender) {
+  const map = { 'M': '男', 'F': '女', 'U': '未知' }
+  return map[gender] || '未知'
+}
+
 // 监听 Tab 切换
 watch(activeTab, (tab) => {
   if (tab === 'users') {
@@ -344,7 +413,7 @@ onMounted(() => {
                   </td>
                   <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-dk-subtle">{{ new Date(user.date).toLocaleString() }}</td>
                   <td class="whitespace-nowrap px-4 py-3 text-sm">
-                    <button class="text-blue-600 hover:text-blue-700 dark:text-blue-400">详情</button>
+                    <button @click="openUserDetail(user)" class="text-blue-600 hover:text-blue-700 dark:text-blue-400">详情</button>
                   </td>
                 </tr>
               </tbody>
@@ -674,6 +743,133 @@ onMounted(() => {
             暂无系统管理员
           </span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户详情弹窗 -->
+  <div
+    v-if="showUserDetail"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    @click.self="closeUserDetail"
+  >
+    <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-dk-card">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-dk-text">用户详情</h3>
+        <button
+          @click="closeUserDetail"
+          class="text-gray-400 hover:text-gray-600 dark:text-dk-subtle dark:hover:text-dk-text"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div v-if="userDetailLoading" class="py-8 text-center text-gray-500 dark:text-dk-subtle">
+        加载中...
+      </div>
+
+      <div v-else-if="userDetail" class="space-y-4">
+        <!-- 用户头像和基本信息 -->
+        <div class="flex items-center gap-4">
+          <img
+            :src="usersStore.getAvatarUrlFromUserID(userDetail.id)"
+            class="h-16 w-16 rounded-full object-cover"
+            alt="avatar"
+          />
+          <div>
+            <div class="text-lg font-semibold text-gray-900 dark:text-dk-text">
+              {{ usersStore.getUsernameFromUserID(userDetail.id) || userDetail.name }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-dk-subtle">{{ userDetail.email }}</div>
+            <span
+              :class="[
+                'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
+                userDetail.type === 'admin' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+              ]"
+            >
+              {{ userDetail.type }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="border-gray-200 dark:border-dk-muted" />
+
+        <!-- 详细信息 -->
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-500 dark:text-dk-subtle">用户ID</span>
+            <span class="text-gray-900 dark:text-dk-text">{{ userDetail.id }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500 dark:text-dk-subtle">用户名</span>
+            <span class="text-gray-900 dark:text-dk-text">{{ userDetail.name }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500 dark:text-dk-subtle">注册时间</span>
+            <span class="text-gray-900 dark:text-dk-text">{{ new Date(userDetail.date).toLocaleString() }}</span>
+          </div>
+
+          <!-- 用户扩展信息 -->
+          <template v-if="userDetailInfo">
+            <hr class="border-gray-200 dark:border-dk-muted" />
+            <div class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">扩展信息</div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-dk-subtle">昵称</span>
+              <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.username || '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-dk-subtle">备注</span>
+              <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.firstname || '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-dk-subtle">生日</span>
+              <span class="text-gray-900 dark:text-dk-text">{{ formatDate(userDetailInfo.birthdate) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-dk-subtle">性别</span>
+              <span class="text-gray-900 dark:text-dk-text">{{ formatGender(userDetailInfo.gender) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-dk-subtle">地区</span>
+              <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.region || '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500 dark:text-dk-subtle">语言</span>
+              <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.language || '-' }}</span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- 修改密码区域 -->
+      <div class="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-dk-muted">
+        <div class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">重置密码</div>
+        <div class="flex gap-2">
+          <input
+            v-model="newPassword"
+            type="password"
+            placeholder="输入新密码（至少6位）"
+            class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
+          />
+          <button
+            @click="resetUserPassword"
+            :disabled="resetPasswordLoading || !newPassword"
+            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ resetPasswordLoading ? '修改中...' : '修改密码' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end">
+        <button
+          @click="closeUserDetail"
+          class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dk-muted dark:text-dk-text dark:hover:bg-dk-base"
+        >
+          关闭
+        </button>
       </div>
     </div>
   </div>

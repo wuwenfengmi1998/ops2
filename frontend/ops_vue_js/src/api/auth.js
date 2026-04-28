@@ -36,6 +36,16 @@ export const authApi = {
     return api.post('/admin/group_members', { group_id: groupId, ...params })
   },
 
+  /** 获取用户详细信息（仅管理员可访问） */
+  getUserDetail(userId) {
+    return api.post('/admin/user_detail', { user_id: userId })
+  },
+
+  /** 重置用户密码（仅管理员可访问） */
+  resetUserPassword(userId, password) {
+    return api.post('/admin/reset_user_password', { user_id: userId, password })
+  },
+
   /** 获取登录失败日志（仅管理员可访问） */
   getLoginFailLogs(params = {}) {
     return api.post('/admin/login_fail_logs', params)

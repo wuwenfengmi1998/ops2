@@ -157,7 +157,7 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 		}
 
 		var params struct {
-			GroupID uint `json:"group_id"`
+			GroupID  uint `json:"group_id"`
 			Page     int  `json:"page"`
 			PageSize int  `json:"page_size"`
 		}
@@ -209,14 +209,112 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 		}
 
 		var redata map[string]interface{} = make(map[string]interface{})
-	redata["group_id"] = params.GroupID
-	redata["group_name"] = group.Name
-	redata["members"] = members
-	redata["total"] = total
-	redata["page"] = params.Page
-	redata["page_size"] = params.PageSize
-	ReturnJson(ctx, "apiOK", redata)
-})
+		redata["group_id"] = params.GroupID
+		redata["group_name"] = group.Name
+		redata["members"] = members
+		redata["total"] = total
+		redata["page"] = params.Page
+		redata["page_size"] = params.PageSize
+		ReturnJson(ctx, "apiOK", redata)
+	})
+
+	// 获取用户详细信息（仅系统管理员可访问）
+	r.POST("/user_detail", func(ctx *gin.Context) {
+		isAuth, _, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		var params struct {
+			UserID uint `json:"user_id"`
+		}
+		if err := mapstructure.Decode(data, &params); err != nil || params.UserID == 0 {
+			ReturnJson(ctx, "parameErr", nil)
+			return
+		}
+
+		// 获取用户基本信息
+		var user TabUser
+		if models.DB.First(&user, params.UserID).Error != nil {
+			ReturnJson(ctx, "userNotFound", nil)
+			return
+		}
+
+		// 获取用户扩展信息
+		userInfo := GetUserInfoFromUserID(user.ID)
+
+		// 构建返回数据
+		redata := map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":    user.ID,
+				"name":  user.Name,
+				"email": user.Email,
+				"type":  user.Type,
+				"date":  user.Date,
+			},
+			"userinfo": userInfo,
+		}
+
+		ReturnJson(ctx, "apiOK", redata)
+	})
+
+	// 重置用户密码（仅系统管理员可访问）
+	r.POST("/reset_user_password", func(ctx *gin.Context) {
+		isAuth, adminUser, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		if !SysAdminCheck(adminUser.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
+			return
+		}
+
+		var params struct {
+			UserID   float64 `json:"user_id" mapstructure:"user_id"`
+			Password string  `json:"password" mapstructure:"password"`
+		}
+		if err := mapstructure.Decode(data, &params); err != nil || params.UserID == 0 || params.Password == "" {
+			ReturnJson(ctx, "parameErr", map[string]interface{}{"decode_err": err != nil, "user_id": params.UserID, "pass_empty": params.Password == ""})
+			return
+		}
+
+		// 查找目标用户
+		var targetUser TabUser
+		if models.DB.First(&targetUser, uint(params.UserID)).Error != nil {
+			ReturnJson(ctx, "userNotFound", nil)
+			return
+		}
+
+		// 生成新盐值并哈希密码
+		newSalt := models.RandStr32()
+		tempUser := TabUser{
+			Pass: params.Password,
+			Salt: newSalt,
+		}
+		HashUserPass(&tempUser)
+
+		// 更新密码和盐值
+		updates := TabUser{
+			Pass: tempUser.Pass,
+			Salt: newSalt,
+		}
+		if err := models.DB.Model(&targetUser).Updates(&updates).Error; err != nil {
+			ReturnJson(ctx, "dbErr", nil)
+			return
+		}
+
+		// 注销该用户的所有 cookie（强制重新登录）
+		if err := models.DB.Where("user_id = ?", targetUser.ID).Delete(&TabUserCookie{}).Error; err != nil {
+			// 删除 cookie 失败不影响密码修改结果，仅记录
+			//fmt.Println("删除用户 cookie 失败:", err)
+		}
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
 
 	// 获取登录失败日志（仅系统管理员可访问）
 	r.POST("/login_fail_logs", func(ctx *gin.Context) {
