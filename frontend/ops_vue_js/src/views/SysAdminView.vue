@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useUsersStore } from '@/stores/users'
 import { useToastStore } from '@/stores/toast'
 import { authApi } from '@/api/auth'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { IconSearch, IconRefresh, IconChevronLeft, IconChevronRight, IconPlus, IconX } from '@tabler/icons-vue'
+
+const { t } = useI18n()
 
 const toast = useToastStore()
 
@@ -62,9 +65,9 @@ const confirmDialogConfig = ref({
 })
 
 const tabs = [
-  { id: 'users', label: '用户管理' },
-  { id: 'groups', label: '用户组' },
-  { id: 'logs', label: '登录日志' },
+  { id: 'users', label: t('sysadmin.tab_users') },
+  { id: 'groups', label: t('sysadmin.tab_groups') },
+  { id: 'logs', label: t('sysadmin.tab_logs') },
 ]
 
 async function fetchSysAdmins() {
@@ -221,12 +224,12 @@ async function addGroupMember(userId) {
   try {
     const res = await authApi.addGroupMember(selectedGroup.value.id, userId)
     if (res.errCode === 0) {
-      toast.success('成员添加成功')
+      toast.success(t('sysadmin.add_member') + t('message.save_ok'))
       fetchGroupMembers()
       // 从搜索结果中移除已添加的用户
       addMemberSearchResults.value = addMemberSearchResults.value.filter(u => u.id !== userId)
     } else {
-      toast.error(res.raw?.err_msg || '添加失败')
+      toast.error(res.raw?.err_msg || t('sysadmin.add_member') + t('message.save_ok'))
     }
   } catch {
     // 错误已由拦截器处理
@@ -250,18 +253,18 @@ function handleConfirm() {
 async function removeGroupMember(userId) {
   if (!selectedGroup.value) return
   openConfirmDialog({
-    title: '移除成员',
-    message: '确定要移除该成员吗？',
-    confirmText: '移除',
+    title: t('sysadmin.remove_member_title'),
+    message: t('sysadmin.remove_member_confirm'),
+    confirmText: t('sysadmin.remove_member'),
     danger: true,
     onConfirm: async () => {
       try {
         const res = await authApi.removeGroupMember(selectedGroup.value.id, userId)
         if (res.errCode === 0) {
-          toast.success('成员移除成功')
+          toast.success(t('sysadmin.remove_member_title') + t('message.delete_ok'))
           fetchGroupMembers()
         } else {
-          toast.error(res.raw?.err_msg || '移除失败')
+          toast.error(res.raw?.err_msg || t('sysadmin.remove_member') + t('message.delete_ok'))
         }
       } catch {
         // 错误已由拦截器处理
@@ -309,8 +312,8 @@ function onLoginFailLogPageChange(page) {
 
 function formatReason(reason) {
   const reasonMap = {
-    'password_error': '密码错误',
-    'user_not_found': '用户不存在',
+    'password_error': t('sysadmin.reason_password_error'),
+    'user_not_found': t('sysadmin.reason_user_not_found'),
   }
   return reasonMap[reason] || reason
 }
@@ -352,7 +355,7 @@ function closeUserDetail() {
 
 async function resetUserPassword() {
   if (!newPassword.value || newPassword.value.length < 6) {
-    toast.warning('密码长度至少为6位')
+    toast.warning(t('sysadmin.new_password_placeholder'))
     return
   }
   if (!userDetail.value) return
@@ -361,10 +364,10 @@ async function resetUserPassword() {
   try {
     const res = await authApi.resetUserPassword(userDetail.value.id, newPassword.value)
     if (res.errCode === 0) {
-      toast.success('密码修改成功')
+      toast.success(t('message.change_ok'))
       newPassword.value = ''
     } else {
-      toast.error(res.raw?.err_msg || '密码修改失败')
+      toast.error(res.raw?.err_msg || t('message.change_ok'))
     }
   } catch {
     // 错误已由拦截器处理
@@ -379,8 +382,8 @@ function formatDate(dateStr) {
 }
 
 function formatGender(gender) {
-  const map = { 'M': '男', 'F': '女', 'U': '未知' }
-  return map[gender] || '未知'
+  const map = { 'M': t('settings.male'), 'F': t('settings.female'), 'U': '-' }
+  return map[gender] || '-'
 }
 
 // 监听 Tab 切换
@@ -409,13 +412,13 @@ onMounted(() => {
       <!-- Header -->
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-dk-text">系统管理</h1>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-dk-text">{{ t('sysadmin.title') }}</h1>
           <p class="mt-1 text-sm text-gray-500 dark:text-dk-subtle">
-            系统管理员专用页面
+            {{ t('sysadmin.subtitle') }}
           </p>
         </div>
         <div class="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-1.5 dark:bg-amber-900/30">
-          <span class="text-amber-700 dark:text-amber-400">管理员: {{ userStore.user?.Username }}</span>
+          <span class="text-amber-700 dark:text-amber-400">{{ t('sysadmin.admin_label') }}: {{ userStore.user?.Username }}</span>
         </div>
       </div>
 
@@ -443,9 +446,9 @@ onMounted(() => {
         <!-- 用户管理 -->
         <div v-if="activeTab === 'users'" class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-dk-text">用户管理</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-dk-text">{{ t('sysadmin.tab_users') }}</h2>
             <span class="text-sm text-gray-500 dark:text-dk-subtle">
-              共 {{ userTotal }} 位用户
+              {{ t('sysadmin.total_users', { count: userTotal }) }}
             </span>
           </div>
 
@@ -456,7 +459,7 @@ onMounted(() => {
               <input
                 v-model="userSearch"
                 type="text"
-                placeholder="搜索用户名或邮箱..."
+                :placeholder="t('sysadmin.search_placeholder')"
                 class="w-full rounded-md border border-gray-300 py-2 pl-9 pr-4 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
                 @keyup.enter="onSearch"
               />
@@ -465,7 +468,7 @@ onMounted(() => {
               @click="onSearch"
               class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              搜索
+              {{ t('sysadmin.search') }}
             </button>
             <button
               @click="fetchUsers"
@@ -481,20 +484,20 @@ onMounted(() => {
             <table class="min-w-full divide-y divide-gray-200 dark:divide-dk-muted">
               <thead class="bg-gray-50 dark:bg-dk-base">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">ID</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">用户名</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">邮箱</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">类型</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">注册时间</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">操作</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_id') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_username') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_email') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_type') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_created_at') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_action') }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 bg-white dark:divide-dk-muted dark:bg-dk-card">
                 <tr v-if="usersLoading" class="text-center">
-                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">加载中...</td>
+                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.loading') }}</td>
                 </tr>
                 <tr v-else-if="users.length === 0" class="text-center">
-                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">暂无用户</td>
+                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.no_users') }}</td>
                 </tr>
                 <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50 dark:hover:bg-dk-base">
                   <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900 dark:text-dk-text">{{ user.id }}</td>
@@ -523,7 +526,7 @@ onMounted(() => {
                   </td>
                   <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-500 dark:text-dk-subtle">{{ new Date(user.date).toLocaleString() }}</td>
                   <td class="whitespace-nowrap px-4 py-3 text-sm">
-                    <button @click="openUserDetail(user)" class="text-blue-600 hover:text-blue-700 dark:text-blue-400">详情</button>
+                    <button @click="openUserDetail(user)" class="text-blue-600 hover:text-blue-700 dark:text-blue-400">{{ t('sysadmin.detail') }}</button>
                   </td>
                 </tr>
               </tbody>
@@ -533,7 +536,7 @@ onMounted(() => {
           <!-- 分页 -->
           <div class="flex items-center justify-between">
             <div class="text-sm text-gray-500 dark:text-dk-subtle">
-              第 {{ userPage }} 页，共 {{ totalPages }} 页
+              {{ t('sysadmin.pagination', { current: userPage, total: totalPages }) }}
             </div>
             <div class="flex gap-2">
               <button
@@ -541,14 +544,14 @@ onMounted(() => {
                 :disabled="userPage <= 1 || usersLoading"
                 class="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-dk-muted dark:text-dk-text"
               >
-                <IconChevronLeft :size="16" /> 上一页
+                <IconChevronLeft :size="16" /> {{ t('sysadmin.prev_page') }}
               </button>
               <button
                 @click="onPageChange(userPage + 1)"
                 :disabled="userPage >= totalPages || usersLoading"
                 class="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-dk-muted dark:text-dk-text"
               >
-                下一页 <IconChevronRight :size="16" />
+                {{ t('sysadmin.next_page') }} <IconChevronRight :size="16" />
               </button>
             </div>
           </div>
@@ -557,7 +560,7 @@ onMounted(() => {
         <!-- 用户组 -->
         <div v-if="activeTab === 'groups'" class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-dk-text">用户组管理</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-dk-text">{{ t('sysadmin.tab_groups') }}</h2>
             <button
               @click="fetchGroups"
               class="rounded-md border border-gray-300 px-3 py-1.5 text-gray-600 hover:bg-gray-50 dark:border-dk-muted dark:text-dk-subtle dark:hover:bg-dk-card"
@@ -572,13 +575,13 @@ onMounted(() => {
             <div class="lg:col-span-1">
               <div class="overflow-hidden rounded-md border border-gray-200 dark:border-dk-muted">
                 <div class="bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 dark:bg-dk-base dark:text-dk-subtle">
-                  用户组列表
+                  {{ t('sysadmin.group_list') }}
                 </div>
                 <div v-if="groupsLoading" class="p-4 text-center text-gray-500 dark:text-dk-subtle">
-                  加载中...
+                  {{ t('sysadmin.loading') }}
                 </div>
                 <div v-else-if="groups.length === 0" class="p-4 text-center text-gray-500 dark:text-dk-subtle">
-                  暂无用户组
+                  {{ t('sysadmin.no_groups') }}
                 </div>
                 <div v-else class="divide-y divide-gray-200 dark:divide-dk-muted">
                   <button
@@ -605,19 +608,19 @@ onMounted(() => {
             <!-- 组成员详情 -->
             <div class="lg:col-span-2">
               <div v-if="!selectedGroup" class="rounded-md bg-gray-50 p-8 text-center dark:bg-dk-base">
-                <p class="text-gray-500 dark:text-dk-subtle">请选择一个用户组查看成员</p>
+                <p class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.select_group_hint') }}</p>
               </div>
               <div v-else class="space-y-4">
                 <div class="flex items-center justify-between">
                   <div>
                     <h3 class="font-semibold text-gray-900 dark:text-dk-text">{{ selectedGroup.name }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-dk-subtle">共 {{ groupMemberTotal }} 位成员</p>
+                    <p class="text-sm text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.total_members', { count: groupMemberTotal }) }}</p>
                   </div>
                   <button
                     @click="openAddMemberDialog"
                     class="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
                   >
-                    <IconPlus :size="16" /> 添加成员
+                    <IconPlus :size="16" /> {{ t('sysadmin.add_member') }}
                   </button>
                 </div>
 
@@ -625,18 +628,18 @@ onMounted(() => {
                   <table class="min-w-full divide-y divide-gray-200 dark:divide-dk-muted">
                     <thead class="bg-gray-50 dark:bg-dk-base">
                       <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">用户</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">邮箱</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">类型</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">操作</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_user') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_email') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_type') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_action') }}</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white dark:divide-dk-muted dark:bg-dk-card">
                       <tr v-if="groupMembersLoading" class="text-center">
-                        <td colspan="4" class="py-8 text-gray-500 dark:text-dk-subtle">加载中...</td>
+                        <td colspan="4" class="py-8 text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.loading') }}</td>
                       </tr>
                       <tr v-else-if="groupMembers.length === 0" class="text-center">
-                        <td colspan="4" class="py-8 text-gray-500 dark:text-dk-subtle">暂无成员</td>
+                        <td colspan="4" class="py-8 text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.no_members') }}</td>
                       </tr>
                       <tr v-for="member in groupMembers" :key="member.id" class="hover:bg-gray-50 dark:hover:bg-dk-base">
                         <td class="whitespace-nowrap px-4 py-3">
@@ -667,7 +670,7 @@ onMounted(() => {
                             @click="removeGroupMember(member.id)"
                             class="text-red-600 hover:text-red-700 dark:text-red-400"
                           >
-                            移除
+                            {{ t('sysadmin.remove_member') }}
                           </button>
                         </td>
                       </tr>
@@ -678,7 +681,7 @@ onMounted(() => {
                 <!-- 分页 -->
                 <div class="flex items-center justify-between">
                   <div class="text-sm text-gray-500 dark:text-dk-subtle">
-                    第 {{ groupMemberPage }} 页，共 {{ groupMemberTotalPages }} 页
+                    {{ t('sysadmin.pagination', { current: groupMemberPage, total: groupMemberTotalPages }) }}
                   </div>
                   <div class="flex gap-2">
                     <button
@@ -686,14 +689,14 @@ onMounted(() => {
                       :disabled="groupMemberPage <= 1 || groupMembersLoading"
                       class="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-dk-muted dark:text-dk-text"
                     >
-                      <IconChevronLeft :size="16" /> 上一页
+                      <IconChevronLeft :size="16" /> {{ t('sysadmin.prev_page') }}
                     </button>
                     <button
                       @click="onGroupMemberPageChange(groupMemberPage + 1)"
                       :disabled="groupMemberPage >= groupMemberTotalPages || groupMembersLoading"
                       class="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-dk-muted dark:text-dk-text"
                     >
-                      下一页 <IconChevronRight :size="16" />
+                      {{ t('sysadmin.next_page') }} <IconChevronRight :size="16" />
                     </button>
                   </div>
                 </div>
@@ -705,9 +708,9 @@ onMounted(() => {
         <!-- 登录日志 -->
         <div v-if="activeTab === 'logs'" class="space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-dk-text">登录失败日志</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-dk-text">{{ t('sysadmin.tab_logs') }}</h2>
             <span class="text-sm text-gray-500 dark:text-dk-subtle">
-              共 {{ loginFailLogTotal }} 条记录
+              {{ t('sysadmin.total_logs', { count: loginFailLogTotal }) }}
             </span>
           </div>
 
@@ -718,7 +721,7 @@ onMounted(() => {
               <input
                 v-model="loginFailLogSearch"
                 type="text"
-                placeholder="搜索用户名或IP地址..."
+                :placeholder="t('sysadmin.search_log_placeholder')"
                 class="w-full rounded-md border border-gray-300 py-2 pl-9 pr-4 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
                 @keyup.enter="onLoginFailLogSearch"
               />
@@ -727,7 +730,7 @@ onMounted(() => {
               @click="onLoginFailLogSearch"
               class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
-              搜索
+              {{ t('sysadmin.search') }}
             </button>
             <button
               @click="fetchLoginFailLogs"
@@ -743,20 +746,20 @@ onMounted(() => {
             <table class="min-w-full divide-y divide-gray-200 dark:divide-dk-muted">
               <thead class="bg-gray-50 dark:bg-dk-base">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">用户名</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">失败原因</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">连续次数</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">IP地址</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">最后时间</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">首次时间</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_user') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_reason') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_count') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_ip') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_updated_at') }}</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_created') }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 bg-white dark:divide-dk-muted dark:bg-dk-card">
                 <tr v-if="loginFailLogsLoading" class="text-center">
-                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">加载中...</td>
+                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.loading') }}</td>
                 </tr>
                 <tr v-else-if="loginFailLogs.length === 0" class="text-center">
-                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">暂无登录失败记录</td>
+                  <td colspan="6" class="py-8 text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.no_logs') }}</td>
                 </tr>
                 <tr v-for="log in loginFailLogs" :key="log.id" class="hover:bg-gray-50 dark:hover:bg-dk-base">
                   <td class="whitespace-nowrap px-4 py-3">
@@ -802,7 +805,7 @@ onMounted(() => {
           <!-- 分页 -->
           <div class="flex items-center justify-between">
             <div class="text-sm text-gray-500 dark:text-dk-subtle">
-              第 {{ loginFailLogPage }} 页，共 {{ loginFailLogTotalPages }} 页
+              {{ t('sysadmin.pagination', { current: loginFailLogPage, total: loginFailLogTotalPages }) }}
             </div>
             <div class="flex gap-2">
               <button
@@ -810,14 +813,14 @@ onMounted(() => {
                 :disabled="loginFailLogPage <= 1 || loginFailLogsLoading"
                 class="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-dk-muted dark:text-dk-text"
               >
-                <IconChevronLeft :size="16" /> 上一页
+                <IconChevronLeft :size="16" /> {{ t('sysadmin.prev_page') }}
               </button>
               <button
                 @click="onLoginFailLogPageChange(loginFailLogPage + 1)"
                 :disabled="loginFailLogPage >= loginFailLogTotalPages || loginFailLogsLoading"
                 class="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-dk-muted dark:text-dk-text"
               >
-                下一页 <IconChevronRight :size="16" />
+                {{ t('sysadmin.next_page') }} <IconChevronRight :size="16" />
               </button>
             </div>
           </div>
@@ -828,13 +831,13 @@ onMounted(() => {
       <!-- SysAdmins List -->
       <div class="mt-6 rounded-lg border border-gray-200 bg-white p-4 dark:border-dk-muted dark:bg-dk-card">
         <div class="mb-2 flex items-center justify-between">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-dk-subtle">当前系统管理员列表</h3>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-dk-subtle">{{ t('sysadmin.current_admins') }}</h3>
           <button
             @click="fetchSysAdmins"
             class="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
             :disabled="loading"
           >
-            {{ loading ? '加载中...' : '刷新' }}
+            {{ loading ? t('sysadmin.loading') : t('sysadmin.refresh') }}
           </button>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -843,17 +846,13 @@ onMounted(() => {
             :key="adminId"
             class="flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 dark:bg-amber-900/30"
           >
-            <img
-              :src="usersStore.getAvatarUrlFromUserID(adminId)"
-              class="h-6 w-6 rounded-full object-cover"
-              alt="avatar"
-            />
+            <img :src="usersStore.getAvatarUrlFromUserID(adminId)" class="w-5 h-5 rounded-full" alt="avatar" />
             <span class="text-xs font-medium text-amber-800 dark:text-amber-400">
               {{ usersStore.getUsernameFromUserID(adminId) || 'ID: ' + adminId }}
             </span>
           </div>
           <span v-if="sysAdmins.length === 0" class="text-sm text-gray-400 dark:text-dk-muted">
-            暂无系统管理员
+            {{ t('sysadmin.no_admins') }}
           </span>
         </div>
       </div>
@@ -868,7 +867,7 @@ onMounted(() => {
   >
     <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-dk-card">
       <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-dk-text">用户详情</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-dk-text">{{ t('sysadmin.user_detail') }}</h3>
         <button
           @click="closeUserDetail"
           class="text-gray-400 hover:text-gray-600 dark:text-dk-subtle dark:hover:text-dk-text"
@@ -880,7 +879,7 @@ onMounted(() => {
       </div>
 
       <div v-if="userDetailLoading" class="py-8 text-center text-gray-500 dark:text-dk-subtle">
-        加载中...
+        {{ t('sysadmin.loading') }}
       </div>
 
       <div v-else-if="userDetail" class="space-y-4">
@@ -912,44 +911,44 @@ onMounted(() => {
         <!-- 详细信息 -->
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
-            <span class="text-gray-500 dark:text-dk-subtle">用户ID</span>
+            <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.user_id') }}</span>
             <span class="text-gray-900 dark:text-dk-text">{{ userDetail.id }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-gray-500 dark:text-dk-subtle">用户名</span>
+            <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.name') }}</span>
             <span class="text-gray-900 dark:text-dk-text">{{ userDetail.name }}</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-gray-500 dark:text-dk-subtle">注册时间</span>
+            <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.table_created_at') }}</span>
             <span class="text-gray-900 dark:text-dk-text">{{ new Date(userDetail.date).toLocaleString() }}</span>
           </div>
 
           <!-- 用户扩展信息 -->
           <template v-if="userDetailInfo">
             <hr class="border-gray-200 dark:border-dk-muted" />
-            <div class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">扩展信息</div>
+            <div class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.extended_info') }}</div>
             <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-dk-subtle">昵称</span>
+              <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.info_nickname') }}</span>
               <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.username || '-' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-dk-subtle">备注</span>
+              <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.info_remark') }}</span>
               <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.firstname || '-' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-dk-subtle">生日</span>
+              <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.birthday') }}</span>
               <span class="text-gray-900 dark:text-dk-text">{{ formatDate(userDetailInfo.birthdate) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-dk-subtle">性别</span>
+              <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.gender') }}</span>
               <span class="text-gray-900 dark:text-dk-text">{{ formatGender(userDetailInfo.gender) }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-dk-subtle">地区</span>
+              <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.region') }}</span>
               <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.region || '-' }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-500 dark:text-dk-subtle">语言</span>
+              <span class="text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.language') }}</span>
               <span class="text-gray-900 dark:text-dk-text">{{ userDetailInfo.language || '-' }}</span>
             </div>
           </template>
@@ -958,12 +957,12 @@ onMounted(() => {
 
       <!-- 修改密码区域 -->
       <div class="mt-4 space-y-3 border-t border-gray-200 pt-4 dark:border-dk-muted">
-        <div class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">重置密码</div>
+        <div class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dk-subtle">{{ t('sysadmin.reset_password') }}</div>
         <div class="flex gap-2">
           <input
             v-model="newPassword"
             type="password"
-            placeholder="输入新密码（至少6位）"
+            :placeholder="t('sysadmin.new_password_placeholder')"
             class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
           />
           <button
@@ -971,7 +970,7 @@ onMounted(() => {
             :disabled="resetPasswordLoading || !newPassword"
             class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {{ resetPasswordLoading ? '修改中...' : '修改密码' }}
+            {{ resetPasswordLoading ? t('sysadmin.resetting') : t('sysadmin.reset_password_btn') }}
           </button>
         </div>
       </div>
@@ -981,7 +980,7 @@ onMounted(() => {
           @click="closeUserDetail"
           class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dk-muted dark:text-dk-text dark:hover:bg-dk-base"
         >
-          关闭
+          {{ t('sysadmin.close') }}
         </button>
       </div>
     </div>
@@ -994,8 +993,8 @@ onMounted(() => {
     @click.self="closeAddMemberDialog"
   >
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dk-card">
-      <div class="mb-4 flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-dk-text">添加成员到 {{ selectedGroup?.name }}</h3>
+        <div class="mb-4 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-dk-text">{{ t('sysadmin.add_member_title', { name: selectedGroup?.name }) }}</h3>
         <button
           @click="closeAddMemberDialog"
           class="text-gray-400 hover:text-gray-600 dark:text-dk-subtle dark:hover:text-dk-text"
@@ -1004,37 +1003,37 @@ onMounted(() => {
         </button>
       </div>
 
-      <!-- 搜索框 -->
-      <div class="mb-4">
-        <div class="flex gap-2">
-          <input
-            v-model="addMemberSearch"
-            type="text"
-            placeholder="搜索用户名或邮箱..."
-            class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
-            @keyup.enter="searchUsersToAdd"
-          />
-          <button
-            @click="searchUsersToAdd"
-            :disabled="addMemberSearchLoading"
-            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {{ addMemberSearchLoading ? '搜索中...' : '搜索' }}
-          </button>
+        <!-- 搜索框 -->
+        <div class="mb-4">
+          <div class="flex gap-2">
+            <input
+              v-model="addMemberSearch"
+              type="text"
+              :placeholder="t('sysadmin.search_user_placeholder')"
+              class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dk-muted dark:bg-dk-base dark:text-dk-text"
+              @keyup.enter="searchUsersToAdd"
+            />
+            <button
+              @click="searchUsersToAdd"
+              :disabled="addMemberSearchLoading"
+              class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {{ addMemberSearchLoading ? t('sysadmin.searching') : t('sysadmin.search') }}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- 搜索结果 -->
-      <div class="max-h-64 overflow-y-auto">
-        <div v-if="addMemberSearchLoading" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
-          搜索中...
-        </div>
-        <div v-else-if="addMemberSearchResults.length === 0 && addMemberSearch" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
-          未找到匹配的用户
-        </div>
-        <div v-else-if="!addMemberSearch" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
-          输入关键词搜索用户
-        </div>
+        <!-- 搜索结果 -->
+        <div class="max-h-64 overflow-y-auto">
+          <div v-if="addMemberSearchLoading" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
+            {{ t('sysadmin.searching') }}
+          </div>
+          <div v-else-if="addMemberSearchResults.length === 0 && addMemberSearch" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
+            {{ t('sysadmin.no_search_results') }}
+          </div>
+          <div v-else-if="!addMemberSearch" class="py-4 text-center text-gray-500 dark:text-dk-subtle">
+            {{ t('sysadmin.search_hint') }}
+          </div>
         <div v-else class="space-y-2">
           <div
             v-for="user in addMemberSearchResults"
@@ -1059,7 +1058,7 @@ onMounted(() => {
               :disabled="addMemberLoading"
               class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
             >
-              添加
+              {{ t('sysadmin.add') }}
             </button>
           </div>
         </div>
@@ -1070,7 +1069,7 @@ onMounted(() => {
           @click="closeAddMemberDialog"
           class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dk-muted dark:text-dk-text dark:hover:bg-dk-base"
         >
-          关闭
+          {{ t('sysadmin.close') }}
         </button>
       </div>
     </div>

@@ -158,7 +158,7 @@ const navItems = computed(() => [
                 @click="userDropdownOpen = false"
               >
                 <IconShield :size="16" />
-                系统管理
+                {{ t("message.sysadmin") }}
               </RouterLink>
               <hr class="my-1 border-gray-200 dark:border-dk-muted" />
               <button
@@ -233,7 +233,7 @@ const navItems = computed(() => [
               @click="userDropdownOpen = false"
             >
               <IconShield :size="16" />
-              系统管理
+              {{ t("message.sysadmin") }}
             </RouterLink>
             <hr class="my-1 border-gray-200 dark:border-dk-muted" />
             <button
