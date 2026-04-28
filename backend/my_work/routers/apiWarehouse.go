@@ -91,7 +91,7 @@ type TabWarehouseItemWorkOrderBind struct {
 }
 
 var (
-	warehouseUserGroup models.TabUserGroups_
+	warehouseUserGroup TabUserGroups
 	warehouseAdmins   []uint
 )
 
@@ -99,7 +99,7 @@ var (
 func updateWarehouseAdminsCash() {
 	warehouseAdmins = nil
 	warehouseAdmins = append(warehouseAdmins, 1) // id=1 超级管理员
-	var binds []models.TabUserGroupBinds_
+	var binds []TabUserGroupBinds
 	models.DB.Where("group_id = ?", warehouseUserGroup.ID).Find(&binds)
 	for _, item := range binds {
 		if !slices.Contains(warehouseAdmins, item.UserID) {

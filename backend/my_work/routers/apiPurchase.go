@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	purchaseUserGroup models.TabUserGroups_
+	purchaseUserGroup TabUserGroups
 	purchaseAdmins    []uint
 )
 
@@ -22,7 +22,7 @@ func updatePurchaseAdminsCash() {
 	purchaseAdmins = nil
 	// id 1 是系统管理员
 	purchaseAdmins = append(purchaseAdmins, 1)
-	var binds []models.TabUserGroupBinds_
+	var binds []TabUserGroupBinds
 	models.DB.Where("group_id = ?", purchaseUserGroup.ID).Find(&binds)
 	for _, item := range binds {
 		if !slices.Contains(purchaseAdmins, item.UserID) {

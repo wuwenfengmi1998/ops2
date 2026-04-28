@@ -53,7 +53,7 @@ type fromGetEvents struct {
 }
 
 var (
-	userGroup models.TabUserGroups_
+	userGroup TabUserGroups
 	scheduleAdmins []uint
 )
 
@@ -66,8 +66,8 @@ scheduleAdmins=nil
 //id 1是系统管理员 直接appen
 	scheduleAdmins=append(scheduleAdmins, 1)
 	//读取所有绑定了这个用户组的用户id
-	var usergroupbind []models.TabUserGroupBinds_
-	usergroupbindfind:= models.TabUserGroupBinds_{
+	var usergroupbind []TabUserGroupBinds
+	usergroupbindfind:= TabUserGroupBinds{
 		GroupID: userGroup.ID,
 	}
 	models.DB.Where(&usergroupbindfind).Find(&usergroupbind)

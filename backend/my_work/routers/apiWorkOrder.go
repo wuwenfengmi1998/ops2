@@ -2,8 +2,8 @@ package routers
 
 import (
 	"encoding/json"
-	"ops/models"
 	parsefmt "fmt"
+	"ops/models"
 	"slices"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	workOrderUserGroup models.TabUserGroups_
+	workOrderUserGroup TabUserGroups
 	workOrderAdmins    []uint
 )
 
@@ -20,7 +20,7 @@ var (
 func updateWorkOrderAdminsCash() {
 	workOrderAdmins = nil
 	workOrderAdmins = append(workOrderAdmins, 1) // id=1 超级管理员
-	var binds []models.TabUserGroupBinds_
+	var binds []TabUserGroupBinds
 	models.DB.Where("group_id = ?", workOrderUserGroup.ID).Find(&binds)
 	for _, item := range binds {
 		if !slices.Contains(workOrderAdmins, item.UserID) {
@@ -82,20 +82,20 @@ type TabWorkOrderLog struct {
 }
 
 type TabWorkOrderCommitFileBind struct {
-	ID           uint       `gorm:"primarykey"`
-	CommitID     uint       `gorm:"not null;index;comment:关联进度ID"`
-	FileID       uint       `gorm:"not null;comment:关联文件ID"`
-	WorkOrderID  uint       `gorm:"not null;index;comment:关联工单ID"`
-	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime"`
+	ID          uint       `gorm:"primarykey"`
+	CommitID    uint       `gorm:"not null;index;comment:关联进度ID"`
+	FileID      uint       `gorm:"not null;comment:关联文件ID"`
+	WorkOrderID uint       `gorm:"not null;index;comment:关联工单ID"`
+	CreatedAt   *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
 // TabWorkOrderPurchaseOrderBind 工单与采购订单的关联表
 type TabWorkOrderPurchaseOrderBind struct {
-	ID                uint       `gorm:"primarykey"`
-	WorkOrderID       uint       `gorm:"not null;index;comment:关联工单ID"`
-	CommitID          uint       `gorm:"not null;index;comment:关联进度ID"`
-	PurchaseOrderID   uint       `gorm:"not null;comment:关联采购订单ID"`
-	CreatedAt         *time.Time `gorm:"type:datetime;autoCreateTime"`
+	ID              uint       `gorm:"primarykey"`
+	WorkOrderID     uint       `gorm:"not null;index;comment:关联工单ID"`
+	CommitID        uint       `gorm:"not null;index;comment:关联进度ID"`
+	PurchaseOrderID uint       `gorm:"not null;comment:关联采购订单ID"`
+	CreatedAt       *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
 // PurchaseOrderInfo 采购订单简要信息
@@ -441,12 +441,12 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		}
 
 		ReturnJson(ctx, "apiOK", gin.H{
-			"order":        order,
-			"canModify":    canModify,
-			"canCommit":    canCommit,
-			"photos":       files,
-			"commits":      commitsWithPhotos,
-			"linkedItems":  linkedItems,
+			"order":       order,
+			"canModify":   canModify,
+			"canCommit":   canCommit,
+			"photos":      files,
+			"commits":     commitsWithPhotos,
+			"linkedItems": linkedItems,
 		})
 	})
 

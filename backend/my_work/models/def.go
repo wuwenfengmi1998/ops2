@@ -51,47 +51,13 @@ func Md5Str(str string) string {
 	return hashString2
 }
 
-func HashUserPass(user *TabUser_) {
-	switch ConfigsUser.PassHashType {
-	case "text":
-		break
-	case "md5":
-		user.Pass = Md5Str(user.Pass)
 
-	case "md5salt":
-		if user.Salt == "" {
-			user.Salt = RandStr32()
-		}
-		user.Pass = Md5Str(Md5Str(user.Pass) + user.Salt)
-
-	}
-
-}
 
 func IsExpired(expireTime time.Time) bool {
 	return expireTime.Before(time.Now())
 }
 
-func CheckCookiesAndUpdate(cookie *TabCookie_) bool {
-	if !IsExpired(cookie.ExpiresAt) {
-		if cookie.Remember {
-			cookiewhere := TabCookie_{
-				ID: cookie.ID,
-			}
-			cookieupdata := TabCookie_{
-				UpdatedAt: time.Now(),
-				ExpiresAt: time.Now().Add(time.Duration(ConfigsUser.CookieTimeout) * time.Second),
-			}
-			DB.Where(&cookiewhere).Updates(&cookieupdata)
 
-		}
-		return true
-	} else {
-		//以过期
-		return false
-	}
-	//return false
-}
 
 // 判断邮箱是否合法
 func IsEmailValid(email string) bool {

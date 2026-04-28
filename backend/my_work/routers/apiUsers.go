@@ -12,12 +12,115 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+type TabUser struct {
+	ID    uint      `gorm:"primaryKey;autoIncrement"` // 自增主键
+	Name  string    `gorm:"size:100;uniqueIndex"`     // 唯一约束索引
+	Email string    `gorm:"size:255;index"`           // 字符串长度限制100 索引
+	Pass  string    `gorm:"size:128"`                 // 建议存储哈希后的密码
+	Type  string    `gorm:"size:64;default:user"`     //
+	Salt  string    `gorm:"size:64;"`
+	Date  time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
+}
+
+type TabUserGroups struct {
+	ID    uint      `gorm:"primaryKey;autoIncrement"`                // 自增主键
+	Name  string    `gorm:"size:100;uniqueIndex"`                    // 唯一约束索引
+	Email string    `gorm:"size:255;index"`                          // 字符串长度限制100 索引
+	Type  string    `gorm:"size:64;default:usergroup"`               //
+	Date  time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
+}
+
+type TabUserGroupBinds struct {
+	ID      uint      `gorm:"primaryKey;autoIncrement"` // 自增主键
+	UserID  uint      `gorm:"index"`
+	GroupID uint      `gorm:"index"`
+	Date    time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP"` // 默认当前时间
+}
+
+type TabUserInfo struct {
+	ID         uint      `gorm:"primaryKey;autoIncrement"`
+	UserID     uint      `gorm:"not null;uniqueIndex"`
+	FirstName  string    `gorm:"size:50;null"`
+	Username   string    `gorm:"size:30;null"`
+	Birthdate  time.Time `gorm:"type:datetime;null"`
+	Gender     string    `gorm:"type:char(1);check:gender IN ('M', 'F', 'U');default:'U'"`
+	AvatarPath string    `gorm:"size:255"`
+	Region     string    `gorm:"size:50"`
+	Language   string    `gorm:"size:10;default:'zh-CN'"`
+	CreatedAt  time.Time `gorm:"type:datetime;default:CURRENT_TIMESTAMP;column:created_at"`
+}
+
+// var def_user_info = User_info{
+// 	ID:0,
+// 	UserID:0,
+// }
+
+type TabUserCookie struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement"`
+	UserID    uint      `gorm:"not null"`
+	Name      string    `gorm:"size:255;not null;index"`
+	Value     string    `gorm:"size:255;not null;index"`
+	ExpiresAt time.Time `gorm:"type:datetime;index"`
+	CreatedAt time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"type:datetime;index;not null;default:CURRENT_TIMESTAMP"`
+	Remember  bool      `gorm:"default:false"`
+}
+
+func HashUserPass(user *TabUser) {
+	switch models.ConfigsUser.PassHashType {
+	case "text":
+		break
+	case "md5":
+		user.Pass = models.Md5Str(user.Pass)
+
+	case "md5salt":
+		if user.Salt == "" {
+			user.Salt = models.RandStr32()
+		}
+		user.Pass = models.Md5Str(models.Md5Str(user.Pass) + user.Salt)
+
+	}
+
+}
+
+func CheckCookiesAndUpdate(cookie *TabUserCookie) bool {
+	if !models.IsExpired(cookie.ExpiresAt) {
+		if cookie.Remember {
+			cookiewhere := TabUserCookie{
+				ID: cookie.ID,
+			}
+			cookieupdata := TabUserCookie{
+				UpdatedAt: time.Now(),
+				ExpiresAt: time.Now().Add(time.Duration(models.ConfigsUser.CookieTimeout) * time.Second),
+			}
+			models.DB.Where(&cookiewhere).Updates(&cookieupdata)
+
+		}
+		return true
+	} else {
+		//以过期
+		return false
+	}
+	//return false
+}
+
 func ApiUserInit() {
 	//用户模块初始化init
 	fmt.Println("users init")
 
+	// 自动创建表结构
+	models.DB.AutoMigrate(&TabUser{})
+
+	models.DB.AutoMigrate(&TabUserGroups{})
+
+	models.DB.AutoMigrate(&TabUserGroupBinds{})
+
+	models.DB.AutoMigrate(&TabUserInfo{})
+
+	models.DB.AutoMigrate(&TabUserCookie{})
+
 	//创建admin用户
-	var user models.TabUser_
+	var user TabUser
 	user.Name = "admin"
 
 	if models.DB.Where(&user).First(&user).Error == nil {
@@ -28,12 +131,12 @@ func ApiUserInit() {
 		//对密码加盐
 		user.Salt = models.RandStr32()
 		user.Pass = "adminpassword"
-		models.HashUserPass(&user)
+		HashUserPass(&user)
 		models.DB.Create(&user) // 传入指针
 	}
 
 	//创建admin group
-	var usergroup models.TabUserGroups_
+	var usergroup TabUserGroups
 	usergroup.Name = "admins"
 	if models.DB.Where(&usergroup).First(&usergroup).Error == nil {
 
@@ -43,7 +146,7 @@ func ApiUserInit() {
 	}
 
 	//创建用户与用户组绑定
-	var usergroupbind models.TabUserGroupBinds_
+	var usergroupbind TabUserGroupBinds
 	usergroupbind.UserID = user.ID
 	usergroupbind.GroupID = usergroup.ID
 
@@ -82,18 +185,18 @@ type From_user_changepass struct {
 	Newpass string `json:"newpass"`
 }
 
-func AuthenticationAuthorityFromCookie(c string) (*models.TabUser_, error) {
+func AuthenticationAuthorityFromCookie(c string) (*TabUser, error) {
 
 	if c != "" {
-		cookie := models.TabCookie_{
+		cookie := TabUserCookie{
 			Value: c,
 		}
 		if models.DB.Where(&cookie).First(&cookie).Error == nil {
 			//找到cookie，验证cookie有效性，以及更新cookie
-			if models.CheckCookiesAndUpdate(&cookie) {
+			if CheckCookiesAndUpdate(&cookie) {
 				//cookie有效
 				//载入user
-				user := models.TabUser_{
+				user := TabUser{
 					ID: cookie.UserID,
 				}
 				models.DB.Where(&user).First(&user)
@@ -109,27 +212,27 @@ func AuthenticationAuthorityFromCookie(c string) (*models.TabUser_, error) {
 	}
 }
 
-func GetUserInfoFromUserID(userID uint) (*models.TabUserInfo_){
+func GetUserInfoFromUserID(userID uint) *TabUserInfo {
 	//通过id获取用户info
 
-	if(userID <=0){
+	if userID <= 0 {
 		return nil
 	}
 
 	//先查询用户是否存在
-	var user models.TabUser_
+	var user TabUser
 	user.ID = userID
 
-	if models.DB.Where(&user).First(&user).Error==nil{
-		var userinfo models.TabUserInfo_
-		userinfo.UserID=user.ID
-		if models.DB.Where(&userinfo).First(&userinfo).Error==nil{
+	if models.DB.Where(&user).First(&user).Error == nil {
+		var userinfo TabUserInfo
+		userinfo.UserID = user.ID
+		if models.DB.Where(&userinfo).First(&userinfo).Error == nil {
 			return &userinfo
-		}else{
+		} else {
 			//无记录，创建一条
-			userinfo.Username=user.Name
-			userinfo.FirstName=user.Email
-			userinfo.Birthdate=(time.Now())
+			userinfo.Username = user.Name
+			userinfo.FirstName = user.Email
+			userinfo.Birthdate = (time.Now())
 			models.DB.Create(&userinfo)
 			return &userinfo
 		}
@@ -137,16 +240,13 @@ func GetUserInfoFromUserID(userID uint) (*models.TabUserInfo_){
 
 	return nil
 
-
-
-	
 }
 
-func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[string]interface{}) {
+func AuthenticationAuthority(ctx *gin.Context) (bool, TabUser, map[string]interface{}) {
 
 	data, cookieval := SeparateData(ctx)
 	//fmt.Println("cookieis" + cookieval)
-	var user models.TabUser_
+	var user TabUser
 	if cookieval != "" {
 		user_, error := AuthenticationAuthorityFromCookie(cookieval)
 		if error == nil {
@@ -163,8 +263,6 @@ func AuthenticationAuthority(ctx *gin.Context) (bool, models.TabUser_, map[strin
 
 }
 
-
-
 func ApiUser(r *gin.RouterGroup) {
 
 	r.GET("/test", func(ctx *gin.Context) {
@@ -175,16 +273,16 @@ func ApiUser(r *gin.RouterGroup) {
 	})
 
 	//get获取用户info
-	r.GET("/getuserinfo/:id",func(ctx *gin.Context) {
+	r.GET("/getuserinfo/:id", func(ctx *gin.Context) {
 		idStr := ctx.Param("id")
 		id, err := strconv.Atoi(idStr)
 		var redata map[string]interface{} = make(map[string]interface{})
 		if err == nil {
-			userinfo:=GetUserInfoFromUserID(uint(id))
-			if(userinfo!=nil){
-				redata["userinfo"]=*userinfo
+			userinfo := GetUserInfoFromUserID(uint(id))
+			if userinfo != nil {
+				redata["userinfo"] = *userinfo
 			}
-			
+
 		}
 
 		ReturnJson(ctx, "apiOK", redata)
@@ -200,17 +298,17 @@ func ApiUser(r *gin.RouterGroup) {
 				//验证旧密码
 				//fmt.Println(user)
 				//转换旧密码
-				olduser := models.TabUser_{
+				olduser := TabUser{
 					Pass: jsonData.Oldpass,
 					Salt: user.Salt,
 				}
-				models.HashUserPass(&olduser)
+				HashUserPass(&olduser)
 				if olduser.Pass == user.Pass {
 					//旧密码正确，更新新密码
-					var userupdate models.TabUser_
+					var userupdate TabUser
 					userupdate.Pass = jsonData.Newpass
 					userupdate.Salt = models.RandStr32()
-					models.HashUserPass(&userupdate)
+					HashUserPass(&userupdate)
 					models.DB.Model(&user).Updates(&userupdate)
 					ReturnJson(ctx, "apiOK", nil)
 				} else {
@@ -233,7 +331,7 @@ func ApiUser(r *gin.RouterGroup) {
 			if err := mapstructure.Decode(data, &jsonData); err == nil {
 				//判断新邮箱格式
 				if models.IsEmailValid(jsonData.Newemail) {
-					var userupdate models.TabUser_
+					var userupdate TabUser
 					userupdate.Email = jsonData.Newemail
 					models.DB.Model(&user).Updates(&userupdate)
 					ReturnJson(ctx, "apiOK", nil)
@@ -297,10 +395,10 @@ func ApiUser(r *gin.RouterGroup) {
 										}
 										if is_save_ok {
 											//修改数据库内容
-											var user_info_fund models.TabUserInfo_
+											var user_info_fund TabUserInfo
 											user_info_fund.UserID = user.ID
 
-											var user_update_avatar models.TabUserInfo_
+											var user_update_avatar TabUserInfo
 											user_update_avatar.AvatarPath = file_hashi_name + file_extname
 
 											//先查找是否有记录
@@ -357,10 +455,10 @@ func ApiUser(r *gin.RouterGroup) {
 				// fmt.Println(user)
 				t, err := time.Parse("2006-01-02", jsonData.Birthday)
 				if err == nil {
-					var userinfo models.TabUserInfo_
+					var userinfo TabUserInfo
 					userinfo.UserID = user.ID
 
-					var userinfoupdate models.TabUserInfo_
+					var userinfoupdate TabUserInfo
 					userinfoupdate.UserID = user.ID
 					userinfoupdate.CreatedAt = time.Now()
 					userinfoupdate.Username = jsonData.Username
@@ -399,7 +497,7 @@ func ApiUser(r *gin.RouterGroup) {
 			//fmt.Println(userInfo)
 			var redata map[string]interface{} = make(map[string]interface{})
 
-			info:=GetUserInfoFromUserID(user.ID)
+			info := GetUserInfoFromUserID(user.ID)
 			redata["userInfo"] = *info
 
 			user.Pass = ""
@@ -419,21 +517,21 @@ func ApiUser(r *gin.RouterGroup) {
 				if loginuser.Username != "" && loginuser.Password != "" {
 					//传入的数据都ok，获取用户信息
 
-					getuser := models.TabUser_{
+					getuser := TabUser{
 						Name: loginuser.Username,
 					}
 
 					if models.DB.Where(&getuser).First(&getuser).Error == nil {
 						//倒入数据
-						user := models.TabUser_{
+						user := TabUser{
 							Pass: loginuser.Password, //密码明文
 							Salt: getuser.Salt,       //保存的盐制
 						}
 						//哈希密
-						models.HashUserPass(&user)
+						HashUserPass(&user)
 						if user.Pass == getuser.Pass {
 							//用户密码正确,生成cookie
-							cookie := models.TabCookie_{
+							cookie := TabUserCookie{
 								UserID:    getuser.ID,
 								Name:      "login",
 								Value:     models.RandStr32(),
@@ -480,7 +578,7 @@ func ApiUser(r *gin.RouterGroup) {
 		if data != nil {
 			if err := mapstructure.Decode(data, &jsonData); err == nil {
 				//转换字段
-				newUser := models.TabUser_{
+				newUser := TabUser{
 					Name:  jsonData.Username,
 					Email: jsonData.Useremail,
 					Pass:  jsonData.Userpass, // 实际应替换为哈希值
@@ -490,7 +588,7 @@ func ApiUser(r *gin.RouterGroup) {
 				if newUser.Name != "" && newUser.Pass != "" && newUser.Email != "" {
 
 					//用户名是唯一的，先读取是否有这个用户名
-					var user models.TabUser_
+					var user TabUser
 					user.Name = newUser.Name
 
 					if models.DB.Where(&user).First(&user).Error == nil {
@@ -503,13 +601,11 @@ func ApiUser(r *gin.RouterGroup) {
 						newUser.Salt = models.RandStr32()
 
 						//对用户的密码进行哈希替换
-						models.HashUserPass(&newUser)
+						HashUserPass(&newUser)
 
 						models.DB.Create(&newUser) // 传入指针
 
 						//创建用户后写一个log
-
-						models.LogAdd(ctx, "New user id:"+strconv.Itoa(int(newUser.ID)))
 
 						ReturnJson(ctx, "apiOK", nil)
 					}

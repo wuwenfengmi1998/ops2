@@ -35,16 +35,16 @@ func GetRealIP(c *gin.Context) string {
 	return c.ClientIP()
 }
 
-func LogAdd(c *gin.Context, msg string) {
+// func LogAdd(c *gin.Context, msg string) {
 
-	var logtemp APIRequestLog_
+// 	var logtemp APIRequestLog_
 
-	logtemp.IPAddress = GetRealIP(c)
-	logtemp.Path = c.Request.URL.Path
-	logtemp.Method = c.Request.Method
-	logtemp.Message = msg
+// 	logtemp.IPAddress = GetRealIP(c)
+// 	logtemp.Path = c.Request.URL.Path
+// 	logtemp.Method = c.Request.Method
+// 	logtemp.Message = msg
 
-	//fmt.Println(logtemp)
-	DB.Create(&logtemp)
+// 	//fmt.Println(logtemp)
+// 	DB.Create(&logtemp)
 
-}
+// }
