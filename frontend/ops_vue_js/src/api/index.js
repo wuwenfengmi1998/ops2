@@ -96,6 +96,14 @@ export const api = {
   },
 
   /**
+   * POST JSON (原始格式，不包装 data 层)
+   */
+  async postRaw(path, payload = {}) {
+    const res = await http.post(path, payload)
+    return unwrapResponse(res)
+  },
+
+  /**
    * POST FormData（文件上传）
    */
   async upload(path, file) {

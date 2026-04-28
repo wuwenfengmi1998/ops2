@@ -109,7 +109,7 @@ const router = createRouter({
           component: () => import('@/views/AdminView.vue'),
         },
         {
-          path: 'sysadmin',
+          path: 'admin',
           name: 'sysadmin',
           component: () => import('@/views/SysAdminView.vue'),
           meta: { requireSysAdmin: true },

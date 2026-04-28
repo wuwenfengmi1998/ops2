@@ -41,8 +41,6 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref(null)    // TabUserInfo_ 详情
   const userCookie = ref(null)  // Cookie session
   const isLoggedIn = ref(false)
-  const sysAdmins = ref([])    // 系统管理员 ID 列表
-
   // ── Getters ──
   const cookieValue = computed(() => userCookie.value?.Value ?? '')
 

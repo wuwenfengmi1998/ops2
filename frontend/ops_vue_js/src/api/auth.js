@@ -18,7 +18,7 @@ export const authApi = {
 
   /** 获取系统管理员列表（仅管理员可访问） */
   sysAdmins() {
-    return api.post('/users/sysadmins', {})
+    return api.post('/admin/sysadmins', {})
   },
 
   /** 修改密码 */

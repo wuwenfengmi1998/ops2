@@ -19,6 +19,7 @@ const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
 
+
 const isDark = ref(document.documentElement.classList.contains("dark"));
 const mobileMenuOpen = ref(false);
 const userDropdownOpen = ref(false);
@@ -152,7 +153,7 @@ const navItems = computed(() => [
               </RouterLink>
               <RouterLink
                 v-if="userStore.isSysAdmin"
-                to="/sysadmin"
+                to="/admin"
                 class="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
                 @click="userDropdownOpen = false"
               >
@@ -224,6 +225,15 @@ const navItems = computed(() => [
             >
               <IconSettings :size="16" />
               {{ t("message.user_settings") }}
+            </RouterLink>
+            <RouterLink
+              v-if="userStore.isSysAdmin"
+              to="/admin"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+              @click="userDropdownOpen = false"
+            >
+              <IconShield :size="16" />
+              系统管理
             </RouterLink>
             <hr class="my-1 border-gray-200 dark:border-dk-muted" />
             <button

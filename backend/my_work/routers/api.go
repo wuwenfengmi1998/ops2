@@ -43,6 +43,7 @@ func ApiRoot(r *gin.RouterGroup) {
 	ApiSchedule(r.Group("/schedule"))
 	ApiWorkOrder(r.Group("/work_order"))
 	ApiWarehouse(r.Group("/warehouse"))
+	ApiSysAdmin(r.Group("/admin"))
 	r.GET("/", func(ctx *gin.Context) {
 		ReturnJson(ctx, "apiOK", gin.H{
 			"isOpsApiRoot": true,
