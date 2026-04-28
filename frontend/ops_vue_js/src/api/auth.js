@@ -21,6 +21,26 @@ export const authApi = {
     return api.post('/admin/sysadmins', {})
   },
 
+  /** 获取用户列表（仅管理员可访问） */
+  getUsers(params = {}) {
+    return api.post('/admin/users', params)
+  },
+
+  /** 获取用户组列表（仅管理员可访问） */
+  getGroups() {
+    return api.post('/admin/groups', {})
+  },
+
+  /** 获取用户组成员列表（仅管理员可访问） */
+  getGroupMembers(groupId, params = {}) {
+    return api.post('/admin/group_members', { group_id: groupId, ...params })
+  },
+
+  /** 获取登录失败日志（仅管理员可访问） */
+  getLoginFailLogs(params = {}) {
+    return api.post('/admin/login_fail_logs', params)
+  },
+
   /** 修改密码 */
   changePassword(oldPass, newPass) {
     return api.post('/users/changePassword', { oldpass: oldPass, newpass: newPass })

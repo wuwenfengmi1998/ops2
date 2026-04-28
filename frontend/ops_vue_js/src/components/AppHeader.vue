@@ -153,7 +153,7 @@ const navItems = computed(() => [
               </RouterLink>
               <RouterLink
                 v-if="userStore.isSysAdmin"
-                to="/admin"
+                to="/sysadmin"
                 class="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
                 @click="userDropdownOpen = false"
               >
@@ -228,7 +228,7 @@ const navItems = computed(() => [
             </RouterLink>
             <RouterLink
               v-if="userStore.isSysAdmin"
-              to="/admin"
+              to="/sysadmin"
               class="flex items-center gap-2 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
               @click="userDropdownOpen = false"
             >

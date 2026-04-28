@@ -64,7 +64,7 @@ export const useUsersStore = defineStore('users', () => {
     }
 
     return {
-        usersInfo, getUsernameFromUserID, getAvatarUrlFromUserID,
+        usersInfo, getUsernameFromUserID, getAvatarUrlFromUserID, fetchUser,
     }
 
 })
