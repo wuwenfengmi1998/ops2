@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { customerApi } from '@/api/customer'
 import AppToast from '@/components/AppToast.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import CustomerFormModal from './CustomerFormModal.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 
 const customers = ref([])
 const loading = ref(false)
@@ -15,10 +16,7 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
-const showAddModal = ref(false)
-const showEditModal = ref(false)
 const showDeleteConfirm = ref(false)
-const editingCustomer = ref(null)
 const deletingCustomer = ref(null)
 
 const toast = ref({ show: false, message: '', type: 'success' })
@@ -54,27 +52,13 @@ function onPageChange(page) {
 }
 
 // 新增客户
-function openAddModal() {
-  showAddModal.value = true
-}
-
-function onCustomerAdded() {
-  showAddModal.value = false
-  showToast(t('message.add_success'), 'success')
-  fetchCustomers()
+function openAdd() {
+  router.push('/customer/add')
 }
 
 // 编辑客户
-function openEditModal(customer) {
-  editingCustomer.value = customer
-  showEditModal.value = true
-}
-
-function onCustomerUpdated() {
-  showEditModal.value = false
-  editingCustomer.value = null
-  showToast(t('message.update_success'), 'success')
-  fetchCustomers()
+function openEdit(customer) {
+  router.push(`/customer/edit/${customer.id}`)
 }
 
 // 删除客户
@@ -121,7 +105,7 @@ onMounted(() => {
           <p class="mt-1 text-sm text-gray-500 dark:text-dk-subtle">{{ t('customer.subtitle') }}</p>
         </div>
         <button
-          @click="openAddModal"
+          @click="openAdd"
           class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,7 +175,7 @@ onMounted(() => {
                   <div class="flex gap-2">
                     <button
                       v-if="customer.edit"
-                      @click="openEditModal(customer)"
+                      @click="openEdit(customer)"
                       class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
                     >
                       {{ t('common.edit') }}
@@ -238,23 +222,6 @@ onMounted(() => {
         </div>
       </div>
     </div>
-
-    <!-- Add Modal -->
-    <CustomerFormModal
-      v-if="showAddModal"
-      :title="t('customer.add_title')"
-      @close="showAddModal = false"
-      @submit="onCustomerAdded"
-    />
-
-    <!-- Edit Modal -->
-    <CustomerFormModal
-      v-if="showEditModal"
-      :title="t('customer.edit_title')"
-      :customer="editingCustomer"
-      @close="showEditModal = false"
-      @submit="onCustomerUpdated"
-    />
 
     <!-- Delete Confirm -->
     <ConfirmDialog

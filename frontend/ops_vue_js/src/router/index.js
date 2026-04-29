@@ -115,6 +115,11 @@ const router = createRouter({
           component: () => import('@/views/customer/CustomerList.vue'),
         },
         {
+          path: 'customer/add',
+          name: 'customer-add',
+          component: () => import('@/views/customer/CustomerFormPage.vue'),
+        },
+        {
           path: 'customer/detail/:id',
           name: 'customer-detail',
           component: () => import('@/views/customer/CustomerDetail.vue'),
@@ -122,12 +127,7 @@ const router = createRouter({
         {
           path: 'customer/edit/:id',
           name: 'customer-edit',
-          component: () => import('@/views/customer/CustomerEdit.vue'),
-        },
-        {
-          path: 'customer/edit/:id',
-          name: 'customer-edit',
-          component: () => import('@/views/customer/CustomerFormModal.vue'),
+          component: () => import('@/views/customer/CustomerFormPage.vue'),
         },
       ],
     },

@@ -16,6 +16,7 @@ const phones = ref([])
 const emails = ref([])
 const companies = ref([])
 const loading = ref(false)
+const canModify = ref(false) // 是否有权限修改此客户
 
 // 主要联系方式
 const primaryPhone = computed(() => phones.value.find(p => p.is_primary) || null)
@@ -41,6 +42,7 @@ async function fetchCustomerDetail() {
       phones.value = res.data.phones || []
       emails.value = res.data.emails || []
       companies.value = res.data.companies || []
+      canModify.value = res.data.canModify || false // 从后端获取权限信息
       // 预加载创建者信息
       if (customer.value?.created_by) {
         usersStore.fetchUser(customer.value.created_by)
@@ -101,6 +103,17 @@ onMounted(() => {
             {{ t('common.back') }}
           </button>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-dk-text">{{ t('customer.detail_title') }}</h1>
+        </div>
+        <div v-if="canModify && customer" class="flex items-center gap-2">
+          <button
+            @click="router.push(`/customer/edit/${customer.id}`)"
+            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            {{ t('common.edit') }}
+          </button>
         </div>
       </div>
 
