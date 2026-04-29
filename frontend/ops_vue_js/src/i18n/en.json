@@ -222,8 +222,10 @@
     "move_item": "Move Item",
     "move_history": "Move History",
     "work_orders": "Work Orders",
+    "customers": "Customers",
     "no_move_history": "No move history",
     "no_work_orders": "No related work orders",
+    "no_customers": "No related customers",
     "current_location": "Current Location",
     "target_container": "Target Container",
     "search_container": "Search container...",
@@ -234,7 +236,12 @@
     "delete_item_msg": "Are you sure you want to delete item \"{name}\"? This action cannot be undone.",
     "items_in_containers": "Stored",
     "total_items": "{count} items",
-    "search_item_placeholder": "Search by name or serial number"
+    "search_item_placeholder": "Search by name or serial number",
+    "linked_customers": "Linked Customers",
+    "linked_customer_placeholder": "Search customer by name or phone...",
+    "linked_customer_not_found": "No matching customers found",
+    "linked_customer_selected": "Selected",
+    "clear_linked_customer": "Clear"
   },
   "purchase_addorder": {
     "add_order": "Add Order",
@@ -554,6 +561,7 @@
     "created_at": "Created At",
     "primary": "Primary",
     "set_primary": "Set Primary",
+    "primary_contact": "Primary Contact",
     "label_mobile": "Mobile",
     "label_work": "Work",
     "label_home": "Home",

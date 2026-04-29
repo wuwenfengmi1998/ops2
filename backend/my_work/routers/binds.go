@@ -73,6 +73,15 @@ type TabWarehouseContainerFileBind struct {
 	CreatedAt   time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
+// TabWarehouseItemCustomerBind 物品与客户关联表
+type TabWarehouseItemCustomerBind struct {
+	ID         uint       `gorm:"primarykey"`
+	ItemID     uint       `gorm:"not null;index;comment:关联物品ID"`
+	CustomerID uint       `gorm:"not null;index;comment:关联客户ID"`
+	CreatorID  uint       `gorm:"not null;comment:绑定人id"`
+	CreatedAt  *time.Time `gorm:"type:datetime;autoCreateTime"`
+}
+
 func BindsInit() {
 	models.DB.AutoMigrate(
 		&TabPurchaseFileBind{},
@@ -83,6 +92,7 @@ func BindsInit() {
 		&TabWorkOrderCommitFileBind{},
 		&TabWorkOrderPurchaseOrderBind{},
 		&TabWorkOrderCustomerBind{},
+		&TabWarehouseItemCustomerBind{},
 	)
 
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { customerApi } from '@/api/customer'
@@ -16,6 +16,12 @@ const phones = ref([])
 const emails = ref([])
 const companies = ref([])
 const loading = ref(false)
+
+// 主要联系方式
+const primaryPhone = computed(() => phones.value.find(p => p.is_primary) || null)
+const primaryEmail = computed(() => emails.value.find(e => e.is_primary) || null)
+const primaryCompany = computed(() => companies.value.find(c => c.is_primary) || null)
+const hasPrimaryInfo = computed(() => primaryPhone.value || primaryEmail.value || primaryCompany.value)
 
 const toast = ref({ show: false, message: '', type: 'success' })
 
@@ -51,9 +57,9 @@ async function fetchCustomerDetail() {
   }
 }
 
-// 返回列表
+// 返回上一页
 function goBack() {
-  router.push('/customer')
+  router.back()
 }
 
 // 格式化日期
@@ -136,6 +142,40 @@ onMounted(() => {
                 <span class="text-gray-900 dark:text-dk-text">
                   {{ usersStore.getUsernameFromUserID(customer.created_by) || 'ID: ' + customer.created_by }}
                 </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Contact Info Card -->
+        <div v-if="hasPrimaryInfo" class="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-900/20">
+          <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-dk-text">{{ t('customer.primary_contact') }}</h2>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div v-if="primaryPhone">
+              <label class="text-sm text-gray-500 dark:text-dk-subtle">{{ t('customer.phone') }}</label>
+              <p class="font-medium text-gray-900 dark:text-dk-text">
+                +{{ primaryPhone.prefix }} {{ primaryPhone.phone }}
+                <span class="ml-1 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  {{ getLabelText(primaryPhone.label) }}
+                </span>
+              </p>
+            </div>
+            <div v-if="primaryEmail">
+              <label class="text-sm text-gray-500 dark:text-dk-subtle">{{ t('customer.email') }}</label>
+              <p class="font-medium text-gray-900 dark:text-dk-text">
+                {{ primaryEmail.email }}
+                <span class="ml-1 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  {{ getLabelText(primaryEmail.label) }}
+                </span>
+              </p>
+            </div>
+            <div v-if="primaryCompany" class="sm:col-span-2">
+              <label class="text-sm text-gray-500 dark:text-dk-subtle">{{ t('customer.company') }}</label>
+              <p class="font-medium text-gray-900 dark:text-dk-text">
+                {{ primaryCompany.company_name }}
+              </p>
+              <div v-if="primaryCompany.department || primaryCompany.position" class="mt-1 text-sm text-gray-500 dark:text-dk-subtle">
+                {{ primaryCompany.department }}{{ primaryCompany.department && primaryCompany.position ? ' · ' : '' }}{{ primaryCompany.position }}
               </div>
             </div>
           </div>

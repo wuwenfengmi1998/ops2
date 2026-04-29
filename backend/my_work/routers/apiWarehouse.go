@@ -544,6 +544,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			Quantity     int      `json:"quantity"`
 			ContainerID  *uint    `json:"container_id"`
 			Photos       []string `json:"photos"`
+			CustomerIDs  []uint   `json:"customer_ids"`
 		}
 		var from FromAdd
 		if err := decodeJSON(data, &from); err != nil || from.Name == "" {
@@ -673,6 +674,21 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			IP:           ctx.ClientIP(),
 		})
 
+		// 绑定客户关联（仅新建时）
+		if !exists {
+			for _, customerID := range from.CustomerIDs {
+				// 检查客户是否存在
+				var bindCustomer TabCustomer
+				if models.DB.First(&bindCustomer, customerID).Error == nil {
+					models.DB.Create(&TabWarehouseItemCustomerBind{
+						ItemID:     itemID,
+						CustomerID: customerID,
+						CreatorID:  user.ID,
+					})
+				}
+			}
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{"id": itemID, "updated": exists})
 	})
 
@@ -685,12 +701,13 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromUpdate struct {
-			ID           uint     `json:"id"`
-			Name         string   `json:"name"`
-			SerialNumber string   `json:"serial_number"`
-			Remark       string   `json:"remark"`
-			Quantity     int      `json:"quantity"`
-			Photos       []string `json:"photos"`
+			ID          uint     `json:"id"`
+			Name        string   `json:"name"`
+			SerialNumber string  `json:"serial_number"`
+			Remark      string   `json:"remark"`
+			Quantity    int      `json:"quantity"`
+			Photos      []string `json:"photos"`
+			CustomerIDs []uint   `json:"customer_ids"`
 		}
 		var from FromUpdate
 		if err := decodeJSON(data, &from); err != nil || from.ID == 0 || from.Name == "" {
@@ -734,6 +751,19 @@ func ApiWarehouse(r *gin.RouterGroup) {
 					ItemID:    from.ID,
 					FileID:    findFile.ID,
 					CreatorID: user.ID,
+				})
+			}
+		}
+
+		// 重建客户关联绑定
+		models.DB.Where("item_id = ?", from.ID).Delete(&TabWarehouseItemCustomerBind{})
+		for _, customerID := range from.CustomerIDs {
+			var bindCustomer TabCustomer
+			if models.DB.First(&bindCustomer, customerID).Error == nil {
+				models.DB.Create(&TabWarehouseItemCustomerBind{
+					ItemID:     from.ID,
+					CustomerID: customerID,
+					CreatorID:  user.ID,
 				})
 			}
 		}
@@ -966,11 +996,35 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			}
 		}
 
+		// 关联客户
+		var customerBinds []TabWarehouseItemCustomerBind
+		models.DB.Where("item_id = ?", from.ID).Find(&customerBinds)
+
+		type CustomerInfo struct {
+			ID        uint   `json:"id"`
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+			Title     string `json:"title"`
+		}
+		var customers []CustomerInfo
+		for _, b := range customerBinds {
+			var c TabCustomer
+			if models.DB.Where("id = ?", b.CustomerID).First(&c).Error == nil {
+				customers = append(customers, CustomerInfo{
+					ID:        c.ID,
+					FirstName: c.FirstName,
+					LastName:  c.LastName,
+					Title:     c.Title,
+				})
+			}
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
 			"item":          item,
 			"photos":        files,
 			"commits":       commitsWithBreadcrumb,
 			"work_orders":   workOrders,
+			"customers":     customers,
 			"canModifyItem": canModifyWarehouse(user.ID, item.CreatorID),
 			"container_breadcrumb": func() string {
 				if item.ContainerID == nil {

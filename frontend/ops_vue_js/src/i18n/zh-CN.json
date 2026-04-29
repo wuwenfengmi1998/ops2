@@ -222,8 +222,10 @@
     "move_item": "移动物品",
     "move_history": "移动历史",
     "work_orders": "关联工单",
+    "customers": "关联客户",
     "no_move_history": "暂无移动记录",
     "no_work_orders": "暂无关联工单",
+    "no_customers": "暂无关联客户",
     "current_location": "当前位置",
     "target_container": "目标容器",
     "search_container": "搜索容器...",
@@ -234,7 +236,12 @@
     "delete_item_msg": "确定要删除物品「{name}」吗？此操作不可撤销。",
     "items_in_containers": "已入库",
     "total_items": "共 {count} 条",
-    "search_item_placeholder": "搜索物品名称或序列号"
+    "search_item_placeholder": "搜索物品名称或序列号",
+    "linked_customers": "关联客户",
+    "linked_customer_placeholder": "搜索客户姓名或电话...",
+    "linked_customer_not_found": "未找到匹配的客户",
+    "linked_customer_selected": "已选择",
+    "clear_linked_customer": "清除"
   },
   "purchase_addorder": {
     "add_order": "添加订单",
@@ -554,6 +561,7 @@
     "created_at": "创建时间",
     "primary": "主",
     "set_primary": "设为主",
+    "primary_contact": "主要联系方式",
     "label_mobile": "手机",
     "label_work": "工作",
     "label_home": "家庭",

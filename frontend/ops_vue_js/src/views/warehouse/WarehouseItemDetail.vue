@@ -43,6 +43,9 @@ const containerBreadcrumb = ref('')
 // ── Tab ──
 const activeTab = ref('work_orders')
 
+// ── 关联客户 ──
+const customers = ref([])
+
 // ── 移动弹窗 ──
 const showMove = ref(false)
 const moveTarget = ref(null)
@@ -75,6 +78,21 @@ function getStatusClass(status) {
 
 function getStatusLabel(status) {
   return t(`work_order.status_${status}`) || status
+}
+
+// ── 客户名称格式化 ──
+function getCustomerDisplayName(customer) {
+  const lastName = customer.last_name || ''
+  const firstName = customer.first_name || ''
+  if (lastName && firstName) {
+    return `${lastName} ${firstName}`
+  }
+  return lastName || firstName || `Customer#${customer.id}`
+}
+
+function getCustomerTitleLabel(title) {
+  if (!title) return ''
+  return t(`customer.salutation_${title.toLowerCase()}`)
 }
 
 // ── 时间格式化 ──
@@ -112,6 +130,7 @@ async function fetchItem() {
       photos.value = data.photos ?? []
       commits.value = data.commits ?? []
       workOrders.value = data.work_orders ?? []
+      customers.value = data.customers ?? []
       canModifyItem.value = data.canModifyItem === true
       containerBreadcrumb.value = data.container_breadcrumb ?? ''
       loadContainerNames()
@@ -175,6 +194,12 @@ function openLinkWorkOrder() {
       ? `${item.value.Name}-${item.value.SerialNumber}`
       : item.value.Name,
     description: item.value.Remark || '',
+    customers: customers.value.map(c => ({
+      id: c.id,
+      first_name: c.first_name || '',
+      last_name: c.last_name || '',
+      primary_phone: c.primary_phone || '',
+    })),
   }
   localStorage.setItem('prefill_work_order', JSON.stringify(prefillData))
   router.push('/work_order/add')
@@ -442,6 +467,15 @@ onMounted(() => {
         </button>
         <button
           class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
+          :class="activeTab === 'customers'
+            ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
+            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+          @click="activeTab = 'customers'"
+        >
+          {{ t('warehouse.customers') }} ({{ customers.length }})
+        </button>
+        <button
+          class="px-4 py-1.5 text-sm rounded-md font-medium transition-colors"
           :class="activeTab === 'history'
             ? 'bg-white text-gray-900 shadow-sm dark:bg-dk-card dark:text-white'
             : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
@@ -473,6 +507,38 @@ onMounted(() => {
             >
               {{ getStatusLabel(wo.status) }}
             </span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- 关联客户 -->
+      <div v-if="activeTab === 'customers'">
+        <div v-if="customers.length === 0" class="rounded-xl border border-gray-200 bg-white px-5 py-8 text-center text-sm text-gray-400 dark:border-dk-muted dark:bg-dk-card">
+          {{ t('warehouse.no_customers') }}
+        </div>
+        <div v-else class="space-y-2">
+          <RouterLink
+            v-for="c in customers"
+            :key="c.id"
+            :to="`/customer/detail/${c.id}`"
+            class="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center justify-between gap-3 hover:shadow transition-shadow dark:border-dk-muted dark:bg-dk-card dark:hover:shadow-none"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+                <span class="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  {{ (c.last_name || c.first_name || 'C').charAt(0).toUpperCase() }}
+                </span>
+              </div>
+              <div class="min-w-0">
+                <span class="font-medium text-sm text-gray-900 truncate dark:text-white block">
+                  {{ getCustomerDisplayName(c) }}
+                </span>
+                <span v-if="c.title" class="text-xs text-gray-400">
+                  {{ getCustomerTitleLabel(c.title) }}
+                </span>
+              </div>
+            </div>
+            <IconArrowRight :size="14" class="text-gray-400 flex-shrink-0" />
           </RouterLink>
         </div>
       </div>

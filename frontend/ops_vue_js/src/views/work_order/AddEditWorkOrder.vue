@@ -205,6 +205,17 @@ onMounted(async () => {
           }
         }
 
+        // 如果有客户信息，自动选中
+        if (prefill.customers && prefill.customers.length > 0) {
+          selectedCustomers.value = prefill.customers.map(c => ({
+            id: c.id,
+            first_name: c.first_name,
+            last_name: c.last_name,
+            primary_phone: c.primary_phone,
+          }))
+          linkedCustomerIds.value = prefill.customers.map(c => c.id)
+        }
+
         localStorage.removeItem('prefill_work_order')
       } catch {
         // ignore
