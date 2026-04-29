@@ -605,7 +605,7 @@ onMounted(() => {
               </td>
               <td class="px-5 py-3 text-right">
                 <button
-                  class="text-xs text-blue-500 hover:underline"
+                  class="text-xs text-blue-500 hover:underline whitespace-nowrap"
                   @click.stop="goToItemDetail(item)"
                 >
                   {{ t('warehouse.view_items') }}

@@ -631,7 +631,7 @@ onMounted(async () => {
                 </td>
                 <td class="px-5 py-3 text-right">
                   <button
-                    class="text-xs text-blue-500 hover:underline"
+                    class="text-xs text-blue-500 hover:underline whitespace-nowrap"
                     @click.stop="router.push(`/warehouse/item/${item.ID}`)"
                   >
                     {{ t('warehouse.view_items') }}
