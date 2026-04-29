@@ -1159,20 +1159,22 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		models.DB.Where("item_id = ?", from.ID).Find(&customerBinds)
 
 		type CustomerInfo struct {
-			ID        uint   `json:"id"`
-			FirstName string `json:"first_name"`
-			LastName  string `json:"last_name"`
-			Title     string `json:"title"`
+			ID           uint   `json:"id"`
+			FirstName    string `json:"first_name"`
+			LastName     string `json:"last_name"`
+			Title        string `json:"title"`
+			PrimaryPhone string `json:"primary_phone"`
 		}
 		var customers []CustomerInfo
 		for _, b := range customerBinds {
 			var c TabCustomer
 			if models.DB.Where("id = ?", b.CustomerID).First(&c).Error == nil {
 				customers = append(customers, CustomerInfo{
-					ID:        c.ID,
-					FirstName: c.FirstName,
-					LastName:  c.LastName,
-					Title:     c.Title,
+					ID:           c.ID,
+					FirstName:    c.FirstName,
+					LastName:     c.LastName,
+					Title:        c.Title,
+					PrimaryPhone: c.PrimaryPhone,
 				})
 			}
 		}
