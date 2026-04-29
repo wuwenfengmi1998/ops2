@@ -15,12 +15,12 @@ let packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
 // 每次 build 时自动递增 patch 版本
 const isBuild = process.argv.includes("build");
 if (isBuild) {
-  const parts = packageJson.version.split(".");
-  const patch = Math.max(0, parseInt(parts[2] || "0", 10));
-  parts[2] = String(patch + 1);
-  packageJson.version = parts.join(".");
-  writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n", "utf-8");
-  console.log(`[bump] version → ${packageJson.version}`);
+  // const parts = packageJson.version.split(".");
+  // const patch = Math.max(0, parseInt(parts[2] || "0", 10));
+  // parts[2] = String(patch + 1);
+  // packageJson.version = parts.join(".");
+  // writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n", "utf-8");
+  // console.log(`[bump] version → ${packageJson.version}`);
 }
 
 // https://vite.dev/config/
