@@ -639,7 +639,8 @@ func ApiUser(r *gin.RouterGroup) {
 							redata := map[string]interface{}{
 								"cookie": cookie,
 							}
-
+							//登录成功，记录日志
+							//recordLoginFail(ctx, loginuser.Username, getuser.ID, "logined")
 							ReturnJson(ctx, "apiOK", redata)
 						} else {
 							// 密码错误，记录失败日志
