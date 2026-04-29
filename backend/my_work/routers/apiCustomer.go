@@ -166,17 +166,18 @@ func ApiCustomerInit() {
 }
 
 func ApiCustomer(r *gin.RouterGroup) {
-	// POST /add - 新增客户（需 customer_admin 权限）
+	// POST /add - 新增客户
 	r.POST("/add", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userNoLogin", nil)
 			return
 		}
-		if !customerAdminCheck(user.ID) {
-			ReturnJson(ctx, "permission_denied", nil)
-			return
-		}
+		//不再需要管理员权限就能新增
+		// if !customerAdminCheck(user.ID) {
+		// 	ReturnJson(ctx, "permission_denied", nil)
+		// 	return
+		// }
 
 		var params From_customer_add
 		if err := decodeJSON(data, &params); err != nil {
