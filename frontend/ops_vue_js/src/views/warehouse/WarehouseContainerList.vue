@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
@@ -16,6 +16,8 @@ import {
   IconSearch,
   IconTrash,
   IconEdit,
+  IconTool,
+  IconUser,
 } from '@tabler/icons-vue'
 
 usePageTitle('warehouse.container_list')
@@ -223,7 +225,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl px-6 py-6">
+  <div class="mx-auto max-w-7xl px-6 py-6">
 
     <!-- 统计卡片 -->
     <div class="mb-6 grid grid-cols-3 gap-4">
@@ -295,6 +297,8 @@ onMounted(() => {
               <th class="px-6 py-3 font-medium">{{ t('warehouse.remark') }}</th>
               <th class="px-6 py-3 font-medium w-24 text-center">{{ t('warehouse.child_containers') }}</th>
               <th class="px-6 py-3 font-medium w-24 text-center">{{ t('warehouse.items') }}</th>
+              <th class="px-6 py-3 font-medium w-24 text-center">{{ t('work_order.work_order_count') }}</th>
+              <th class="px-6 py-3 font-medium">{{ t('customer.related_customers') }}</th>
               <th class="px-6 py-3 font-medium whitespace-nowrap w-44">{{ t('warehouse.created_at') }}</th>
               <th class="px-6 py-3 font-medium w-28 text-right">{{ t('warehouse.actions') }}</th>
             </tr>
@@ -302,7 +306,7 @@ onMounted(() => {
           <tbody>
             <!-- 加载中 -->
             <tr v-if="loading">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+              <td colspan="9" class="px-6 py-8 text-center text-gray-400">
                 <svg class="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -312,7 +316,7 @@ onMounted(() => {
             </tr>
             <!-- 空状态 -->
             <tr v-else-if="containers.length === 0">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
+              <td colspan="9" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
                 {{ t('warehouse.no_containers') }}
               </td>
             </tr>
@@ -347,6 +351,30 @@ onMounted(() => {
                   <IconPackage :size="12" />
                   {{ c.ItemCount }}
                 </span>
+              </td>
+              <td class="px-6 py-3 text-center">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
+                >
+                  <IconTool :size="12" />
+                  {{ c.WorkOrderCount }}
+                </span>
+              </td>
+              <td class="px-6 py-3">
+                <div v-if="c.Customers && c.Customers.length > 0" class="flex flex-wrap gap-1">
+                  <RouterLink
+                    v-for="customer in c.Customers.slice(0, 3)"
+                    :key="customer.id"
+                    :to="`/customer/detail/${customer.id}`"
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
+                    @click.stop
+                  >
+                    <IconUser :size="10" />
+                    {{ customer.first_name }} {{ customer.last_name }}
+                  </RouterLink>
+                  <span v-if="c.Customers.length > 3" class="text-xs text-gray-400">+{{ c.Customers.length - 3 }}</span>
+                </div>
+                <span v-else class="text-gray-400">—</span>
               </td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(c.CreatedAt) }}</td>
               <td class="px-6 py-3 text-right" @click.stop>

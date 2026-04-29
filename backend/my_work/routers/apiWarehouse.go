@@ -449,9 +449,108 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			canModifyContainers[i] = canModifyWarehouse(user.ID, c.CreatorID)
 		}
 
+		// 收集所有容器ID
+		containerIDs := make([]uint, len(containers))
+		for i, c := range containers {
+			containerIDs[i] = c.ID
+		}
+
+		// 批量查询容器下的物品（只查直接子物品，不递归）
+		type ItemInfo struct {
+			ID          uint
+			ContainerID uint
+		}
+		var allItems []ItemInfo
+		models.DB.Table("tab_warehouse_item").Select("id, container_id").Where("container_id IN ?", containerIDs).Scan(&allItems)
+
+		// 构建容器ID → 物品ID列表的映射
+		containerItems := make(map[uint][]uint)
+		allItemIDs := make([]uint, 0)
+		for _, item := range allItems {
+			containerItems[item.ContainerID] = append(containerItems[item.ContainerID], item.ID)
+			allItemIDs = append(allItemIDs, item.ID)
+		}
+
+		// 批量查询工单绑定数量
+		itemWorkOrderCount := make(map[uint]int)
+		if len(allItemIDs) > 0 {
+			var woBinds []TabWarehouseItemWorkOrderBind
+			models.DB.Where("item_id IN ?", allItemIDs).Find(&woBinds)
+			for _, bind := range woBinds {
+				itemWorkOrderCount[bind.ItemID]++
+			}
+		}
+
+		// 批量查询客户关联
+		type CustomerInfo struct {
+			ID        uint   `json:"id"`
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+			Title     string `json:"title"`
+		}
+		itemCustomers := make(map[uint][]CustomerInfo)
+		if len(allItemIDs) > 0 {
+			var customerBinds []TabWarehouseItemCustomerBind
+			models.DB.Where("item_id IN ?", allItemIDs).Find(&customerBinds)
+			customerIDSet := make(map[uint]bool)
+			for _, bind := range customerBinds {
+				customerIDSet[bind.CustomerID] = true
+			}
+			customerIDs := make([]uint, 0)
+			for id := range customerIDSet {
+				customerIDs = append(customerIDs, id)
+			}
+			customerMap := make(map[uint]TabCustomer)
+			if len(customerIDs) > 0 {
+				var customers []TabCustomer
+				models.DB.Where("id IN ?", customerIDs).Find(&customers)
+				for _, c := range customers {
+					customerMap[c.ID] = c
+				}
+			}
+			for _, bind := range customerBinds {
+				if c, ok := customerMap[bind.CustomerID]; ok {
+					itemCustomers[bind.ItemID] = append(itemCustomers[bind.ItemID], CustomerInfo{
+						ID:        c.ID,
+						FirstName: c.FirstName,
+						LastName:  c.LastName,
+						Title:     c.Title,
+					})
+				}
+			}
+		}
+
+		// 构建容器统计
+		type ContainerWithStats struct {
+			TabWarehouseContainer
+			WorkOrderCount int            `json:"WorkOrderCount"`
+			Customers      []CustomerInfo `json:"Customers"`
+		}
+		containersWithStats := make([]ContainerWithStats, len(containers))
+		for i, c := range containers {
+			// 计算该容器下所有物品的工单总数
+			workOrderCount := 0
+			customersMap := make(map[uint]CustomerInfo)
+			for _, itemID := range containerItems[c.ID] {
+				workOrderCount += itemWorkOrderCount[itemID]
+				for _, ci := range itemCustomers[itemID] {
+					customersMap[ci.ID] = ci
+				}
+			}
+			customers := make([]CustomerInfo, 0, len(customersMap))
+			for _, ci := range customersMap {
+				customers = append(customers, ci)
+			}
+			containersWithStats[i] = ContainerWithStats{
+				TabWarehouseContainer: c,
+				WorkOrderCount:        workOrderCount,
+				Customers:             customers,
+			}
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
 			"all_count":           count,
-			"containers":          containers,
+			"containers":          containersWithStats,
 			"canModifyContainers": canModifyContainers,
 		})
 	})

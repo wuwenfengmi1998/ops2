@@ -30,6 +30,11 @@ const pageSize = ref(10)
 const currentPage = ref(1)
 const search = ref('')
 const loading = ref(false)
+const stats = reactive({
+  total: 0,
+  inContainer: 0,
+  unstored: 0,
+})
 
 // ── 权限判断 ──
 function canModifyItem(idx) {
@@ -89,6 +94,9 @@ function goPage(p) {
     fetchItems()
   }
 }
+
+const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value) || 1)
+const isEn = computed(() => locale.value === 'en')
 
 const pageNumbers = computed(() => {
   const total = totalPages.value
@@ -155,7 +163,7 @@ onMounted(fetchItems)
 </script>
 
 <template>
-  <div class="p-4 max-w-6xl mx-auto space-y-4">
+  <div class="p-4 max-w-7xl mx-auto space-y-4">
 
     <!-- 统计卡片 -->
     <div class="grid grid-cols-3 gap-3">
@@ -246,7 +254,7 @@ onMounted(fetchItems)
                   <RouterLink
                     v-for="customer in item.Customers.slice(0, 3)"
                     :key="customer.id"
-                    :to="`/customer/${customer.id}`"
+                    :to="`/customer/detail/${customer.id}`"
                     class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
                     @click.stop
                   >

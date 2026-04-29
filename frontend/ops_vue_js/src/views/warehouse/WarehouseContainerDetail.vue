@@ -609,7 +609,7 @@ onMounted(async () => {
                     <RouterLink
                       v-for="customer in item.Customers.slice(0, 3)"
                       :key="customer.id"
-                      :to="`/customer/${customer.id}`"
+                      :to="`/customer/detail/${customer.id}`"
                       class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
                       @click.stop
                     >
