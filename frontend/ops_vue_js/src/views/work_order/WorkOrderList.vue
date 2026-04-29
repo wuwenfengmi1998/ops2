@@ -142,8 +142,8 @@ onMounted(fetchOrders)
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base">
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">No.</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-48">{{ t('work_order.title') }}</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">描述</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-50">{{ t('work_order.title') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-50">描述</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">关联客户</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.created_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.updated_at') }}</th>
