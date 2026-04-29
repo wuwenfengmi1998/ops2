@@ -534,8 +534,8 @@ onMounted(() => {
         <table class="w-full text-left text-sm text-gray-900 dark:text-white">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400">
-              <th class="px-5 py-3 font-medium w-50">{{ t('warehouse.item_name') }}</th>
-              <th class="px-5 py-3 font-medium w-50">{{ t('warehouse.serial_number') }}</th>
+              <th class="px-5 py-3 font-medium w-80">{{ t('warehouse.item_name') }}</th>
+              <th class="px-5 py-3 font-medium w-20">{{ t('warehouse.serial_number') }}</th>
               <th class="px-5 py-3 font-medium w-50">{{ t('warehouse.remark') }}</th>
               <th class="px-5 py-3 font-medium  text-center">{{ t('warehouse.quantity') }}</th>
               <th class="px-5 py-3 font-medium  text-center">{{ t('work_order.work_order_count') }}</th>
@@ -566,7 +566,7 @@ onMounted(() => {
               class="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
               @click="goToItemDetail(item)"
             >
-              <td class="px-5 py-3 font-medium max-w-[10rem] truncate">{{ item.Name }}</td>
+              <td class="px-5 py-3 font-medium max-w-[13rem] truncate">{{ item.Name }}</td>
               <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[140px] truncate">{{ item.SerialNumber || '—' }}</td>
               <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">{{ item.Remark || '—' }}</td>
               <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
