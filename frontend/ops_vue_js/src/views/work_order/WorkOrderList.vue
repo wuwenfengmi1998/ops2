@@ -182,6 +182,7 @@ onMounted(fetchOrders)
                     :key="c.id"
                     :to="`/customer/detail/${c.id}`"
                     class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 whitespace-nowrap"
+                    @click.stop
                   >
                     {{ (c.last_name || '') + (c.first_name ? ' ' + c.first_name : '') }}
                   </RouterLink>
