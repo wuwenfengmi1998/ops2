@@ -61,6 +61,11 @@ export const authApi = {
     return api.post('/admin/login_fail_logs', params)
   },
 
+  /** 获取操作日志（仅管理员可访问） */
+  getOperationLogs(params = {}) {
+    return api.post('/admin/operation_logs', params)
+  },
+
   /** 修改密码 */
   changePassword(oldPass, newPass) {
     return api.post('/users/changePassword', { oldpass: oldPass, newpass: newPass })

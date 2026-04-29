@@ -67,6 +67,7 @@
     "click_button_or_drag": "Click upload button or drag & drop image file"
   },
   "purchase": {
+    "title": "Purchase",
     "purchase_list": "Purchase List",
     "item_name": "Item Name",
     "purpose": "Purpose",
@@ -176,6 +177,7 @@
     "save_changes": "Save Changes"
   },
   "warehouse": {
+    "title": "Warehouse",
     "container_list": "Container List",
     "container_detail": "Container Detail",
     "overview": "Warehouse Overview",
@@ -283,6 +285,7 @@
     "part_name": "Parts Name"
   },
   "schedule": {
+    "title": "Schedule",
     "my_schedule": "My Schedule",
     "event_title": "Event Title",
     "event_date": "Event Date",
@@ -526,7 +529,31 @@
     "current_admins": "Current System Admins",
     "no_admins": "No system admins",
     "group_list": "Group List",
-    "extended_info": "Extended Info"
+    "extended_info": "Extended Info",
+    "tab_operation_logs": "Operation Logs"
+  },
+  "operation_logs": {
+    "title": "Operation Logs",
+    "all": "All Modules",
+    "search_placeholder": "Search operation logs...",
+    "no_logs": "No operation logs",
+    "table_module": "Module",
+    "table_entity_id": "Entity ID",
+    "table_user": "User",
+    "table_action": "Action",
+    "table_ip": "IP Address",
+    "table_remark": "Remark",
+    "table_created_at": "Operation Time",
+    "module_customer": "Customer",
+    "module_purchase": "Purchase",
+    "module_schedule": "Schedule",
+    "module_warehouse": "Warehouse",
+    "module_work_order": "Work Order",
+    "action_create": "Create",
+    "action_update": "Update",
+    "action_delete": "Delete",
+    "action_query": "Query",
+    "action_move": "Move"
   },
   "customer": {
     "title": "Customer Management",

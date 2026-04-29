@@ -494,11 +494,11 @@ func ApiCustomer(r *gin.RouterGroup) {
 		models.DB.Where("customer_id = ?", req.ID).Find(&companies)
 
 		// 写查询日志
-		models.DB.Create(&TabCustomerLog{
-			CustomerID: req.ID,
-			ActionType: "query",
-			IP:         ctx.ClientIP(),
-		})
+		// models.DB.Create(&TabCustomerLog{
+		// 	CustomerID: req.ID,
+		// 	ActionType: "query",
+		// 	IP:         ctx.ClientIP(),
+		// })
 
 		ReturnJson(ctx, "apiOK", gin.H{
 			"customer":  customer,

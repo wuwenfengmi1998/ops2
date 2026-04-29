@@ -2,6 +2,8 @@ package routers
 
 import (
 	"ops/models"
+	"sort"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
@@ -150,21 +152,27 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 
 	// 获取用户组成员列表（仅系统管理员可访问）
 	r.POST("/group_members", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, authUser, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userNoLogin", nil)
 			return
 		}
 
+		// 检查是否为系统管理员
+		if !SysAdminCheck(authUser.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
+			return
+		}
+
 	var params struct {
-		GroupID  float64 `json:"group_id" mapstructure:"group_id"`
-		Page     float64 `json:"page" mapstructure:"page"`
-		PageSize float64 `json:"page_size" mapstructure:"page_size"`
-	}
-	if err := mapstructure.Decode(data, &params); err != nil {
-		params.Page = 1
-		params.PageSize = 20
-	}
+			GroupID  float64 `json:"group_id" mapstructure:"group_id"`
+			Page     float64 `json:"page" mapstructure:"page"`
+			PageSize float64 `json:"page_size" mapstructure:"page_size"`
+		}
+		if err := mapstructure.Decode(data, &params); err != nil {
+			params.Page = 1
+			params.PageSize = 20
+		}
 		if params.Page < 1 {
 			params.Page = 1
 		}
@@ -229,9 +237,15 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 
 	// 获取用户详细信息（仅系统管理员可访问）
 	r.POST("/user_detail", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+		isAuth, authUser, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		if !SysAdminCheck(authUser.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
 			return
 		}
 
@@ -369,36 +383,36 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			return
 		}
 
-	// 创建绑定
-	newBind := TabUserGroupBinds{
-		UserID:  uint(params.UserID),
-		GroupID: uint(params.GroupID),
-	}
-	if err := models.DB.Create(&newBind).Error; err != nil {
-		ReturnJson(ctx, "dbErr", nil)
-		return
-	}
+		// 创建绑定
+		newBind := TabUserGroupBinds{
+			UserID:  uint(params.UserID),
+			GroupID: uint(params.GroupID),
+		}
+		if err := models.DB.Create(&newBind).Error; err != nil {
+			ReturnJson(ctx, "dbErr", nil)
+			return
+		}
 
-	// 根据组名刷新对应的权限缓存
-	switch group.Name {
-	case "admins":
-		updateSysAdminsCash()
-	case "schedule_admin":
-		ScheduleUpdateAdminsCash()
-	case "purchase_admin":
-		PurchaseUpdateAdminsCash()
-	case "work_order_admin":
-		WorkOrderUpdateAdminsCash()
-	case "warehouse_admin":
-		WarehouseUpdateAdminsCash()
-	case "customer_admin":
-		CustomerUpdateAdminsCash()
-	}
+		// 根据组名刷新对应的权限缓存
+		switch group.Name {
+		case "admins":
+			updateSysAdminsCash()
+		case "schedule_admin":
+			ScheduleUpdateAdminsCash()
+		case "purchase_admin":
+			PurchaseUpdateAdminsCash()
+		case "work_order_admin":
+			WorkOrderUpdateAdminsCash()
+		case "warehouse_admin":
+			WarehouseUpdateAdminsCash()
+		case "customer_admin":
+			CustomerUpdateAdminsCash()
+		}
 
-	ReturnJson(ctx, "apiOK", nil)
-})
+		ReturnJson(ctx, "apiOK", nil)
+	})
 
-// 移除用户组成员（仅系统管理员可访问）
+	// 移除用户组成员（仅系统管理员可访问）
 	r.POST("/remove_group_member", func(ctx *gin.Context) {
 		isAuth, adminUser, data := AuthenticationAuthority(ctx)
 		if !isAuth {
@@ -428,36 +442,229 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			return
 		}
 
-	// 删除绑定
-	if err := models.DB.Where("group_id = ? AND user_id = ?", uint(params.GroupID), uint(params.UserID)).Delete(&TabUserGroupBinds{}).Error; err != nil {
-		ReturnJson(ctx, "dbErr", nil)
-		return
-	}
+		// 删除绑定
+		if err := models.DB.Where("group_id = ? AND user_id = ?", uint(params.GroupID), uint(params.UserID)).Delete(&TabUserGroupBinds{}).Error; err != nil {
+			ReturnJson(ctx, "dbErr", nil)
+			return
+		}
 
-	// 根据组名刷新对应的权限缓存
-	switch group.Name {
-	case "admins":
-		updateSysAdminsCash()
-	case "schedule_admin":
-		ScheduleUpdateAdminsCash()
-	case "purchase_admin":
-		PurchaseUpdateAdminsCash()
-	case "work_order_admin":
-		WorkOrderUpdateAdminsCash()
-	case "warehouse_admin":
-		WarehouseUpdateAdminsCash()
-	case "customer_admin":
-		CustomerUpdateAdminsCash()
-	}
+		// 根据组名刷新对应的权限缓存
+		switch group.Name {
+		case "admins":
+			updateSysAdminsCash()
+		case "schedule_admin":
+			ScheduleUpdateAdminsCash()
+		case "purchase_admin":
+			PurchaseUpdateAdminsCash()
+		case "work_order_admin":
+			WorkOrderUpdateAdminsCash()
+		case "warehouse_admin":
+			WarehouseUpdateAdminsCash()
+		case "customer_admin":
+			CustomerUpdateAdminsCash()
+		}
 
-	ReturnJson(ctx, "apiOK", nil)
-})
+		ReturnJson(ctx, "apiOK", nil)
+	})
 
-// 获取登录失败日志（仅系统管理员可访问）
-	r.POST("/login_fail_logs", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
+	// 获取操作日志（仅系统管理员可访问）
+	r.POST("/operation_logs", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		if !SysAdminCheck(user.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
+			return
+		}
+
+		// 解析参数
+		var params struct {
+			Page     int    `json:"page"`
+			PageSize int    `json:"page_size"`
+			Module   string `json:"module"` // 模块: all/customer/purchase/schedule/warehouse/work_order
+		}
+		if err := mapstructure.Decode(data, &params); err != nil {
+			params.Page = 1
+			params.PageSize = 20
+			params.Module = "all"
+		}
+		if params.Page < 1 {
+			params.Page = 1
+		}
+		if params.PageSize < 1 || params.PageSize > 100 {
+			params.PageSize = 20
+		}
+
+		type LogEntry struct {
+			ID         uint       `json:"id"`
+			Module     string     `json:"module"`      // 模块名称
+			EntityID   uint       `json:"entity_id"`   // 关联实体ID
+			UserID     uint       `json:"user_id"`     // 操作人ID
+			ActionType string     `json:"action_type"` // 操作类型
+			IP         string     `json:"ip"`
+			Remark     string     `json:"remark"`
+			CreatedAt  *time.Time `json:"created_at"`
+		}
+
+		var allLogs []LogEntry
+
+		// 根据模块筛选查询
+		if params.Module == "all" || params.Module == "customer" {
+			var logs []TabCustomerLog
+			query := models.DB.Model(&TabCustomerLog{})
+			if params.Module == "customer" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "customer",
+					EntityID:   log.CustomerID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  log.CreatedAt,
+				})
+			}
+		}
+
+		if params.Module == "all" || params.Module == "purchase" {
+			var logs []TabPurchaseLog
+			query := models.DB.Model(&TabPurchaseLog{})
+			if params.Module == "purchase" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "purchase",
+					EntityID:   log.OrderID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  log.CreatedAt,
+				})
+			}
+		}
+
+		if params.Module == "all" || params.Module == "schedule" {
+			var logs []TabScheduleLog
+			query := models.DB.Model(&TabScheduleLog{})
+			if params.Module == "schedule" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "schedule",
+					EntityID:   log.ScheduleID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  log.CreatedAt,
+				})
+			}
+		}
+
+		if params.Module == "all" || params.Module == "warehouse" {
+			var logs []TabWarehouseLog
+			query := models.DB.Model(&TabWarehouseLog{})
+			if params.Module == "warehouse" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "warehouse",
+					EntityID:   log.EntityID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  &log.CreatedAt,
+				})
+			}
+		}
+
+		if params.Module == "all" || params.Module == "work_order" {
+			var logs []TabWorkOrderLog
+			query := models.DB.Model(&TabWorkOrderLog{})
+			if params.Module == "work_order" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "work_order",
+					EntityID:   log.WorkOrderID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  log.CreatedAt,
+				})
+			}
+		}
+
+		// 按时间倒序排序
+		sort.Slice(allLogs, func(i, j int) bool {
+			if allLogs[i].CreatedAt == nil || allLogs[j].CreatedAt == nil {
+				return allLogs[i].ID > allLogs[j].ID
+			}
+			return allLogs[i].CreatedAt.After(*allLogs[j].CreatedAt)
+		})
+
+		total := len(allLogs)
+		offset := (params.Page - 1) * params.PageSize
+		end := offset + params.PageSize
+		if offset > total {
+			offset = total
+		}
+		if end > total {
+			end = total
+		}
+
+		var pagedLogs []LogEntry
+		if offset < total {
+			pagedLogs = allLogs[offset:end]
+		}
+
+		ReturnJson(ctx, "apiOK", gin.H{
+			"logs":      pagedLogs,
+			"total":     total,
+			"page":      params.Page,
+			"page_size": params.PageSize,
+		})
+	})
+
+	// 获取登录失败日志（仅系统管理员可访问）
+	r.POST("/login_fail_logs", func(ctx *gin.Context) {
+		isAuth, authUser, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userNoLogin", nil)
+			return
+		}
+
+		// 检查是否为系统管理员
+		if !SysAdminCheck(authUser.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
 			return
 		}
 
