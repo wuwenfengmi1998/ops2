@@ -174,7 +174,8 @@
     "confirm_delete_commit": "确定要删除此进度吗？",
     "linked_items": "关联物品",
     "submit": "提交",
-    "save_changes": "保存修改"
+    "save_changes": "保存修改",
+    "work_order_count": "工单数量"
   },
   "warehouse": {
     "title": "仓库",
@@ -598,6 +599,7 @@
     "detail_title": "客户详情",
     "basic_info": "基本信息",
     "created_by": "创建者",
-    "not_found": "客户不存在"
+    "not_found": "客户不存在",
+    "related_customers": "关联客户"
   }
 }

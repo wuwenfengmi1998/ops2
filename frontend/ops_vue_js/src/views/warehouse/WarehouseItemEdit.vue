@@ -28,6 +28,7 @@ const submitting = ref(false)
 const loadingItem = ref(true)
 const itemNotFound = ref(false)
 const containerName = ref('')
+const containerId = ref(null)
 const existingPhotos = ref([])
 
 const dropzoneRef = ref(null)
@@ -117,10 +118,13 @@ onMounted(async () => {
 
       // 获取容器名称
       if (data.item.ContainerID) {
+        containerId.value = data.item.ContainerID
         const { errCode: cErr, data: cData } = await warehouseApi.getContainer(data.item.ContainerID)
         if (cErr === 0 && cData?.container) {
           containerName.value = cData.container.Title
         }
+      } else {
+        containerId.value = null
       }
     } else {
       itemNotFound.value = true
@@ -193,14 +197,15 @@ async function submit() {
         <RouterLink to="/warehouse/container" class="text-blue-500 hover:underline">
           {{ t('warehouse.container_list') }}
         </RouterLink>
-        <span>/</span>
-        <RouterLink
-          v-if="containerName"
-          :to="`/warehouse/container/${itemId}`"
-          class="text-blue-500 hover:underline"
-        >
-          {{ containerName }}
-        </RouterLink>
+        <template v-if="containerName">
+          <span>/</span>
+          <RouterLink
+            :to="`/warehouse/container/${containerId}`"
+            class="text-blue-500 hover:underline"
+          >
+            {{ containerName }}
+          </RouterLink>
+        </template>
         <span v-else>/</span>
         <span>/</span>
         <RouterLink
@@ -300,7 +305,7 @@ async function submit() {
             </div>
 
             <!-- 搜索框 -->
-            <div class="customer-search-wrapper relative">
+            <div class="customer-search-wrapper relative" style="z-index: 9999;">
               <input
                 v-model="customerSearchQuery"
                 type="text"
@@ -312,7 +317,7 @@ async function submit() {
               <!-- 下拉结果 -->
               <div
                 v-if="showCustomerDropdown && customerSearchResults.length > 0"
-                class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
+                class="absolute z-[9999] mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
               >
                 <div
                   v-for="customer in customerSearchResults"
@@ -329,14 +334,14 @@ async function submit() {
               <!-- 加载中 -->
               <div
                 v-if="showCustomerDropdown && customerSearchLoading"
-                class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+                class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
               >
                 {{ t('message.loading') }}
               </div>
               <!-- 无结果 -->
               <div
                 v-if="showCustomerDropdown && !customerSearchLoading && customerSearchResults.length === 0 && customerSearchQuery.trim().length > 0"
-                class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+                class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
               >
                 {{ t('warehouse.linked_customer_not_found') }}
               </div>

@@ -569,7 +569,7 @@ onUnmounted(() => {
                 </div>
               </div>
               <!-- 搜索框 -->
-              <div ref="purchaseDropdownRef" class="relative">
+              <div ref="purchaseDropdownRef" class="relative" style="z-index: 9999;">
                 <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                   <IconSearch :size="14" class="text-gray-400" />
                 </div>
@@ -584,7 +584,7 @@ onUnmounted(() => {
                 <!-- 搜索结果下拉 -->
                 <div
                   v-if="purchaseDropdownVisible && purchaseSearchResults.length > 0"
-                  class="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+                  class="absolute z-[9999] mt-1 max-h-48 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dk-muted dark:bg-dk-card"
                 >
                   <button
                     v-for="po in purchaseSearchResults"
@@ -606,7 +606,7 @@ onUnmounted(() => {
                 </div>
                 <div
                   v-else-if="purchaseDropdownVisible && purchaseSearchQuery && purchaseSearchResults.length === 0 && !purchaseSearchLoading"
-                  class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white py-3 text-center text-sm text-gray-400 dark:border-dk-muted dark:bg-dk-card"
+                  class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white py-3 text-center text-sm text-gray-400 dark:border-dk-muted dark:bg-dk-card"
                 >
                   未找到匹配的订单
                 </div>

@@ -456,7 +456,7 @@ async function handleSubmit() {
           </div>
 
           <!-- 搜索框 -->
-          <div class="item-search-wrapper relative">
+          <div class="item-search-wrapper relative" style="z-index: 9999;">
             <input
               v-model="itemSearchQuery"
               type="text"
@@ -468,7 +468,7 @@ async function handleSubmit() {
             <!-- 下拉结果 -->
             <div
               v-if="showItemDropdown && itemSearchResults.length > 0"
-              class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               <div
                 v-for="item in itemSearchResults"
@@ -483,14 +483,14 @@ async function handleSubmit() {
             <!-- 加载中 -->
             <div
               v-if="showItemDropdown && itemSearchLoading"
-              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('message.loading') }}
             </div>
             <!-- 无结果 -->
             <div
               v-if="showItemDropdown && !itemSearchLoading && itemSearchResults.length === 0 && itemSearchQuery.trim().length > 0"
-              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('work_order.linked_item_not_found') }}
             </div>
@@ -523,7 +523,7 @@ async function handleSubmit() {
           </div>
 
           <!-- 搜索框 -->
-          <div class="customer-search-wrapper relative">
+          <div class="customer-search-wrapper relative" style="z-index: 9999;">
             <input
               v-model="customerSearchQuery"
               type="text"
@@ -535,7 +535,7 @@ async function handleSubmit() {
             <!-- 下拉结果 -->
             <div
               v-if="showCustomerDropdown && customerSearchResults.length > 0"
-              class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               <div
                 v-for="customer in customerSearchResults"
@@ -554,14 +554,14 @@ async function handleSubmit() {
             <!-- 加载中 -->
             <div
               v-if="showCustomerDropdown && customerSearchLoading"
-              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('message.loading') }}
             </div>
             <!-- 无结果 -->
             <div
               v-if="showCustomerDropdown && !customerSearchLoading && customerSearchResults.length === 0 && customerSearchQuery.trim().length > 0"
-              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('work_order.linked_customer_not_found') }}
             </div>

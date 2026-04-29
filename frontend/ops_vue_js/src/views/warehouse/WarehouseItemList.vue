@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
@@ -13,6 +13,8 @@ import {
   IconSearch,
   IconTrash,
   IconArrowRight,
+  IconTool,
+  IconUser,
 } from '@tabler/icons-vue'
 
 usePageTitle('warehouse.item_list')
@@ -215,6 +217,8 @@ onMounted(fetchItems)
               <th class="px-5 py-3 font-medium">{{ t('warehouse.item_name') }}</th>
               <th class="px-5 py-3 font-medium">{{ t('warehouse.serial_number') }}</th>
               <th class="px-5 py-3 font-medium w-20 text-center">{{ t('warehouse.quantity') }}</th>
+              <th class="px-5 py-3 font-medium w-24 text-center">{{ t('work_order.work_order_count') }}</th>
+              <th class="px-5 py-3 font-medium">{{ t('customer.related_customers') }}</th>
               <th class="px-5 py-3 font-medium">{{ t('warehouse.location') }}</th>
               <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
               <th class="px-5 py-3 font-medium w-16 text-right">{{ t('warehouse.actions') }}</th>
@@ -230,6 +234,29 @@ onMounted(fetchItems)
               <td class="px-5 py-3 font-medium max-w-[200px] truncate">{{ item.Name }}</td>
               <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[160px] truncate">{{ item.SerialNumber || '—' }}</td>
               <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
+              <td class="px-5 py-3 text-center">
+                <span v-if="item.WorkOrderCount > 0" class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                  <IconTool :size="12" />
+                  {{ item.WorkOrderCount }}
+                </span>
+                <span v-else class="text-gray-400">—</span>
+              </td>
+              <td class="px-5 py-3">
+                <div v-if="item.Customers && item.Customers.length > 0" class="flex flex-wrap gap-1">
+                  <RouterLink
+                    v-for="customer in item.Customers.slice(0, 3)"
+                    :key="customer.id"
+                    :to="`/customer/${customer.id}`"
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
+                    @click.stop
+                  >
+                    <IconUser :size="10" />
+                    {{ customer.first_name }} {{ customer.last_name }}
+                  </RouterLink>
+                  <span v-if="item.Customers.length > 3" class="text-xs text-gray-400">+{{ item.Customers.length - 3 }}</span>
+                </div>
+                <span v-else class="text-gray-400">—</span>
+              </td>
               <td class="px-5 py-3">
                 <span v-if="item.ContainerBreadcrumb" class="inline-flex items-center gap-1 text-blue-600 text-sm">
                   <IconArrowRight :size="13" />

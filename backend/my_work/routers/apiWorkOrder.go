@@ -330,9 +330,58 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			Limit(from.Entries).
 			Find(&orders)
 
+		// 定义返回结构
+		type CustomerInfo struct {
+			ID          uint   `json:"id"`
+			FirstName   string `json:"first_name"`
+			LastName    string `json:"last_name"`
+			PrimaryPhone string `json:"primary_phone"`
+		}
+		type OrderWithCustomers struct {
+			TabWorkOrder
+			Customers []CustomerInfo `json:"customers"`
+		}
+
+		var ordersWithCustomers []OrderWithCustomers
+		for _, order := range orders {
+			orderItem := OrderWithCustomers{
+				TabWorkOrder: order,
+				Customers:   []CustomerInfo{},
+			}
+
+			// 查询关联客户
+			var customerBinds []TabWorkOrderCustomerBind
+			models.DB.Where("work_order_id = ?", order.ID).Find(&customerBinds)
+			if len(customerBinds) > 0 {
+				var customerIDs []uint
+				for _, b := range customerBinds {
+					customerIDs = append(customerIDs, b.CustomerID)
+				}
+				var customers []TabCustomer
+				models.DB.Where("id IN ?", customerIDs).Find(&customers)
+				for _, c := range customers {
+					customerInfo := CustomerInfo{
+						ID:        c.ID,
+						FirstName:  c.FirstName,
+						LastName:   c.LastName,
+						PrimaryPhone: "",
+					}
+					// 获取主电话
+					var phone TabCustomerPhone
+					if err := models.DB.Where("customer_id = ? AND is_primary = ?", c.ID, true).First(&phone).Error; err == nil {
+						customerInfo.PrimaryPhone = phone.Phone
+					} else if err := models.DB.Where("customer_id = ?", c.ID).First(&phone).Error; err == nil {
+						customerInfo.PrimaryPhone = phone.Phone
+					}
+					orderItem.Customers = append(orderItem.Customers, customerInfo)
+				}
+			}
+			ordersWithCustomers = append(ordersWithCustomers, orderItem)
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
 			"all_count":  count,
-			"all_orders": orders,
+			"all_orders": ordersWithCustomers,
 		})
 	})
 

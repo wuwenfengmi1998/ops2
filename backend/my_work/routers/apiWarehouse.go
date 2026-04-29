@@ -902,14 +902,73 @@ func ApiWarehouse(r *gin.RouterGroup) {
 			}
 		}
 
-		// 为每个物品计算面包屑
+		// 收集所有物品ID
+		itemIDs := make([]uint, 0, len(items))
+		for _, item := range items {
+			itemIDs = append(itemIDs, item.ID)
+		}
+
+		// 批量查询工单绑定数量
+		workOrderCounts := make(map[uint]int)
+		if len(itemIDs) > 0 {
+			var woBinds []TabWarehouseItemWorkOrderBind
+			models.DB.Where("item_id IN ?", itemIDs).Find(&woBinds)
+			for _, bind := range woBinds {
+				workOrderCounts[bind.ItemID]++
+			}
+		}
+
+		// 批量查询客户关联
+		type CustomerInfo struct {
+			ID        uint   `json:"id"`
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+			Title     string `json:"title"`
+		}
+		itemCustomers := make(map[uint][]CustomerInfo)
+		if len(itemIDs) > 0 {
+			var customerBinds []TabWarehouseItemCustomerBind
+			models.DB.Where("item_id IN ?", itemIDs).Find(&customerBinds)
+			customerIDs := make([]uint, 0)
+			for _, bind := range customerBinds {
+				customerIDs = append(customerIDs, bind.CustomerID)
+			}
+			// 查询客户信息
+			customerMap := make(map[uint]TabCustomer)
+			if len(customerIDs) > 0 {
+				var customers []TabCustomer
+				models.DB.Where("id IN ?", customerIDs).Find(&customers)
+				for _, c := range customers {
+					customerMap[c.ID] = c
+				}
+			}
+			// 构建物品ID到客户列表的映射
+			for _, bind := range customerBinds {
+				if c, ok := customerMap[bind.CustomerID]; ok {
+					itemCustomers[bind.ItemID] = append(itemCustomers[bind.ItemID], CustomerInfo{
+						ID:        c.ID,
+						FirstName: c.FirstName,
+						LastName:  c.LastName,
+						Title:     c.Title,
+					})
+				}
+			}
+		}
+
+		// 为每个物品计算面包屑并添加额外信息
 		type ItemWithBreadcrumb struct {
 			TabWarehouseItem
-			ContainerBreadcrumb string `json:"ContainerBreadcrumb"`
+			ContainerBreadcrumb string         `json:"ContainerBreadcrumb"`
+			WorkOrderCount      int            `json:"WorkOrderCount"`
+			Customers           []CustomerInfo `json:"Customers"`
 		}
 		itemsWithBreadcrumb := make([]ItemWithBreadcrumb, len(items))
 		for i, item := range items {
-			itemsWithBreadcrumb[i] = ItemWithBreadcrumb{TabWarehouseItem: item}
+			itemsWithBreadcrumb[i] = ItemWithBreadcrumb{
+				TabWarehouseItem:   item,
+				WorkOrderCount:     workOrderCounts[item.ID],
+				Customers:          itemCustomers[item.ID],
+			}
 			if item.ContainerID != nil {
 				itemsWithBreadcrumb[i].ContainerBreadcrumb = buildContainerBreadcrumb(*item.ContainerID, containerMap)
 			}

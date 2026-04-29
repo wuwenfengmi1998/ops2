@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
@@ -144,6 +144,7 @@ onMounted(fetchOrders)
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">No.</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('work_order.title') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">描述</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">关联客户</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.created_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.updated_at') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-36">{{ t('work_order.status') }}</th>
@@ -151,7 +152,7 @@ onMounted(fetchOrders)
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+              <td colspan="7" class="px-6 py-8 text-center text-gray-400">
                 <svg class="mx-auto mb-2 h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -160,7 +161,7 @@ onMounted(fetchOrders)
               </td>
             </tr>
             <tr v-else-if="orders.length === 0">
-              <td colspan="6" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
+              <td colspan="7" class="px-6 py-8 text-center text-gray-400 dark:text-gray-500">
                 暂无工单
               </td>
             </tr>
@@ -174,6 +175,19 @@ onMounted(fetchOrders)
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400">{{ order.ID }}</td>
               <td class="px-6 py-3 font-medium text-gray-900 dark:text-white max-w-xs truncate">{{ order.Title }}</td>
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ order.Description || '—' }}</td>
+              <td class="px-6 py-3">
+                <div v-if="order.customers && order.customers.length > 0" class="flex flex-wrap gap-1">
+                  <RouterLink
+                    v-for="c in order.customers"
+                    :key="c.id"
+                    :to="`/customer/detail/${c.id}`"
+                    class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                  >
+                    {{ (c.last_name || '') + (c.first_name ? ' ' + c.first_name : '') }}
+                  </RouterLink>
+                </div>
+                <span v-else class="text-gray-400">—</span>
+              </td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.CreatedAt) }}</td>
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.UpdatedAt) }}</td>
               <td class="px-6 py-3">

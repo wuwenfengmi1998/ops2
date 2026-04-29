@@ -255,7 +255,7 @@ async function submit() {
           </div>
 
           <!-- 搜索框 -->
-          <div class="customer-search-wrapper relative">
+          <div class="customer-search-wrapper relative" style="z-index: 9999;">
             <input
               v-model="customerSearchQuery"
               type="text"
@@ -267,7 +267,7 @@ async function submit() {
             <!-- 下拉结果 -->
             <div
               v-if="showCustomerDropdown && customerSearchResults.length > 0"
-              class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               <div
                 v-for="customer in customerSearchResults"
@@ -284,14 +284,14 @@ async function submit() {
             <!-- 加载中 -->
             <div
               v-if="showCustomerDropdown && customerSearchLoading"
-              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('message.loading') }}
             </div>
             <!-- 无结果 -->
             <div
               v-if="showCustomerDropdown && !customerSearchLoading && customerSearchResults.length === 0 && customerSearchQuery.trim().length > 0"
-              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+              class="absolute z-[9999] mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('warehouse.linked_customer_not_found') || '未找到客户' }}
             </div>
