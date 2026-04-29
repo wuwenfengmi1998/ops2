@@ -142,7 +142,7 @@ onMounted(fetchOrders)
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base">
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-16">No.</th>
-              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">{{ t('work_order.title') }}</th>
+              <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 w-48">{{ t('work_order.title') }}</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">描述</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400">关联客户</th>
               <th class="px-6 py-3 font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap w-44">{{ t('work_order.created_at') }}</th>
@@ -173,7 +173,7 @@ onMounted(fetchOrders)
               @click="jumpToOrder(order.ID)"
             >
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400">{{ order.ID }}</td>
-              <td class="px-6 py-3 font-medium text-gray-900 dark:text-white max-w-xs truncate">{{ order.Title }}</td>
+              <td class="px-6 py-3 font-medium text-gray-900 dark:text-white max-w-[12rem] truncate">{{ order.Title }}</td>
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ order.Description || '—' }}</td>
               <td class="px-6 py-3">
                 <div v-if="order.customers && order.customers.length > 0" class="flex flex-wrap gap-1">
@@ -181,7 +181,7 @@ onMounted(fetchOrders)
                     v-for="c in order.customers"
                     :key="c.id"
                     :to="`/customer/detail/${c.id}`"
-                    class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                    class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 whitespace-nowrap"
                   >
                     {{ (c.last_name || '') + (c.first_name ? ' ' + c.first_name : '') }}
                   </RouterLink>

@@ -555,13 +555,12 @@ onMounted(async () => {
           <table class="w-full text-left text-sm text-gray-900 dark:text-white">
             <thead>
               <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400">
-                <th class="px-5 py-3 font-medium">{{ t('warehouse.item_name') }}</th>
+                <th class="px-5 py-3 font-medium w-24">{{ t('warehouse.item_name') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.serial_number') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.remark') }}</th>
                 <th class="px-5 py-3 font-medium w-20 text-center">{{ t('warehouse.quantity') }}</th>
                 <th class="px-5 py-3 font-medium w-24 text-center">{{ t('work_order.work_order_count') }}</th>
-                <th class="px-5 py-3 font-medium">{{ t('customer.related_customers') }}</th>
-                <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
+                <th class="px-5 py-3 font-medium w-48">{{ t('customer.related_customers') }}</th>
                 <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.updated_at') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
                 <th class="px-5 py-3 font-medium w-20 text-right">{{ t('warehouse.actions') }}</th>
@@ -569,7 +568,7 @@ onMounted(async () => {
             </thead>
             <tbody>
               <tr v-if="loadingItems">
-                <td colspan="10" class="px-5 py-8 text-center">
+                <td colspan="9" class="px-5 py-8 text-center">
                   <svg class="mx-auto h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
@@ -577,7 +576,7 @@ onMounted(async () => {
                 </td>
               </tr>
               <tr v-else-if="items.length === 0">
-                <td colspan="10" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
+                <td colspan="9" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
                   {{ t('warehouse.no_items') }}
                 </td>
               </tr>
@@ -591,7 +590,7 @@ onMounted(async () => {
                 <td class="px-5 py-3">
                   <div class="flex items-center gap-2">
                     <IconPackage class="text-green-500 flex-shrink-0" :size="16" />
-                    <span class="font-medium max-w-xs truncate">{{ item.Name }}</span>
+                    <span class="font-medium max-w-[5rem] truncate">{{ item.Name }}</span>
                   </div>
                 </td>
                 <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[140px] truncate">{{ item.SerialNumber || '—' }}</td>
@@ -610,7 +609,7 @@ onMounted(async () => {
                       v-for="customer in item.Customers.slice(0, 3)"
                       :key="customer.id"
                       :to="`/customer/detail/${customer.id}`"
-                      class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
+                      class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60 whitespace-nowrap"
                       @click.stop
                     >
                       <IconUser :size="10" />
@@ -620,7 +619,6 @@ onMounted(async () => {
                   </div>
                   <span v-else class="text-gray-400">—</span>
                 </td>
-                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(item.CreatedAt) }}</td>
                 <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(item.UpdatedAt) }}</td>
                 <td class="px-5 py-3">
                   <div class="flex items-center gap-1.5">

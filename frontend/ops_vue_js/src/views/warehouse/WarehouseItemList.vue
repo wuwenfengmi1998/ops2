@@ -226,7 +226,7 @@ onMounted(fetchItems)
               <th class="px-5 py-3 font-medium">{{ t('warehouse.serial_number') }}</th>
               <th class="px-5 py-3 font-medium w-20 text-center">{{ t('warehouse.quantity') }}</th>
               <th class="px-5 py-3 font-medium w-24 text-center">{{ t('work_order.work_order_count') }}</th>
-              <th class="px-5 py-3 font-medium">{{ t('customer.related_customers') }}</th>
+              <th class="px-5 py-3 font-medium w-48">{{ t('customer.related_customers') }}</th>
               <th class="px-5 py-3 font-medium">{{ t('warehouse.location') }}</th>
               <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
               <th class="px-5 py-3 font-medium w-16 text-right">{{ t('warehouse.actions') }}</th>
@@ -255,7 +255,7 @@ onMounted(fetchItems)
                     v-for="customer in item.Customers.slice(0, 3)"
                     :key="customer.id"
                     :to="`/customer/detail/${customer.id}`"
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60"
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60 whitespace-nowrap"
                     @click.stop
                   >
                     <IconUser :size="10" />
