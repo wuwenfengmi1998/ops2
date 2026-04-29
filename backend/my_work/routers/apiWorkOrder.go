@@ -114,7 +114,8 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			Title       string   `json:"title"`
 			Description string   `json:"description"`
 			Photos      []string `json:"photos"`
-			ItemID      *uint    `json:"item_id"`
+			ItemIDs     []uint   `json:"item_ids"`
+			CustomerIDs []uint   `json:"customer_ids"`
 		}
 		var from FromAdd
 		if err := decodeJSON(data, &from); err != nil || from.Title == "" {
@@ -149,13 +150,26 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			}
 		}
 
-		// 绑定物品
-		if from.ItemID != nil && *from.ItemID > 0 {
-			models.DB.Create(&TabWarehouseItemWorkOrderBind{
-				ItemID:      *from.ItemID,
-				WorkOrderID: order.ID,
-				CreatorID:   user.ID,
-			})
+		// 绑定物品（支持多个）
+		for _, itemID := range from.ItemIDs {
+			if itemID > 0 {
+				models.DB.Create(&TabWarehouseItemWorkOrderBind{
+					ItemID:      itemID,
+					WorkOrderID: order.ID,
+					CreatorID:   user.ID,
+				})
+			}
+		}
+
+		// 绑定客户（支持多个）
+		for _, customerID := range from.CustomerIDs {
+			if customerID > 0 {
+				models.DB.Create(&TabWorkOrderCustomerBind{
+					WorkOrderID: order.ID,
+					CustomerID:  customerID,
+					CreatorID:   user.ID,
+				})
+			}
 		}
 
 		// 写创建 commit
@@ -190,17 +204,19 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			return
 		}
 
-		type FromUpdate struct {
-			ID          uint     `json:"id"`
-			Title       string   `json:"title"`
-			Description string   `json:"description"`
-			Photos      []string `json:"photos"`
-		}
-		var from FromUpdate
-		if err := decodeJSON(data, &from); err != nil || from.ID == 0 || from.Title == "" {
-			ReturnJson(ctx, "jsonErr", nil)
-			return
-		}
+	type FromUpdate struct {
+		ID           uint     `json:"id"`
+		Title        string   `json:"title"`
+		Description  string   `json:"description"`
+		Photos       []string `json:"photos"`
+		ItemIDs      []uint   `json:"item_ids"`
+		CustomerIDs  []uint   `json:"customer_ids"`
+	}
+	var from FromUpdate
+	if err := decodeJSON(data, &from); err != nil || from.ID == 0 || from.Title == "" {
+		ReturnJson(ctx, "jsonErr", nil)
+		return
+	}
 
 		// 校验图片哈希
 		for _, hash := range from.Photos {
@@ -238,6 +254,25 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 					FileID:      findFile.ID,
 				})
 			}
+		}
+
+		// 重建物品关联绑定
+		models.DB.Where("work_order_id = ?", from.ID).Delete(&TabWarehouseItemWorkOrderBind{})
+		for _, itemID := range from.ItemIDs {
+			models.DB.Create(&TabWarehouseItemWorkOrderBind{
+				WorkOrderID: from.ID,
+				ItemID:      itemID,
+			})
+		}
+
+		// 重建客户关联绑定
+		models.DB.Where("work_order_id = ?", from.ID).Delete(&TabWorkOrderCustomerBind{})
+		for _, customerID := range from.CustomerIDs {
+			models.DB.Create(&TabWorkOrderCustomerBind{
+				WorkOrderID: from.ID,
+				CustomerID:  customerID,
+				CreatorID:   user.ID,
+			})
 		}
 
 		newContent, _ := json.Marshal(from)
@@ -414,14 +449,154 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 			}
 		}
 
+		// 关联客户
+		type LinkedCustomer struct {
+			ID         uint   `json:"id"`
+			FirstName  string `json:"first_name"`
+			LastName   string `json:"last_name"`
+			PrimaryPhone string `json:"primary_phone"`
+		}
+		var linkedCustomers []LinkedCustomer
+		var customerBinds []TabWorkOrderCustomerBind
+		models.DB.Where("work_order_id = ?", from.ID).Find(&customerBinds)
+		if len(customerBinds) > 0 {
+			var customerIDs []uint
+			for _, b := range customerBinds {
+				customerIDs = append(customerIDs, b.CustomerID)
+			}
+			var customers []TabCustomer
+			models.DB.Where("id IN ?", customerIDs).Find(&customers)
+			for _, c := range customers {
+				item := LinkedCustomer{
+					ID:        c.ID,
+					FirstName:  c.FirstName,
+					LastName:   c.LastName,
+					PrimaryPhone: "",
+				}
+				// 获取主电话
+				var phone TabCustomerPhone
+				if err := models.DB.Where("customer_id = ? AND is_primary = ?", c.ID, true).First(&phone).Error; err == nil {
+					item.PrimaryPhone = phone.Phone
+				} else if err := models.DB.Where("customer_id = ?", c.ID).First(&phone).Error; err == nil {
+					item.PrimaryPhone = phone.Phone
+				}
+				linkedCustomers = append(linkedCustomers, item)
+			}
+		}
+
 		ReturnJson(ctx, "apiOK", gin.H{
-			"order":       order,
-			"canModify":   canModify,
-			"canCommit":   canCommit,
-			"photos":      files,
-			"commits":     commitsWithPhotos,
-			"linkedItems": linkedItems,
+			"order":           order,
+			"canModify":       canModify,
+			"canCommit":       canCommit,
+			"photos":          files,
+			"commits":         commitsWithPhotos,
+			"linkedItems":     linkedItems,
+			"linkedCustomers": linkedCustomers,
 		})
+	})
+
+	// 关联客户到工单
+	r.POST("/link_customer", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromLinkCustomer struct {
+			WorkOrderID uint `json:"work_order_id"`
+			CustomerID  uint `json:"customer_id"`
+		}
+		var from FromLinkCustomer
+		if err := decodeJSON(data, &from); err != nil || from.WorkOrderID == 0 || from.CustomerID == 0 {
+			ReturnJson(ctx, "parameErr", nil)
+			return
+		}
+
+		// 检查工单是否存在
+		var order TabWorkOrder
+		if err := models.DB.Where("id = ?", from.WorkOrderID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 检查客户是否存在
+		var customer TabCustomer
+		if err := models.DB.Where("id = ?", from.CustomerID).First(&customer).Error; err != nil {
+			ReturnJson(ctx, "customer_not_found", nil)
+			return
+		}
+
+		// 检查是否已关联
+		var existingBind TabWorkOrderCustomerBind
+		if err := models.DB.Where("work_order_id = ? AND customer_id = ?", from.WorkOrderID, from.CustomerID).First(&existingBind).Error; err == nil {
+			ReturnJson(ctx, "already_linked", nil)
+			return
+		}
+
+		// 创建关联
+		if err := models.DB.Create(&TabWorkOrderCustomerBind{
+			WorkOrderID: from.WorkOrderID,
+			CustomerID:  from.CustomerID,
+			CreatorID:   user.ID,
+		}).Error; err != nil {
+			ReturnJson(ctx, "dbErr", nil)
+			return
+		}
+
+		// 写操作日志
+		models.DB.Create(&TabWorkOrderLog{
+			WorkOrderID: from.WorkOrderID,
+			UserID:      user.ID,
+			ActionType:  "link_customer",
+			NewContent:  parsefmt.Sprintf("关联客户 ID: %d", from.CustomerID),
+			IP:          ctx.ClientIP(),
+		})
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
+	// 解除工单与客户关联
+	r.POST("/unlink_customer", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromUnlinkCustomer struct {
+			WorkOrderID uint `json:"work_order_id"`
+			CustomerID  uint `json:"customer_id"`
+		}
+		var from FromUnlinkCustomer
+		if err := decodeJSON(data, &from); err != nil || from.WorkOrderID == 0 || from.CustomerID == 0 {
+			ReturnJson(ctx, "parameErr", nil)
+			return
+		}
+
+		// 检查工单是否存在
+		var order TabWorkOrder
+		if err := models.DB.Where("id = ?", from.WorkOrderID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 删除关联
+		if err := models.DB.Where("work_order_id = ? AND customer_id = ?", from.WorkOrderID, from.CustomerID).Delete(&TabWorkOrderCustomerBind{}).Error; err != nil {
+			ReturnJson(ctx, "dbErr", nil)
+			return
+		}
+
+		// 写操作日志
+		models.DB.Create(&TabWorkOrderLog{
+			WorkOrderID: from.WorkOrderID,
+			UserID:      user.ID,
+			ActionType:  "unlink_customer",
+			NewContent:  parsefmt.Sprintf("解除关联客户 ID: %d", from.CustomerID),
+			IP:          ctx.ClientIP(),
+		})
+
+		ReturnJson(ctx, "apiOK", nil)
 	})
 
 	// 新增进度 commit（状态推进）

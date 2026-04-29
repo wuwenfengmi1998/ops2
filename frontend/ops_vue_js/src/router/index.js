@@ -104,15 +104,30 @@ const router = createRouter({
           component: () => import('@/views/warehouse/WarehouseItemEdit.vue'),
         },
         {
-          path: 'admin',
-          name: 'admin',
-          component: () => import('@/views/AdminView.vue'),
-        },
-        {
           path: 'sysadmin',
           name: 'sysadmin',
           component: () => import('@/views/sysadmin/SysAdminView.vue'),
           meta: { requireSysAdmin: true },
+        },
+        {
+          path: 'customer',
+          name: 'customer',
+          component: () => import('@/views/customer/CustomerList.vue'),
+        },
+        {
+          path: 'customer/detail/:id',
+          name: 'customer-detail',
+          component: () => import('@/views/customer/CustomerDetail.vue'),
+        },
+        {
+          path: 'customer/edit/:id',
+          name: 'customer-edit',
+          component: () => import('@/views/customer/CustomerEdit.vue'),
+        },
+        {
+          path: 'customer/edit/:id',
+          name: 'customer-edit',
+          component: () => import('@/views/customer/CustomerFormModal.vue'),
         },
       ],
     },

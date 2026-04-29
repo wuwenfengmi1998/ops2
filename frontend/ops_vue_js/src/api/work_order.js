@@ -45,4 +45,14 @@ export const workOrderApi = {
   deleteCommit(workOrderId, commitId) {
     return api.post('/work_order/delete_commit', { workOrderId, commitId })
   },
+
+  /** 关联客户到工单 */
+  linkCustomer(workOrderId, customerId) {
+    return api.post('/work_order/link_customer', { work_order_id: workOrderId, customer_id: customerId })
+  },
+
+  /** 解除工单与客户关联 */
+  unlinkCustomer(workOrderId, customerId) {
+    return api.post('/work_order/unlink_customer', { work_order_id: workOrderId, customer_id: customerId })
+  },
 }

@@ -13,8 +13,10 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { useValidation } from '@/composables'
 import { workOrderApi } from '@/api/work_order'
 import { warehouseApi } from '@/api/warehouse'
+import { customerApi } from '@/api/customer'
 import useDropzone from '@/components/useDropzone.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { IconPackage, IconUser, IconX } from '@tabler/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,14 +35,22 @@ const pageLoading = ref(false)
 const pageError = ref('')
 const showDeleteConfirm = ref(false)
 
-// ==================== 关联物品搜索 ====================
+// ==================== 关联物品搜索（多选） ====================
 const itemSearchQuery = ref('')
 const itemSearchResults = ref([])
 const itemSearchLoading = ref(false)
 const showItemDropdown = ref(false)
-const selectedItem = ref(null)
+const selectedItems = ref([])
+
+// ==================== 关联客户搜索（多选） ====================
+const customerSearchQuery = ref('')
+const customerSearchResults = ref([])
+const customerSearchLoading = ref(false)
+const showCustomerDropdown = ref(false)
+const selectedCustomers = ref([])
 
 let searchTimer = null
+let customerSearchTimer = null
 
 function onItemSearchInput() {
   clearTimeout(searchTimer)
@@ -80,21 +90,68 @@ function onItemSearchInput() {
 }
 
 function selectItem(item) {
-  selectedItem.value = item
-  linkedItemId.value = item.ID
+  // 检查是否已选中
+  if (!selectedItems.value.find(i => i.ID === item.ID)) {
+    selectedItems.value.push(item)
+  }
   itemSearchQuery.value = ''
   itemSearchResults.value = []
   showItemDropdown.value = false
 }
 
-function clearSelectedItem() {
-  selectedItem.value = null
-  linkedItemId.value = null
+function removeSelectedItem(itemId) {
+  selectedItems.value = selectedItems.value.filter(i => i.ID !== itemId)
+}
+
+// ==================== 关联客户搜索 ====================
+function onCustomerSearchInput() {
+  clearTimeout(customerSearchTimer)
+  customerSearchTimer = setTimeout(async () => {
+    customerSearchLoading.value = true
+    showCustomerDropdown.value = true
+    try {
+      let res
+      if (customerSearchQuery.value.trim().length > 0) {
+        res = await customerApi.list({ search: customerSearchQuery.value.trim(), page: 1, page_size: 10 })
+        if (res.errCode === 0 && res.data) {
+          customerSearchResults.value = (res.data.customers || []).slice(0, 10)
+        } else {
+          customerSearchResults.value = []
+        }
+      } else {
+        res = await customerApi.list({ page: 1, page_size: 5 })
+        if (res.errCode === 0 && res.data) {
+          customerSearchResults.value = (res.data.customers || []).sort((a, b) => b.ID - a.ID)
+        } else {
+          customerSearchResults.value = []
+        }
+      }
+    } catch {
+      customerSearchResults.value = []
+    } finally {
+      customerSearchLoading.value = false
+    }
+  }, 300)
+}
+
+function selectCustomer(customer) {
+  // 检查是否已选中
+  if (!selectedCustomers.value.find(c => c.id === customer.id)) {
+    selectedCustomers.value.push(customer)
+  }
+  customerSearchQuery.value = ''
+  customerSearchResults.value = []
+  showCustomerDropdown.value = false
+}
+
+function removeSelectedCustomer(customerId) {
+  selectedCustomers.value = selectedCustomers.value.filter(c => c.id !== customerId)
 }
 
 function handleClickOutside(e) {
-  if (!e.target.closest('.item-search-wrapper')) {
+  if (!e.target.closest('.item-search-wrapper') && !e.target.closest('.customer-search-wrapper')) {
     showItemDropdown.value = false
+    showCustomerDropdown.value = false
   }
 }
 
@@ -117,7 +174,8 @@ function getPhotoHashes() {
 }
 
 // ==================== 加载编辑数据 ====================
-const linkedItemId = ref(null)
+const linkedItemIds = ref([])
+const linkedCustomerIds = ref([])
 
 onMounted(async () => {
   // 新增模式：检查预填数据
@@ -134,8 +192,13 @@ onMounted(async () => {
           try {
             const itemRes = await warehouseApi.getItem(prefill.itemId)
             if (itemRes.errCode === 0 && itemRes.data) {
-              selectedItem.value = itemRes.data.item
-              linkedItemId.value = prefill.itemId
+              const item = itemRes.data.item
+              if (!selectedItems.value.find(i => i.ID === item.ID)) {
+                selectedItems.value.push(item)
+              }
+              if (!linkedItemIds.value.includes(prefill.itemId)) {
+                linkedItemIds.value.push(prefill.itemId)
+              }
             }
           } catch {
             // 获取物品详情失败，忽略
@@ -159,7 +222,7 @@ onMounted(async () => {
       return
     }
 
-    const { order, photos } = res.data
+    const { order, photos, linkedItems, linkedCustomers } = res.data
     form.title = order.Title ?? ''
     form.description = order.Description ?? ''
 
@@ -167,6 +230,28 @@ onMounted(async () => {
     await nextTick()
     if (photos && photos.length > 0) {
       form.photos = photos
+    }
+
+    // 回填关联物品
+    if (linkedItems && linkedItems.length > 0) {
+      selectedItems.value = linkedItems.map(item => ({
+        ID: item.ID,
+        Name: item.Name,
+        SerialNumber: item.SerialNumber,
+        ContainerID: item.ContainerID,
+      }))
+      linkedItemIds.value = linkedItems.map(item => item.ID)
+    }
+
+    // 回填关联客户
+    if (linkedCustomers && linkedCustomers.length > 0) {
+      selectedCustomers.value = linkedCustomers.map(c => ({
+        id: c.id,
+        first_name: c.first_name,
+        last_name: c.last_name,
+        primary_phone: c.primary_phone,
+      }))
+      linkedCustomerIds.value = linkedCustomers.map(c => c.id)
     }
   } catch {
     pageError.value = t('work_order.not_found')
@@ -213,13 +298,16 @@ async function handleSubmit() {
         title: form.title,
         description: form.description,
         photos,
+        item_ids: selectedItems.value.map(i => i.ID),
+        customer_ids: selectedCustomers.value.map(c => c.id),
       })
     } else {
       res = await workOrderApi.add({
         title: form.title,
         description: form.description,
         photos,
-        item_id: linkedItemId.value,
+        item_ids: selectedItems.value.map(i => i.ID),
+        customer_ids: selectedCustomers.value.map(c => c.id),
       })
     }
 
@@ -331,32 +419,33 @@ async function handleSubmit() {
           />
         </div>
 
-        <!-- 关联物品搜索（仅新增模式） -->
-        <div v-if="!isEdit">
+        <!-- 关联物品搜索（多选） -->
+        <div>
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('work_order.linked_item') }}
+            {{ t('work_order.linked_items') }}
           </label>
 
-          <!-- 已选择物品显示 -->
-          <div v-if="selectedItem" class="flex items-center gap-2 rounded-lg border border-green-300 bg-green-50 px-3 py-2 dark:border-green-700 dark:bg-green-900/30">
-            <svg class="h-4 w-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8 4-8-4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <span class="text-sm text-green-800 dark:text-green-200">
-              {{ selectedItem.Name }}{{ selectedItem.SerialNumber ? ' - ' + selectedItem.SerialNumber : '' }}
-            </span>
-            <span class="ml-auto text-xs text-green-600 dark:text-green-400">{{ t('work_order.linked_item_selected') }}</span>
-            <button
-              type="button"
-              class="ml-2 text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
-              @click="clearSelectedItem"
+          <!-- 已选择物品列表 -->
+          <div v-if="selectedItems.length > 0" class="mb-2 flex flex-wrap gap-2">
+            <div
+              v-for="item in selectedItems"
+              :key="item.ID"
+              class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
             >
-              {{ t('work_order.clear_linked_item') }}
-            </button>
+              <IconPackage :size="12" />
+              {{ item.Name }}{{ item.SerialNumber ? ' - ' + item.SerialNumber : '' }}
+              <button
+                type="button"
+                class="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-blue-200 dark:hover:bg-blue-800"
+                @click="removeSelectedItem(item.ID)"
+              >
+                <IconX :size="12" />
+              </button>
+            </div>
           </div>
 
           <!-- 搜索框 -->
-          <div v-else class="item-search-wrapper relative">
+          <div class="item-search-wrapper relative">
             <input
               v-model="itemSearchQuery"
               type="text"
@@ -393,6 +482,77 @@ async function handleSubmit() {
               class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               {{ t('work_order.linked_item_not_found') }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 关联客户搜索（多选） -->
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t('work_order.linked_customers') }}
+          </label>
+
+          <!-- 已选择客户列表 -->
+          <div v-if="selectedCustomers.length > 0" class="mb-2 flex flex-wrap gap-2">
+            <div
+              v-for="customer in selectedCustomers"
+              :key="customer.id"
+              class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+            >
+              <IconUser :size="12" />
+              {{ (customer.last_name || '') + (customer.first_name ? ' ' + customer.first_name : '') }}
+              <button
+                type="button"
+                class="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-blue-200 dark:hover:bg-blue-800"
+                @click="removeSelectedCustomer(customer.id)"
+              >
+                <IconX :size="12" />
+              </button>
+            </div>
+          </div>
+
+          <!-- 搜索框 -->
+          <div class="customer-search-wrapper relative">
+            <input
+              v-model="customerSearchQuery"
+              type="text"
+              :placeholder="t('work_order.linked_customer_placeholder')"
+              class="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-dk-muted dark:bg-dk-base dark:text-white"
+              @input="onCustomerSearchInput"
+              @focus="customerSearchQuery || onCustomerSearchInput()"
+            />
+            <!-- 下拉结果 -->
+            <div
+              v-if="showCustomerDropdown && customerSearchResults.length > 0"
+              class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card"
+            >
+              <div
+                v-for="customer in customerSearchResults"
+                :key="customer.ID"
+                class="cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                @click="selectCustomer(customer)"
+              >
+                <div class="font-medium text-gray-900 dark:text-white">
+                  {{ (customer.last_name || '') + (customer.first_name ? ' ' + customer.first_name : '') }}
+                </div>
+                <div v-if="customer.primary_phone || customer.primary_company" class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ customer.primary_phone }}{{ customer.primary_phone && customer.primary_company ? ' · ' : '' }}{{ customer.primary_company }}
+                </div>
+              </div>
+            </div>
+            <!-- 加载中 -->
+            <div
+              v-if="showCustomerDropdown && customerSearchLoading"
+              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+            >
+              {{ t('message.loading') }}
+            </div>
+            <!-- 无结果 -->
+            <div
+              v-if="showCustomerDropdown && !customerSearchLoading && customerSearchResults.length === 0 && customerSearchQuery.trim().length > 0"
+              class="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+            >
+              {{ t('work_order.linked_customer_not_found') }}
             </div>
           </div>
         </div>

@@ -18,6 +18,7 @@ import {
   IconSearch,
   IconExternalLink,
   IconPackage,
+  IconUser,
 } from '@tabler/icons-vue'
 
 usePageTitle('work_order.detail_title')
@@ -34,6 +35,7 @@ const order = ref(null)
 const photos = ref([])
 const commits = ref([])
 const linkedItems = ref([])
+const linkedCustomers = ref([])
 const canModify = ref(false)
 const canCommit = ref(false)
 const loading = ref(true)
@@ -139,6 +141,7 @@ async function fetchOrder() {
       photos.value = data.photos ?? []
       commits.value = data.commits ?? []
       linkedItems.value = data.linkedItems ?? []
+      linkedCustomers.value = data.linkedCustomers ?? []
       // 初始化进度提交状态为当前状态
       if (order.value?.CurrentStatus) {
         commitStatus.value = order.value.CurrentStatus
@@ -300,6 +303,19 @@ function getPurchaseStatusClass(status) {
   return map[status] || 'bg-gray-100 text-gray-600'
 }
 
+// 采购订单气泡样式（整个气泡按状态染色）
+function getPoBubbleClass(status) {
+  const map = {
+    pending: 'border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-900/50',
+    ordered: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50',
+    arrived: 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50',
+    received: 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50',
+    lost: 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50',
+    returned: 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-800/50',
+  }
+  return map[status] || 'border-gray-200 bg-gray-50 text-gray-500'
+}
+
 const purchaseStatusLabels = {
   pending: '待处理',
   ordered: '已下单',
@@ -442,12 +458,28 @@ onUnmounted(() => {
                 :to="`/warehouse/item/${item.ID}`"
                 class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
                 :class="item.ContainerID
-                  ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50'
+                  ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50'
                   : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-800/50'"
               >
                 <IconPackage :size="12" />
                 {{ item.Name }}
-                <span v-if="item.SerialNumber" :class="item.ContainerID ? 'text-green-500' : 'text-gray-400'">-{{ item.SerialNumber }}</span>
+                <span v-if="item.SerialNumber" :class="item.ContainerID ? 'text-blue-500' : 'text-gray-400'">-{{ item.SerialNumber }}</span>
+              </RouterLink>
+            </div>
+          </div>
+          <!-- 关联客户 -->
+          <div v-if="linkedCustomers.length > 0">
+            <label class="mb-1 block text-xs font-medium text-gray-400">{{ t('work_order.linked_customers') }}</label>
+            <div class="flex flex-wrap gap-2">
+              <RouterLink
+                v-for="c in linkedCustomers"
+                :key="c.id"
+                :to="`/customer/detail/${c.id}`"
+                class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+              >
+                <IconUser :size="12" />
+                {{ (c.last_name || '') + (c.first_name ? ' ' + c.first_name : '') }}
+                <span v-if="c.primary_phone" class="text-blue-500">{{ c.primary_phone }}</span>
               </RouterLink>
             </div>
           </div>
@@ -459,15 +491,11 @@ onUnmounted(() => {
                 v-for="po in allPurchaseOrders"
                 :key="po.id"
                 :to="`/purchase/showorder/${po.id}`"
-                class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                :class="getPoBubbleClass(po.status)"
               >
                 #{{ po.id }} {{ po.title || '' }}
-                <span
-                  class="ml-1 rounded px-1.5 py-0.5 text-[10px]"
-                  :class="getPurchaseStatusClass(po.status)"
-                >
-                  {{ getPurchaseStatusLabel(po.status) }}
-                </span>
+                <span class="opacity-80">{{ getPurchaseStatusLabel(po.status) }}</span>
               </RouterLink>
             </div>
           </div>
@@ -528,11 +556,12 @@ onUnmounted(() => {
                 <div
                   v-for="po in selectedPurchaseOrders"
                   :key="po.id"
-                  class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                  class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                  :class="getPoBubbleClass(po.status)"
                 >
                   #{{ po.id }} {{ po.title || '' }}
                   <button
-                    class="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-blue-200 dark:hover:bg-blue-800"
+                    class="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
                     @click="removePurchaseOrder(po.id)"
                   >
                     <IconX :size="12" />
@@ -705,15 +734,11 @@ onUnmounted(() => {
                   v-for="po in commit.purchaseOrders"
                   :key="po.id"
                   :to="`/purchase/showorder/${po.id}`"
-                  class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                  class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors"
+                  :class="getPoBubbleClass(po.status)"
                 >
                   #{{ po.id }} {{ po.title || '' }}
-                  <span
-                    class="rounded-full px-1.5 py-0.5 text-[10px]"
-                    :class="getPurchaseStatusClass(po.status)"
-                  >
-                    {{ getPurchaseStatusLabel(po.status) }}
-                  </span>
+                  <span class="opacity-80">{{ getPurchaseStatusLabel(po.status) }}</span>
                 </RouterLink>
               </div>
             </li>

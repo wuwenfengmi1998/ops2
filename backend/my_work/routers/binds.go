@@ -56,6 +56,15 @@ type TabWorkOrderPurchaseOrderBind struct {
 	CreatedAt       *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
+// TabWorkOrderCustomerBind 工单与客户关联表
+type TabWorkOrderCustomerBind struct {
+	ID          uint       `gorm:"primarykey"`
+	WorkOrderID uint       `gorm:"not null;index;comment:关联工单ID"`
+	CustomerID  uint       `gorm:"not null;index;comment:关联客户ID"`
+	CreatorID   uint       `gorm:"not null;comment:绑定人id"`
+	CreatedAt   *time.Time `gorm:"type:datetime;autoCreateTime"`
+}
+
 type TabWarehouseContainerFileBind struct {
 	ID          uint      `gorm:"primaryKey"`
 	ContainerID uint      `gorm:"not null;index;comment:关联容器id"`
@@ -73,6 +82,7 @@ func BindsInit() {
 		&TabWorkOrderFileBind{},
 		&TabWorkOrderCommitFileBind{},
 		&TabWorkOrderPurchaseOrderBind{},
+		&TabWorkOrderCustomerBind{},
 	)
 
 }

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '@/stores/user'
 import { useUsersStore } from '@/stores/users'
 import { authApi } from '@/api/auth'
+import { useRouter } from 'vue-router'
 import UsersTab from '@/views/sysadmin/UsersTab.vue'
 import GroupsTab from '@/views/sysadmin/GroupsTab.vue'
 import LogsTab from '@/views/sysadmin/LogsTab.vue'
@@ -11,6 +12,7 @@ import LogsTab from '@/views/sysadmin/LogsTab.vue'
 const { t } = useI18n()
 const userStore = useUserStore()
 const usersStore = useUsersStore()
+const router = useRouter()
 
 const activeTab = ref('users')
 const sysAdmins = ref([])
@@ -25,6 +27,7 @@ const tabs = [
   { id: 'users', label: t('sysadmin.tab_users') },
   { id: 'groups', label: t('sysadmin.tab_groups') },
   { id: 'logs', label: t('sysadmin.tab_logs') },
+  { id: 'customer', label: t('customer.title'), to: '/customer' },
 ]
 
 async function fetchSysAdmins() {
@@ -71,10 +74,10 @@ onMounted(() => {
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            @click="activeTab = tab.id"
+            @click="tab.to ? router.push(tab.to) : (activeTab = tab.id)"
             :class="[
               'border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
-              activeTab === tab.id
+              activeTab === tab.id && !tab.to
                 ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
                 : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-dk-subtle dark:hover:text-dk-text',
             ]"

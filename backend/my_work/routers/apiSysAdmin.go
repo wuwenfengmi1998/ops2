@@ -391,6 +391,8 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 		WorkOrderUpdateAdminsCash()
 	case "warehouse_admin":
 		WarehouseUpdateAdminsCash()
+	case "customer_admin":
+		CustomerUpdateAdminsCash()
 	}
 
 	ReturnJson(ctx, "apiOK", nil)
@@ -444,6 +446,8 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 		WorkOrderUpdateAdminsCash()
 	case "warehouse_admin":
 		WarehouseUpdateAdminsCash()
+	case "customer_admin":
+		CustomerUpdateAdminsCash()
 	}
 
 	ReturnJson(ctx, "apiOK", nil)
