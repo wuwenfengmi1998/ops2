@@ -800,13 +800,13 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 
 		type FromUpdate struct {
-			ID          uint     `json:"id"`
-			Name        string   `json:"name"`
-			SerialNumber string  `json:"serial_number"`
-			Remark      string   `json:"remark"`
-			Quantity    int      `json:"quantity"`
-			Photos      []string `json:"photos"`
-			CustomerIDs []uint   `json:"customer_ids"`
+			ID           uint     `json:"id"`
+			Name         string   `json:"name"`
+			SerialNumber string   `json:"serial_number"`
+			Remark       string   `json:"remark"`
+			Quantity     int      `json:"quantity"`
+			Photos       []string `json:"photos"`
+			CustomerIDs  []uint   `json:"customer_ids"`
 		}
 		var from FromUpdate
 		if err := decodeJSON(data, &from); err != nil || from.ID == 0 || from.Name == "" {
@@ -1064,9 +1064,9 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		itemsWithBreadcrumb := make([]ItemWithBreadcrumb, len(items))
 		for i, item := range items {
 			itemsWithBreadcrumb[i] = ItemWithBreadcrumb{
-				TabWarehouseItem:   item,
-				WorkOrderCount:     workOrderCounts[item.ID],
-				Customers:          itemCustomers[item.ID],
+				TabWarehouseItem: item,
+				WorkOrderCount:   workOrderCounts[item.ID],
+				Customers:        itemCustomers[item.ID],
 			}
 			if item.ContainerID != nil {
 				itemsWithBreadcrumb[i].ContainerBreadcrumb = buildContainerBreadcrumb(*item.ContainerID, containerMap)
@@ -1169,12 +1169,22 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		for _, b := range customerBinds {
 			var c TabCustomer
 			if models.DB.Where("id = ?", b.CustomerID).First(&c).Error == nil {
+				// 查询主电话号码
+				var primaryPhone TabCustomerPhone
+				primaryPhoneStr := ""
+				if models.DB.Where("customer_id = ? AND is_primary = ?", c.ID, true).First(&primaryPhone).Error == nil {
+					if primaryPhone.Prefix != "" {
+						primaryPhoneStr = "+" + primaryPhone.Prefix + " " + primaryPhone.Phone
+					} else {
+						primaryPhoneStr = primaryPhone.Phone
+					}
+				}
 				customers = append(customers, CustomerInfo{
 					ID:           c.ID,
 					FirstName:    c.FirstName,
 					LastName:     c.LastName,
 					Title:        c.Title,
-					PrimaryPhone: c.PrimaryPhone,
+					PrimaryPhone: primaryPhoneStr,
 				})
 			}
 		}
