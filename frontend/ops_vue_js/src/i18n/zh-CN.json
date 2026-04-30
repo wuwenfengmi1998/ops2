@@ -33,7 +33,8 @@
     "purchase": "采购",
     "warehouse": "仓库",
     "warehouse_items": "物品总览",
-    "work_order": "工单"
+    "work_order": "工单",
+    "calendar": "日历"
   },
   "tagadder": {
     "not_fund_item": "没有找到匹配项",
@@ -601,5 +602,41 @@
     "created_by": "创建者",
     "not_found": "客户不存在",
     "related_customers": "关联客户"
+  },
+  "calendar": {
+    "calendars": "日历列表",
+    "calendar_detail": "日历详情",
+    "create_calendar": "新建日历",
+    "edit_calendar": "编辑日历",
+    "delete_calendar": "删除日历",
+    "calendar_not_found": "日历未找到",
+    "no_calendars": "暂无日历",
+    "name": "名称",
+    "name_required": "请输入日历名称",
+    "name_placeholder": "请输入日历名称",
+    "description": "描述",
+    "description_placeholder": "请输入日历描述",
+    "color": "颜色",
+    "is_public": "公开日历",
+    "public": "公开",
+    "private": "私有",
+    "create_success": "创建成功",
+    "update_success": "更新成功",
+    "delete_success": "删除成功",
+    "confirm_delete": "确定要删除此日历吗？",
+    "loading": "加载中...",
+    "add_event": "添加事件",
+    "edit_event": "编辑事件",
+    "delete_event": "删除事件",
+    "event_title": "事件标题",
+    "event_title_required": "请输入事件标题",
+    "event_title_placeholder": "请输入事件标题",
+    "start_date": "开始日期",
+    "end_date": "结束日期",
+    "remark": "备注",
+    "remark_placeholder": "请输入备注",
+    "event_save_success": "事件保存成功",
+    "event_delete_success": "事件删除成功",
+    "confirm_delete_event": "确定要删除此事件吗？"
   }
 }

@@ -129,6 +129,16 @@ const router = createRouter({
           name: 'customer-edit',
           component: () => import('@/views/customer/CustomerFormPage.vue'),
         },
+        {
+          path: 'calendars',
+          name: 'calendars',
+          component: () => import('@/views/calendar/CalendarList.vue'),
+        },
+        {
+          path: 'calendar/:id',
+          name: 'calendar-detail',
+          component: () => import('@/views/calendar/CalendarDetail.vue'),
+        },
       ],
     },
 

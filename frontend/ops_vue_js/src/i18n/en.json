@@ -33,7 +33,8 @@
     "purchase": "Purchase",
     "warehouse": "Warehouse",
     "warehouse_items": "Items Overview",
-    "work_order": "Work Order"
+    "work_order": "Work Order",
+    "calendar": "Calendar"
   },
   "tagadder": {
     "not_fund_item": "No matching items found",
@@ -601,5 +602,41 @@
     "created_by": "Created By",
     "not_found": "Customer not found",
     "related_customers": "Related Customers"
+  },
+  "calendar": {
+    "calendars": "Calendar List",
+    "calendar_detail": "Calendar Detail",
+    "create_calendar": "Create Calendar",
+    "edit_calendar": "Edit Calendar",
+    "delete_calendar": "Delete Calendar",
+    "calendar_not_found": "Calendar not found",
+    "no_calendars": "No calendars yet",
+    "name": "Name",
+    "name_required": "Calendar name is required",
+    "name_placeholder": "Enter calendar name",
+    "description": "Description",
+    "description_placeholder": "Enter calendar description",
+    "color": "Color",
+    "is_public": "Public Calendar",
+    "public": "Public",
+    "private": "Private",
+    "create_success": "Calendar created successfully",
+    "update_success": "Calendar updated successfully",
+    "delete_success": "Calendar deleted successfully",
+    "confirm_delete": "Are you sure you want to delete this calendar?",
+    "loading": "Loading...",
+    "add_event": "Add Event",
+    "edit_event": "Edit Event",
+    "delete_event": "Delete Event",
+    "event_title": "Event Title",
+    "event_title_required": "Event title is required",
+    "event_title_placeholder": "Enter event title",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "remark": "Remark",
+    "remark_placeholder": "Enter remark",
+    "event_save_success": "Event saved successfully",
+    "event_delete_success": "Event deleted successfully",
+    "confirm_delete_event": "Are you sure you want to delete this event?"
   }
 }

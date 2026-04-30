@@ -1,0 +1,434 @@
+package routers
+
+import (
+	"encoding/json"
+	"ops/models"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/mitchellh/mapstructure"
+	"gorm.io/gorm"
+)
+
+// TabCalendar 日历表
+type TabCalendar struct {
+	ID          uint   `gorm:"primarykey"`
+	UserID      uint   `gorm:"not null;comment:创建人ID"`
+	Name        string `gorm:"size:100;not null;comment:日历名称"`
+	Description string `gorm:"size:500;comment:日历描述"`
+	Color       string `gorm:"size:50;default:#3788d9;comment:日历颜色"`
+	IsPublic    bool   `gorm:"default:false;comment:是否公开"`
+
+	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime;comment:创建时间"`
+	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:最后修改时间"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+// TabCalendarEvent 日历事件表
+type TabCalendarEvent struct {
+	ID         uint   `gorm:"primarykey"`
+	CalendarID uint   `gorm:"not null;index;comment:关联日历ID"`
+	UserID     uint   `gorm:"not null;comment:创建人ID"`
+	Title      string `gorm:"size:200;not null;comment:事件标题"`
+	StartDate  string `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
+	EndDate    string `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
+	BgColor    string `gorm:"size:50;default:#3788d9;comment:背景颜色"`
+	Remark     string `gorm:"type:text;comment:备注"`
+
+	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime;comment:创建时间"`
+	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:最后修改时间"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+// TabCalendarLog 日历操作日志表
+type TabCalendarLog struct {
+	ID         uint   `gorm:"primarykey"`
+	CalendarID uint   `gorm:"not null;index;comment:关联日历ID"`
+	EventID    uint   `gorm:"not null;index;comment:关联事件ID（可选）"`
+	UserID     uint   `gorm:"not null;comment:操作人ID"`
+	ActionType string `gorm:"size:50;not null;comment:操作类型: create-创建 update-修改 delete-删除"`
+	OldContent string `gorm:"type:text;comment:修改前内容(JSON)"`
+	NewContent string `gorm:"type:text;comment:修改后内容(JSON)"`
+	IP         string `gorm:"size:50;comment:操作IP"`
+	Remark     string `gorm:"size:500;comment:备注/操作描述"`
+
+	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime;comment:操作时间"`
+}
+
+// 请求结构体
+type fromCreateCalendar struct {
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	Color       string `json:"color"`
+	IsPublic    bool   `json:"is_public"`
+}
+
+type fromUpdateCalendar struct {
+	ID          uint   `json:"id" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	Color       string `json:"color"`
+	IsPublic    bool   `json:"is_public"`
+}
+
+type fromDeleteCalendar struct {
+	ID uint `json:"id" binding:"required"`
+}
+
+type fromGetCalendarEvents struct {
+	CalendarID uint   `json:"calendar_id" binding:"required"`
+	Start      string `json:"start" binding:"required"`
+	End        string `json:"end" binding:"required"`
+}
+
+type fromAddCalendarEvent struct {
+	CalendarID uint   `json:"calendar_id" binding:"required"`
+	Title      string `json:"title" binding:"required"`
+	Start      string `json:"start" binding:"required"`
+	End        string `json:"end" binding:"required"`
+	Color      string `json:"color"`
+	Remark     string `json:"remark"`
+}
+
+type fromUpdateCalendarEvent struct {
+	ID         uint   `json:"id" binding:"required"`
+	Title      string `json:"title" binding:"required"`
+	Start      string `json:"start" binding:"required"`
+	End        string `json:"end" binding:"required"`
+	Color      string `json:"color"`
+	Remark     string `json:"remark"`
+}
+
+type fromDeleteCalendarEvent struct {
+	ID uint `json:"id" binding:"required"`
+}
+
+func ApiCalendarInit() {
+	// 初始化数据表
+	models.DB.AutoMigrate(&TabCalendar{})
+	models.DB.AutoMigrate(&TabCalendarEvent{})
+	models.DB.AutoMigrate(&TabCalendarLog{})
+}
+
+func ApiCalendar(r *gin.RouterGroup) {
+	// 创建日历
+	r.POST("/calendar/create", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromCreateCalendar
+			if err := mapstructure.Decode(data, &from); err == nil {
+				calendar := TabCalendar{
+					UserID:      user.ID,
+					Name:        from.Name,
+					Description: from.Description,
+					Color:       from.Color,
+					IsPublic:    from.IsPublic,
+				}
+				if calendar.Color == "" {
+					calendar.Color = "#3788d9"
+				}
+				if models.DB.Create(&calendar).Error == nil {
+					// 记录日志
+					newContent, _ := json.Marshal(calendar)
+					log := TabCalendarLog{
+						CalendarID: calendar.ID,
+						UserID:     user.ID,
+						ActionType: "create",
+						NewContent: string(newContent),
+						IP:         ctx.ClientIP(),
+					}
+					models.DB.Create(&log)
+					ReturnJson(ctx, "apiOK", gin.H{"id": calendar.ID})
+				} else {
+					ReturnJson(ctx, "apiErr", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 获取日历列表
+	r.POST("/calendar/list", func(ctx *gin.Context) {
+		isAuth, _, _ := AuthenticationAuthority(ctx)
+		if isAuth {
+			var calendars []TabCalendar
+			models.DB.Where("deleted_at IS NULL").Order("created_at DESC").Find(&calendars)
+			ReturnJson(ctx, "apiOK", gin.H{"list": calendars})
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 更新日历
+	r.POST("/calendar/update", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromUpdateCalendar
+			if err := mapstructure.Decode(data, &from); err == nil {
+				oldCalendar := TabCalendar{}
+				if models.DB.Where("id = ?", from.ID).First(&oldCalendar).Error == nil {
+					// 检查权限（只有创建人可以修改）
+					if oldCalendar.UserID != user.ID {
+						ReturnJson(ctx, "permission_denied", nil)
+						return
+					}
+
+					newCalendar := TabCalendar{
+						Name:        from.Name,
+						Description: from.Description,
+						Color:       from.Color,
+						IsPublic:    from.IsPublic,
+					}
+					if newCalendar.Color == "" {
+						newCalendar.Color = "#3788d9"
+					}
+
+					if models.DB.Model(&oldCalendar).Updates(&newCalendar).Error == nil {
+						// 记录日志
+						newContent, _ := json.Marshal(newCalendar)
+						oldContent, _ := json.Marshal(oldCalendar)
+						log := TabCalendarLog{
+							CalendarID: oldCalendar.ID,
+							UserID:     user.ID,
+							ActionType: "update",
+							OldContent: string(oldContent),
+							NewContent: string(newContent),
+							IP:         ctx.ClientIP(),
+						}
+						models.DB.Create(&log)
+						ReturnJson(ctx, "apiOK", nil)
+					} else {
+						ReturnJson(ctx, "apiErr", nil)
+					}
+				} else {
+					ReturnJson(ctx, "calendar_not_find", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 删除日历
+	r.POST("/calendar/delete", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromDeleteCalendar
+			if err := mapstructure.Decode(data, &from); err == nil {
+				oldCalendar := TabCalendar{}
+				if models.DB.Where("id = ?", from.ID).First(&oldCalendar).Error == nil {
+					// 检查权限（只有创建人可以删除）
+					if oldCalendar.UserID != user.ID {
+						ReturnJson(ctx, "permission_denied", nil)
+						return
+					}
+
+					// 软删除日历
+					if models.DB.Delete(&oldCalendar).Error == nil {
+						// 记录日志
+						oldContent, _ := json.Marshal(oldCalendar)
+						log := TabCalendarLog{
+							CalendarID: oldCalendar.ID,
+							UserID:     user.ID,
+							ActionType: "delete",
+							OldContent: string(oldContent),
+							IP:         ctx.ClientIP(),
+						}
+						models.DB.Create(&log)
+						ReturnJson(ctx, "apiOK", nil)
+					} else {
+						ReturnJson(ctx, "apiErr", nil)
+					}
+				} else {
+					ReturnJson(ctx, "calendar_not_find", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 获取日历事件
+	r.POST("/calendar/events", func(ctx *gin.Context) {
+		isAuth, _, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromGetCalendarEvents
+			if err := mapstructure.Decode(data, &from); err == nil {
+				var events []TabCalendarEvent
+				models.DB.Where("calendar_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL",
+					from.CalendarID, from.End, from.Start).Find(&events)
+
+				// 为事件添加编辑权限标识
+				var relist []map[string]interface{}
+				for _, event := range events {
+					data, _ := json.Marshal(event)
+					var temp map[string]interface{}
+					json.Unmarshal(data, &temp)
+					// 这里可以根据需要添加 edit 字段
+					relist = append(relist, temp)
+				}
+
+				ReturnJson(ctx, "apiOK", gin.H{"list": relist})
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 添加日历事件
+	r.POST("/calendar/addevent", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromAddCalendarEvent
+			if err := mapstructure.Decode(data, &from); err == nil {
+				// 检查日历是否存在
+				var calendar TabCalendar
+				if models.DB.Where("id = ? AND deleted_at IS NULL", from.CalendarID).First(&calendar).Error != nil {
+					ReturnJson(ctx, "calendar_not_find", nil)
+					return
+				}
+
+				event := TabCalendarEvent{
+					CalendarID: from.CalendarID,
+					UserID:     user.ID,
+					Title:      from.Title,
+					StartDate:  from.Start,
+					EndDate:    from.End,
+					BgColor:    from.Color,
+					Remark:     from.Remark,
+				}
+				if event.BgColor == "" {
+					event.BgColor = calendar.Color
+				}
+
+				if models.DB.Create(&event).Error == nil {
+					// 记录日志
+					newContent, _ := json.Marshal(event)
+					log := TabCalendarLog{
+						CalendarID: event.CalendarID,
+						EventID:    event.ID,
+						UserID:     user.ID,
+						ActionType: "create_event",
+						NewContent: string(newContent),
+						IP:         ctx.ClientIP(),
+					}
+					models.DB.Create(&log)
+					ReturnJson(ctx, "apiOK", gin.H{"id": event.ID})
+				} else {
+					ReturnJson(ctx, "apiErr", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 更新日历事件
+	r.POST("/calendar/updateevent", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromUpdateCalendarEvent
+			if err := mapstructure.Decode(data, &from); err == nil {
+				oldEvent := TabCalendarEvent{}
+				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error == nil {
+					// 检查权限（只有创建人可以修改）
+					if oldEvent.UserID != user.ID {
+						ReturnJson(ctx, "permission_denied", nil)
+						return
+					}
+
+					newEvent := TabCalendarEvent{
+						Title:   from.Title,
+						StartDate: from.Start,
+						EndDate: from.End,
+						BgColor: from.Color,
+						Remark:  from.Remark,
+					}
+					if newEvent.BgColor == "" {
+						// 获取日历颜色
+						var calendar TabCalendar
+						models.DB.Where("id = ?", oldEvent.CalendarID).First(&calendar)
+						newEvent.BgColor = calendar.Color
+					}
+
+					if models.DB.Model(&oldEvent).Updates(&newEvent).Error == nil {
+						// 记录日志
+						newContent, _ := json.Marshal(newEvent)
+						oldContent, _ := json.Marshal(oldEvent)
+						log := TabCalendarLog{
+							CalendarID: oldEvent.CalendarID,
+							EventID:    oldEvent.ID,
+							UserID:     user.ID,
+							ActionType: "update_event",
+							OldContent: string(oldContent),
+							NewContent: string(newContent),
+							IP:         ctx.ClientIP(),
+						}
+						models.DB.Create(&log)
+						ReturnJson(ctx, "apiOK", nil)
+					} else {
+						ReturnJson(ctx, "apiErr", nil)
+					}
+				} else {
+					ReturnJson(ctx, "event_not_find", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+
+	// 删除日历事件
+	r.POST("/calendar/deleteevent", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if isAuth {
+			var from fromDeleteCalendarEvent
+			if err := mapstructure.Decode(data, &from); err == nil {
+				oldEvent := TabCalendarEvent{}
+				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error == nil {
+					// 检查权限（只有创建人可以删除）
+					if oldEvent.UserID != user.ID {
+						ReturnJson(ctx, "permission_denied", nil)
+						return
+					}
+
+					if models.DB.Delete(&oldEvent).Error == nil {
+						// 记录日志
+						oldContent, _ := json.Marshal(oldEvent)
+						log := TabCalendarLog{
+							CalendarID: oldEvent.CalendarID,
+							EventID:    oldEvent.ID,
+							UserID:     user.ID,
+							ActionType: "delete_event",
+							OldContent: string(oldContent),
+							IP:         ctx.ClientIP(),
+						}
+						models.DB.Create(&log)
+						ReturnJson(ctx, "apiOK", nil)
+					} else {
+						ReturnJson(ctx, "apiErr", nil)
+					}
+				} else {
+					ReturnJson(ctx, "event_not_find", nil)
+				}
+			} else {
+				ReturnJson(ctx, "jsonErr", nil)
+			}
+		} else {
+			ReturnJson(ctx, "userCookieError", nil)
+		}
+	})
+}
