@@ -27,9 +27,9 @@ type TabCalendar struct {
 
 // TabCalendarEvent 日历事件表
 type TabCalendarEvent struct {
-	ID           uint `gorm:"primarykey"`
-	CalendarID   uint `gorm:"not null;index;comment:关联日历ID"`
-	UserID       uint `gorm:"not null;comment:创建人ID"`
+	ID           uint       `gorm:"primarykey"`
+	CalendarID   uint       `gorm:"not null;index;comment:关联日历ID"`
+	UserID       uint       `gorm:"not null;comment:创建人ID"`
 	Title        string     `gorm:"size:200;not null;comment:事件标题"`
 	StartDate    *time.Time `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
 	EndDate      *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
@@ -321,42 +321,62 @@ func ApiCalendar(r *gin.RouterGroup) {
 		}
 	})
 
-	// 获取日历事件
+	// 获取日历事件（公开接口，无需登录）
 	r.POST("/calendar/events", func(ctx *gin.Context) {
-		isAuth, _, data := AuthenticationAuthority(ctx)
-		if isAuth {
-			// 直接从 data 中解析，避免 float64 → uint 类型问题
-			calendarIDRaw, ok := data["calendar_id"].(float64)
-			if !ok || calendarIDRaw == 0 {
-				ReturnJson(ctx, "jsonErr", nil)
-				return
-			}
-			calendarID := uint(calendarIDRaw)
+		data, cookieval := SeparateData(ctx)
 
-			// 解析日期字符串
-			startStr, _ := data["start"].(string)
-			endStr, _ := data["end"].(string)
-			startDate, _ := time.Parse("2006-01-02", startStr)
-			endDate, _ := time.Parse("2006-01-02", endStr)
-
-			var events []TabCalendarEvent
-			models.DB.Where("calendar_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL",
-				calendarID, &endDate, &startDate).Find(&events)
-
-			// 为事件添加编辑权限标识
-			var relist []map[string]interface{}
-			for _, event := range events {
-				data, _ := json.Marshal(event)
-				var temp map[string]interface{}
-				json.Unmarshal(data, &temp)
-				// 这里可以根据需要添加 edit 字段
-				relist = append(relist, temp)
-			}
-
-			ReturnJson(ctx, "apiOK", gin.H{"list": relist})
-		} else {
-			ReturnJson(ctx, "userCookieError", nil)
+		if data == nil {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
 		}
+		calendarIDRaw, ok := data["calendar_id"].(float64)
+		if !ok || calendarIDRaw == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+		calendarID := uint(calendarIDRaw)
+
+		startStr, _ := data["start"].(string)
+		endStr, _ := data["end"].(string)
+		startDate, _ := time.Parse("2006-01-02", startStr)
+		endDate, _ := time.Parse("2006-01-02", endStr)
+
+		// 查询：当前日历的事件 + 所有公共日程
+		var events []TabCalendarEvent
+		models.DB.Where(
+			"(calendar_id = ? OR is_public = ?) AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL",
+			calendarID, true, &endDate, &startDate,
+		).Find(&events)
+
+		// 判断是否已登录
+		var currentUserID uint
+		isLogin := false
+		if cookieval != "" {
+			user, err := AuthenticationAuthorityFromCookie(cookieval)
+			if err == nil {
+				isLogin = true
+				currentUserID = user.ID
+			}
+		}
+
+		var relist []map[string]interface{}
+		for _, event := range events {
+			eventMap, _ := json.Marshal(event)
+			var item map[string]interface{}
+			json.Unmarshal(eventMap, &item)
+
+			// 可编辑条件：事件创建者 或 日历管理员
+			canEdit := false
+			if isLogin {
+				if event.UserID == currentUserID || slices.Contains(calendarAdmins, currentUserID) {
+					canEdit = true
+				}
+			}
+			item["canEdit"] = canEdit
+			relist = append(relist, item)
+		}
+
+		ReturnJson(ctx, "apiOK", gin.H{"list": relist})
 	})
 
 	// 添加日历事件
@@ -394,13 +414,13 @@ func ApiCalendar(r *gin.RouterGroup) {
 
 			event := TabCalendarEvent{
 				CalendarID:   calendarID,
-				UserID:      user.ID,
-				Title:       title,
-				StartDate:   &startDate,
-				EndDate:     &endDate,
+				UserID:       user.ID,
+				Title:        title,
+				StartDate:    &startDate,
+				EndDate:      &endDate,
 				ScheduleType: scheduleType,
-				IsPublic:    isPublic,
-				Remark:      remark,
+				IsPublic:     isPublic,
+				Remark:       remark,
 			}
 
 			if models.DB.Create(&event).Error == nil {
