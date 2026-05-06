@@ -95,6 +95,28 @@ onMounted(() => {
           </div>
         </RouterLink>
       </div>
+
+      <!-- My Groups -->
+      <div class="mt-6">
+        <h2 class="mb-3 text-lg font-semibold text-gray-900 dark:text-dk-text">
+          {{ t('settings.my_groups') }}
+        </h2>
+        <div v-if="userStore.groups.length > 0" class="flex flex-wrap gap-2">
+          <span
+            v-for="group in userStore.groups"
+            :key="group.id"
+            class="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+          >
+            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            {{ group.name }}
+          </span>
+        </div>
+        <div v-else class="rounded-lg border border-gray-200 bg-white p-4 text-center text-sm text-gray-500 dark:border-dk-muted dark:bg-dk-card dark:text-dk-subtle">
+          {{ t('settings.no_groups') }}
+        </div>
+      </div>
     </div>
   </div>
 </template>

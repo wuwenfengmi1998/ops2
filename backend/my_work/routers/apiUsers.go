@@ -594,6 +594,23 @@ func ApiUser(r *gin.RouterGroup) {
 			}
 			redata["isSysAdmin"] = isSysAdmin
 
+			// 获取用户加入的群组列表
+			var binds []TabUserGroupBinds
+			models.DB.Where("user_id = ?", user.ID).Find(&binds)
+
+			var groups []map[string]interface{}
+			for _, bind := range binds {
+				var group TabUserGroups
+				if models.DB.Where("id = ?", bind.GroupID).First(&group).Error == nil {
+					groups = append(groups, map[string]interface{}{
+						"id":   group.ID,
+						"name": group.Name,
+						"type": group.Type,
+					})
+				}
+			}
+			redata["groups"] = groups
+
 			ReturnJson(ctx, "apiOK", redata)
 
 		}

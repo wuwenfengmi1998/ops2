@@ -407,6 +407,8 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			WarehouseUpdateAdminsCash()
 		case "customer_admin":
 			CustomerUpdateAdminsCash()
+		case "calendar_admin":
+			CalendarUpdateAdminsCash()
 		}
 
 		ReturnJson(ctx, "apiOK", nil)

@@ -120,7 +120,7 @@ var (
 	calendarAdmins    []uint
 )
 
-// CalendarUpdateAdminsCash 更新客户管理员缓存
+// CalendarUpdateAdminsCash
 func CalendarUpdateAdminsCash() {
 	calendarAdmins = nil
 	calendarAdmins = append(calendarAdmins, 1) // id=1 系统管理员默认拥有所有权限
@@ -152,6 +152,8 @@ func ApiCalendarInit() {
 		Name: "calendar_admin",
 		Type: "usergroup",
 	})
+
+	CalendarUpdateAdminsCash()
 }
 
 func ApiCalendar(r *gin.RouterGroup) {
@@ -429,22 +431,31 @@ func ApiCalendar(r *gin.RouterGroup) {
 			}
 		}
 
+		// 查询日历创建者（用于判断权限）
+		var calendarCreatorID uint
+		var calendar TabCalendar
+		if models.DB.Where("id = ?", calendarID).First(&calendar).Error == nil {
+			calendarCreatorID = calendar.UserID
+		}
+
 		var relist []map[string]interface{}
 		for _, event := range events {
 			eventMap, _ := json.Marshal(event)
 			var item map[string]interface{}
 			json.Unmarshal(eventMap, &item)
 
-			// 可编辑条件：事件创建者 或 日历管理员
+			// 可编辑条件：事件创建者 或 日历创建者 或 日历管理员
 			canEdit := false
 			if isLogin {
-				if event.UserID == currentUserID || slices.Contains(calendarAdmins, currentUserID) {
+				if event.UserID == currentUserID || calendarCreatorID == currentUserID || slices.Contains(calendarAdmins, currentUserID) {
 					canEdit = true
 				}
 			}
 			item["canEdit"] = canEdit
 			relist = append(relist, item)
 		}
+		//fmt.Println(calendarAdmins)
+		//fmt.Println(calendarUserGroup)
 
 		ReturnJson(ctx, "apiOK", gin.H{"list": relist})
 	})
@@ -528,8 +539,13 @@ func ApiCalendar(r *gin.RouterGroup) {
 
 			oldEvent := TabCalendarEvent{}
 			if models.DB.Where("id = ?", eventID).First(&oldEvent).Error == nil {
-				// 检查权限（只有创建人可以修改）
-				if oldEvent.UserID != user.ID {
+				// 检查权限（事件创建人、日历创建人或管理员可修改）
+				var calendarCreatorID uint
+				var calendar TabCalendar
+				if models.DB.Where("id = ?", oldEvent.CalendarID).First(&calendar).Error == nil {
+					calendarCreatorID = calendar.UserID
+				}
+				if !canModifyCalendar(user.ID, oldEvent.UserID) && calendarCreatorID != user.ID {
 					ReturnJson(ctx, "permission_denied", nil)
 					return
 				}
@@ -591,8 +607,13 @@ func ApiCalendar(r *gin.RouterGroup) {
 			if err := mapstructure.Decode(data, &from); err == nil {
 				oldEvent := TabCalendarEvent{}
 				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error == nil {
-					// 检查权限（只有创建人可以删除）
-					if oldEvent.UserID != user.ID {
+					// 检查权限（事件创建人、日历创建人或管理员可删除）
+					var calendarCreatorID uint
+					var calendar TabCalendar
+					if models.DB.Where("id = ?", oldEvent.CalendarID).First(&calendar).Error == nil {
+						calendarCreatorID = calendar.UserID
+					}
+					if !canModifyCalendar(user.ID, oldEvent.UserID) && calendarCreatorID != user.ID {
 						ReturnJson(ctx, "permission_denied", nil)
 						return
 					}

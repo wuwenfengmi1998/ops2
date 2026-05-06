@@ -442,7 +442,9 @@
     "remark_hint": "Remark only",
     "edit_profile": "Edit Profile",
     "security": "Security",
-    "security_description": "Manage your account security settings"
+    "security_description": "Manage your account security settings",
+    "my_groups": "My Groups",
+    "no_groups": "Not joined any groups yet"
   },
   "button": {
     "submit": "Submit",

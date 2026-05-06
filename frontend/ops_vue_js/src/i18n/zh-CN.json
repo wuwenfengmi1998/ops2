@@ -442,7 +442,9 @@
     "remark_hint": "仅备注",
     "edit_profile": "编辑资料",
     "security": "安全设置",
-    "security_description": "管理您的账户安全设置"
+    "security_description": "管理您的账户安全设置",
+    "my_groups": "我的群组",
+    "no_groups": "暂未加入任何群组"
   },
   "button": {
     "submit": "提交",
