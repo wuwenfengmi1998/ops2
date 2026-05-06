@@ -145,6 +145,11 @@ const router = createRouter({
           name: 'calendar-detail',
           component: () => import('@/views/calendar/CalendarDetail.vue'),
         },
+        {
+          path: 'user/my',
+          name: 'user-my',
+          component: () => import('@/views/user/MyProfile.vue'),
+        },
       ],
     },
 

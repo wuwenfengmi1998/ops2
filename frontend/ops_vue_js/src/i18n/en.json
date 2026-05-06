@@ -398,7 +398,8 @@
     "save_success": "Saved successfully",
     "submit": "Submit",
     "submitting": "Submitting...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "profile_information": "Profile Information"
   },
   "settings": {
     "cancel": "Cancel",
@@ -438,7 +439,10 @@
     "placeholder_name": "Enter your name",
     "placeholder_remark": "Personal introduction or remark",
     "name_hint": "Display only, login name unchanged.",
-    "remark_hint": "Remark only"
+    "remark_hint": "Remark only",
+    "edit_profile": "Edit Profile",
+    "security": "Security",
+    "security_description": "Manage your account security settings"
   },
   "button": {
     "submit": "Submit",

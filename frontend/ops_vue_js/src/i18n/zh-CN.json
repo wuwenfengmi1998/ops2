@@ -398,7 +398,8 @@
     "save_success": "保存成功",
     "submit": "提交",
     "submitting": "提交中...",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "profile_information": "个人信息"
   },
   "settings": {
     "cancel": "取消",
@@ -438,7 +439,10 @@
     "placeholder_name": "请输入您的姓名",
     "placeholder_remark": "个人简介或备注",
     "name_hint": "仅用于显示，不影响登录名",
-    "remark_hint": "仅备注"
+    "remark_hint": "仅备注",
+    "edit_profile": "编辑资料",
+    "security": "安全设置",
+    "security_description": "管理您的账户安全设置"
   },
   "button": {
     "submit": "提交",
