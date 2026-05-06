@@ -10,6 +10,7 @@ import { useI18n } from "vue-i18n"
 import { usePageTitle } from "@/composables/usePageTitle"
 import { useToastStore } from "@/stores/toast"
 import { useUserStore } from "@/stores/user"
+import { useUsersStore } from "@/stores/users"
 import { calendarApi } from "@/api/calendar"
 import { useDateUtils } from "@/composables/useDateUtils"
 import DatatimePickerForFullCalendar from "@/components/datatimePickerForFullCalendar.vue"
@@ -20,6 +21,7 @@ const router = useRouter()
 const { t, locale } = useI18n()
 const toast = useToastStore()
 const userStore = useUserStore()
+const usersStore = useUsersStore()
 const DateUtils = useDateUtils()
 
 const calendarId = ref(parseInt(route.params.id))
@@ -62,6 +64,7 @@ const pageData = ref({
   lastEventClickID: 0,
   submitChecked: false,
   lastEventsSnapshot: null,
+  eventBindUserID: [], // 事件ID → 创建者UserID 映射
 })
 
 const showDeleteModal = ref(false)
@@ -101,6 +104,18 @@ function handleEventContextMenu(info) {
 
 function closeContextMenu() {
   contextMenu.value.visible = false
+}
+
+// 通过事件ID获取创建者用户ID
+function getUserIdFromEventID(eventID) {
+  const target = pageData.value.eventBindUserID.find(item => item.eventID === eventID)
+  return target ? target.userID : 0
+}
+
+// 通过用户ID获取用户名
+function getUsernameFromUserID(userID) {
+  if (userID == 0) return ""
+  return usersStore.getUsernameFromUserID(userID)
 }
 
 function copyEvent() {
@@ -297,8 +312,13 @@ async function getEvents() {
 
     if (errCode === 0) {
       calendarOptions.value.events = []
+      pageData.value.eventBindUserID = []
       ;(data.list || []).forEach(item => {
         const canEdit = item.canEdit === true
+        pageData.value.eventBindUserID.push({
+          eventID: item.ID,
+          userID: item.UserID,
+        })
         calendarOptions.value.events.push({
           id: item.ID,
           title: item.Title,
@@ -724,6 +744,19 @@ onMounted(() => {
                 : t("calendar.view_event")
             }}
           </h5>
+          <div
+            v-if="eventData.isEditing && userStore.isLoggedIn && getUserIdFromEventID(eventData.id)"
+            class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2"
+          >
+            <img
+              :src="usersStore.getAvatarUrlFromUserID(getUserIdFromEventID(eventData.id))"
+              class="h-6 w-6 rounded-full"
+              alt="avatar"
+            />
+            <span class="text-sm text-gray-500">
+              {{ t("calendar.created_by", { name: getUsernameFromUserID(getUserIdFromEventID(eventData.id)) }) }}
+            </span>
+          </div>
           <button
             @click="closeEventModal"
             class="btn-close text-gray-500 hover:text-gray-700"

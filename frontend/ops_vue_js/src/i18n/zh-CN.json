@@ -664,6 +664,7 @@
     "paste_event": "粘贴日程",
     "copy_success": "日程已复制",
     "paste_success": "日程已粘贴",
-    "no_event_to_paste": "没有可粘贴的日程"
+    "no_event_to_paste": "没有可粘贴的日程",
+    "created_by": "{name} 创建"
   }
 }

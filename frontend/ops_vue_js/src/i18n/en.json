@@ -663,6 +663,7 @@
     "paste_event": "Paste Event",
     "copy_success": "Event copied",
     "paste_success": "Event pasted",
-    "no_event_to_paste": "No event to paste"
+    "no_event_to_paste": "No event to paste",
+    "created_by": "Created by {name}"
   }
 }
