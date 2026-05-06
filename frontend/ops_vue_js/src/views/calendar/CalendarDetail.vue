@@ -95,6 +95,7 @@ function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9",
 }
 
 function editEvent(info) {
+  const canEdit = info.event.extendedProps?.canEdit ?? false
   openEventModal(
     info.event.startStr,
     info.event.end ? info.event.endStr : info.event.startStr,
@@ -104,7 +105,7 @@ function editEvent(info) {
     info.event.extendedProps?.scheduleType || "work",
     info.event.extendedProps?.isPublic || false,
     true,
-    info.event.durationEditable,
+    canEdit,
   )
 }
 
@@ -219,6 +220,7 @@ async function getEvents() {
     if (errCode === 0) {
       calendarOptions.value.events = []
       ;(data.list || []).forEach(item => {
+        const canEdit = item.canEdit === true
         calendarOptions.value.events.push({
           id: item.ID,
           title: item.Title,
@@ -229,12 +231,22 @@ async function getEvents() {
           backgroundColor: getColorByScheduleType(item.ScheduleType),
           borderColor: item.ID === pageData.value.seleEventID ? "#000000" : "#F7F7F7",
           allDay: true,
+          editable: canEdit,
+          durationEditable: canEdit,
           extendedProps: {
             scheduleType: item.ScheduleType || "work",
             isPublic: item.IsPublic || false,
+            canEdit: canEdit,
           },
         })
       })
+
+      // 检测数据是否变化（多浏览器同步场景），变了就重新计算滚动
+      const newSnapshot = JSON.stringify(data.list)
+      if (newSnapshot !== pageData.value.lastEventsSnapshot) {
+        pageData.value.lastEventsSnapshot = newSnapshot
+        setTimeout(recalcScrollTitles, 150)
+      }
     }
   } catch {
     // 拦截器已处理
@@ -405,6 +417,12 @@ const calendarOptions = ref({
   },
 
   eventDrop(info) {
+    const canEdit = info.event.extendedProps?.canEdit ?? false
+    if (!canEdit) {
+      info.revert()
+      toast.warning(t("message.no_permission"))
+      return
+    }
     // 拖拽后直接更新
     const startStr = info.event.startStr
     const endStr = info.event.end ? info.event.endStr : startStr
@@ -441,9 +459,14 @@ watch(locale, () => {
 })
 
 let resizeObserver = null
+let refreshTimer = null
 
 onMounted(() => {
   fetchCalendarInfo()
+  // 每 5 秒刷新一次数据
+  refreshTimer = setInterval(() => {
+    getEvents()
+  }, 5000)
   // 监听日历容器宽度变化
   let resizeTimer = null
   resizeObserver = new ResizeObserver(() => {
@@ -454,6 +477,10 @@ onMounted(() => {
     resizeObserver.observe(calendarRef.value.$el)
   }
   onBeforeUnmount(() => {
+    if (refreshTimer) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+    }
     if (resizeObserver) {
       resizeObserver.disconnect()
       resizeObserver = null
