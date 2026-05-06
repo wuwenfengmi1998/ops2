@@ -19,12 +19,13 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 // 模块列表
 const modules = [
   { id: 'all', label: 'operation_logs.all' },
+  { id: 'calendar', label: 'calendar.calendars' },
   { id: 'customer', label: 'customer.title' },
   { id: 'purchase', label: 'purchase.title' },
-  { id: 'schedule', label: 'schedule.title' },
+  // { id: 'schedule', label: 'schedule.title' },
   { id: 'warehouse', label: 'warehouse.title' },
   { id: 'work_order', label: 'work_order.title' },
-  { id: 'calendar', label: 'calendar.calendars' },
+  
 ]
 const activeModule = ref('all')
 

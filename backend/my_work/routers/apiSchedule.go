@@ -81,17 +81,17 @@ func ScheduleUpdateAdminsCash() {
 
 func ApiScheduleInit() {
 	//先初始化数据表
-	models.DB.AutoMigrate(&TabSchedule{})
-	models.DB.AutoMigrate(&TabScheduleLog{})
+	// models.DB.AutoMigrate(&TabSchedule{})
+	// models.DB.AutoMigrate(&TabScheduleLog{})
 
-	//先检查用户组有没有这个key
-	userGroup.Name = "schedule_admin"
-	if models.DB.Where(&userGroup).First(&userGroup).Error == nil {
-		ScheduleUpdateAdminsCash()
-	} else {
-		userGroup.Type = "usergroup"
-		models.DB.Create(&userGroup)
-	}
+	// //先检查用户组有没有这个key
+	// userGroup.Name = "schedule_admin"
+	// if models.DB.Where(&userGroup).First(&userGroup).Error == nil {
+	// 	ScheduleUpdateAdminsCash()
+	// } else {
+	// 	userGroup.Type = "usergroup"
+	// 	models.DB.Create(&userGroup)
+	// }
 }
 
 func ApiSchedule(r *gin.RouterGroup) {

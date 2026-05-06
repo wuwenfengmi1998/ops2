@@ -53,7 +53,7 @@ const normalClass = "rounded-md px-3 py-2 text-sm font-medium text-gray-600 tran
 
 const navItems = computed(() => [
   { label: t("appname.home"), to: "/" },
-  { label: t("appname.schedule"), to: "/schedule" },
+  // { label: t("appname.schedule"), to: "/schedule" },
   { label: t("appname.calendar"), to: "/calendars" },
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
