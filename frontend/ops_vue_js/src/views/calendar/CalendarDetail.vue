@@ -55,6 +55,7 @@ const colorOptions = ref([
 
 const pageData = ref({
   seleEventID: 0,
+  selectedDate: '', // 选中的格子日期，用于 Ctrl+V 粘贴
   lastClickTime: 0,
   lastClickTimeStr: "",
   lastEventClickTime: 0,
@@ -126,50 +127,13 @@ async function pasteEvent() {
       targetStart = selectedEvent.start.split('T')[0]
     }
   }
+  closeContextMenu()
   if (!targetStart) {
     toast.warning(t('calendar.no_event_to_paste'))
-    closeContextMenu()
     return
   }
 
-  // 计算原始日程的时长（天数）
-  const origStart = clipboard.value.start.split('T')[0]
-  const origEnd = clipboard.value.end.split('T')[0]
-  const origStartMs = new Date(origStart).getTime()
-  const origEndMs = new Date(origEnd).getTime()
-  const durationMs = origEndMs - origStartMs
-  const isSameDay = durationMs === 0 || origStart === origEnd
-
-  // 粘贴的结束日期 = 目标起始日期 + 原始时长
-  let targetEnd = targetStart
-  if (!isSameDay) {
-    const targetEndMs = new Date(targetStart).getTime() + durationMs
-    targetEnd = new Date(targetEndMs).toISOString().split('T')[0]
-  }
-
-  try {
-    const result = await calendarApi.addEvent({
-      calendar_id: calendarId.value,
-      title: clipboard.value.title,
-      start: toDatetime(targetStart),
-      end: toDatetime(
-        isSameDay
-          ? targetEnd
-          : DateUtils.toRealEnd(targetEnd),
-      ),
-      schedule_type: clipboard.value.scheduleType,
-      is_public: clipboard.value.isPublic,
-    })
-    if (result.errCode === 0) {
-      toast.success(t('calendar.paste_success'))
-      getEvents()
-    } else {
-      toast.error(t('message.server_error'))
-    }
-  } catch {
-    // 拦截器已处理
-  }
-  closeContextMenu()
+  await pasteToDate(targetStart)
 }
 
 // 选中/取消选中事件
@@ -511,6 +475,7 @@ const calendarOptions = ref({
     const nowTime = new Date().getTime()
     const timeDifference = nowTime - pageData.value.lastClickTime
     unseleEventAll()
+    pageData.value.selectedDate = info.dateStr
 
     if (info.dateStr === pageData.value.lastClickTimeStr) {
       if (timeDifference < 400 && timeDifference > 0) {
@@ -542,6 +507,7 @@ const calendarOptions = ref({
     const eventid = parseInt(info.event.id)
 
     unseleEventAll()
+    pageData.value.selectedDate = ''
     const target = calendarOptions.value.events.find(item => String(item.id) === String(info.event.id))
     if (target) {
       target.borderColor = "#000000"
@@ -606,6 +572,97 @@ watch(locale, () => {
   ]
 })
 
+// 键盘快捷键：Ctrl+C 复制选中日程，Ctrl+V 粘贴到选中格子
+function handleKeyDown(e) {
+  // 忽略在输入框中的快捷键
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'c') {
+      // Ctrl+C：复制选中日程
+      if (pageData.value.seleEventID) {
+        const selectedEvent = calendarOptions.value.events.find(
+          item => item.id === pageData.value.seleEventID
+        )
+        if (selectedEvent) {
+          // 将 end 统一转为 YYYY-MM-DD 字符串（多天事件的 end 是 Date 对象）
+          let endStr = selectedEvent.end || selectedEvent.start
+          if (endStr instanceof Date) {
+            const y = endStr.getFullYear()
+            const m = String(endStr.getMonth() + 1).padStart(2, '0')
+            const d = String(endStr.getDate()).padStart(2, '0')
+            endStr = `${y}-${m}-${d}`
+          }
+          clipboard.value = {
+            id: selectedEvent.id,
+            title: selectedEvent.title,
+            start: selectedEvent.start,
+            end: endStr,
+            color: selectedEvent.backgroundColor,
+            scheduleType: selectedEvent.extendedProps?.scheduleType || 'work',
+            isPublic: selectedEvent.extendedProps?.isPublic || false,
+          }
+          toast.success(t('calendar.copy_success'))
+        }
+      }
+    } else if (e.key === 'v') {
+      // Ctrl+V：粘贴到选中格子
+      if (clipboard.value && pageData.value.selectedDate) {
+        e.preventDefault()
+        pasteToDate(pageData.value.selectedDate)
+      }
+    }
+  }
+}
+
+// 粘贴到指定日期
+async function pasteToDate(targetStart) {
+  if (!clipboard.value) return
+
+  const origStart = clipboard.value.start.split('T')[0]
+  const origEnd = clipboard.value.end.split('T')[0]
+
+  // 计算原始事件天数（使用本地日期避免时区偏移）
+  const origStartDate = new Date(origStart)
+  const origEndDate = new Date(origEnd)
+  const diffDays = Math.round((origEndDate - origStartDate) / 86400000)
+  const isSameDay = diffDays === 0
+
+  let targetEnd = targetStart
+  if (!isSameDay) {
+    // 用本地日期方法计算目标结束日期，避免 toISOString() 的 UTC 时区偏移
+    const targetEndDate = new Date(targetStart)
+    targetEndDate.setDate(targetEndDate.getDate() + diffDays)
+    const y = targetEndDate.getFullYear()
+    const m = String(targetEndDate.getMonth() + 1).padStart(2, '0')
+    const d = String(targetEndDate.getDate()).padStart(2, '0')
+    targetEnd = `${y}-${m}-${d}`
+  }
+
+  try {
+    const result = await calendarApi.addEvent({
+      calendar_id: calendarId.value,
+      title: clipboard.value.title,
+      start: toDatetime(targetStart),
+      end: toDatetime(
+        isSameDay
+          ? targetEnd
+          : DateUtils.toRealEnd(targetEnd),
+      ),
+      schedule_type: clipboard.value.scheduleType,
+      is_public: clipboard.value.isPublic,
+    })
+    if (result.errCode === 0) {
+      toast.success(t('calendar.paste_success'))
+      getEvents()
+    } else {
+      toast.error(t('message.server_error'))
+    }
+  } catch {
+    // 拦截器已处理
+  }
+}
+
 let resizeObserver = null
 let refreshTimer = null
 
@@ -613,6 +670,8 @@ onMounted(() => {
   fetchCalendarInfo()
   // 点击任意位置关闭右键菜单
   document.addEventListener('click', closeContextMenu)
+  // 键盘快捷键
+  document.addEventListener('keydown', handleKeyDown)
   // 每 5 秒刷新一次数据
   refreshTimer = setInterval(() => {
     getEvents()
@@ -636,6 +695,7 @@ onMounted(() => {
       resizeObserver = null
     }
     document.removeEventListener('click', closeContextMenu)
+    document.removeEventListener('keydown', handleKeyDown)
     clearTimeout(resizeTimer)
   })
 })
