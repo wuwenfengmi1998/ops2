@@ -27,17 +27,17 @@ type TabCalendar struct {
 
 // TabCalendarEvent 日历事件表
 type TabCalendarEvent struct {
-	ID         uint       `gorm:"primarykey"`
-	CalendarID uint       `gorm:"not null;index;comment:关联日历ID"`
-	UserID     uint       `gorm:"not null;comment:创建人ID"`
-	UsersID    []uint     `gorm:"type:json; null;comment:其他关联用户ID"`
-	Title      string     `gorm:"size:200;not null;comment:事件标题"`
-	StartDate  *time.Time `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
-	EndDate    *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
-	IsAllDay   bool       `gorm:"default:true;comment:是否全日事件"`
-	BgColor    string     `gorm:"size:50;default:#3788d9;comment:背景颜色"`
-	IsPublic   bool       `gorm:"default:false;comment:是否为公共日程"`
-	Remark     string     `gorm:"type:text;comment:备注"`
+	ID         uint `gorm:"primarykey"`
+	CalendarID uint `gorm:"not null;index;comment:关联日历ID"`
+	UserID     uint `gorm:"not null;comment:创建人ID"`
+	//UsersID    []uint     `gorm:"type:json; null;comment:其他关联用户ID"`
+	Title     string     `gorm:"size:200;not null;comment:事件标题"`
+	StartDate *time.Time `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
+	EndDate   *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
+	IsAllDay  bool       `gorm:"default:true;comment:是否全日事件"`
+	BgColor   string     `gorm:"size:50;default:#3788d9;comment:背景颜色"`
+	IsPublic  bool       `gorm:"default:false;comment:是否为公共日程"`
+	Remark    string     `gorm:"type:text;comment:备注"`
 
 	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime;comment:创建时间"`
 	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:最后修改时间"`
@@ -86,23 +86,25 @@ type fromGetCalendarEvents struct {
 }
 
 type fromAddCalendarEvent struct {
-	CalendarID uint       `json:"calendar_id" binding:"required"`
-	Title      string     `json:"title" binding:"required"`
-	Start      *time.Time `json:"start" binding:"required"`
-	End        *time.Time `json:"end" binding:"required"`
-	Color      string     `json:"color"`
-	Is_public  bool       `json:"is_public"`
-	Remark     string     `json:"remark"`
+	CalendarID   uint   `json:"calendar_id" binding:"required"`
+	Title        string `json:"title" binding:"required"`
+	Start        string `json:"start" binding:"required"`
+	End          string `json:"end" binding:"required"`
+	Color        string `json:"color"`
+	ScheduleType string `json:"schedule_type"`
+	Is_public    bool   `json:"is_public"`
+	Remark       string `json:"remark"`
 }
 
 type fromUpdateCalendarEvent struct {
-	ID        uint       `json:"id" binding:"required"`
-	Title     string     `json:"title" binding:"required"`
-	Start     *time.Time `json:"start" binding:"required"`
-	End       *time.Time `json:"end" binding:"required"`
-	Color     string     `json:"color"`
-	Is_public bool       `json:"is_public"`
-	Remark    string     `json:"remark"`
+	ID           uint   `json:"id" binding:"required"`
+	Title        string `json:"title" binding:"required"`
+	Start        string `json:"start" binding:"required"`
+	End          string `json:"end" binding:"required"`
+	Color        string `json:"color"`
+	ScheduleType string `json:"schedule_type"`
+	Is_public    bool   `json:"is_public"`
+	Remark       string `json:"remark"`
 }
 
 type fromDeleteCalendarEvent struct {
@@ -352,47 +354,61 @@ func ApiCalendar(r *gin.RouterGroup) {
 	r.POST("/calendar/addevent", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
 		if isAuth {
-			var from fromAddCalendarEvent
-			if err := mapstructure.Decode(data, &from); err == nil {
-				// 检查日历是否存在
-				var calendar TabCalendar
-				if models.DB.Where("id = ? AND deleted_at IS NULL", from.CalendarID).First(&calendar).Error != nil {
-					ReturnJson(ctx, "calendar_not_find", nil)
-					return
-				}
-
-				event := TabCalendarEvent{
-					CalendarID: from.CalendarID,
-					UserID:     user.ID,
-					Title:      from.Title,
-					StartDate:  from.Start,
-					EndDate:    from.End,
-					BgColor:    from.Color,
-					IsPublic:   from.Is_public,
-					Remark:     from.Remark,
-				}
-				if event.BgColor == "" {
-					event.BgColor = calendar.Color
-				}
-
-				if models.DB.Create(&event).Error == nil {
-					// 记录日志
-					newContent, _ := json.Marshal(event)
-					log := TabCalendarLog{
-						CalendarID: event.CalendarID,
-						EventID:    event.ID,
-						UserID:     user.ID,
-						ActionType: "create_event",
-						NewContent: string(newContent),
-						IP:         ctx.ClientIP(),
-					}
-					models.DB.Create(&log)
-					ReturnJson(ctx, "apiOK", gin.H{"id": event.ID})
-				} else {
-					ReturnJson(ctx, "apiErr", nil)
-				}
-			} else {
+			// 先检查必需字段
+			calendarIDRaw, ok := data["calendar_id"].(float64)
+			if !ok || calendarIDRaw == 0 {
 				ReturnJson(ctx, "jsonErr", nil)
+				return
+			}
+			calendarID := uint(calendarIDRaw)
+
+			// 检查日历是否存在
+			var calendar TabCalendar
+			if models.DB.Where("id = ? AND deleted_at IS NULL", calendarID).First(&calendar).Error != nil {
+				ReturnJson(ctx, "calendar_not_find", nil)
+				return
+			}
+
+			// 解析日期
+			startStr, _ := data["start"].(string)
+			endStr, _ := data["end"].(string)
+			title, _ := data["title"].(string)
+			color, _ := data["color"].(string)
+			remark, _ := data["remark"].(string)
+			isPublic, _ := data["is_public"].(bool)
+
+			startDate, _ := time.Parse("2006-01-02 15:04:05", startStr)
+			endDate, _ := time.Parse("2006-01-02 15:04:05", endStr)
+
+			event := TabCalendarEvent{
+				CalendarID: calendarID,
+				UserID:     user.ID,
+				Title:      title,
+				StartDate:  &startDate,
+				EndDate:    &endDate,
+				BgColor:    color,
+				IsPublic:   isPublic,
+				Remark:     remark,
+			}
+			if event.BgColor == "" {
+				event.BgColor = calendar.Color
+			}
+
+			if models.DB.Create(&event).Error == nil {
+				// 记录日志
+				newContent, _ := json.Marshal(event)
+				log := TabCalendarLog{
+					CalendarID: event.CalendarID,
+					EventID:    event.ID,
+					UserID:     user.ID,
+					ActionType: "create_event",
+					NewContent: string(newContent),
+					IP:         ctx.ClientIP(),
+				}
+				models.DB.Create(&log)
+				ReturnJson(ctx, "apiOK", gin.H{"id": event.ID})
+			} else {
+				ReturnJson(ctx, "apiErr", nil)
 			}
 		} else {
 			ReturnJson(ctx, "userCookieError", nil)
@@ -403,54 +419,68 @@ func ApiCalendar(r *gin.RouterGroup) {
 	r.POST("/calendar/updateevent", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
 		if isAuth {
-			var from fromUpdateCalendarEvent
-			if err := mapstructure.Decode(data, &from); err == nil {
-				oldEvent := TabCalendarEvent{}
-				if models.DB.Where("id = ?", from.ID).First(&oldEvent).Error == nil {
-					// 检查权限（只有创建人可以修改）
-					if oldEvent.UserID != user.ID {
-						ReturnJson(ctx, "permission_denied", nil)
-						return
-					}
+			// 先检查必需字段
+			idRaw, ok := data["id"].(float64)
+			if !ok || idRaw == 0 {
+				ReturnJson(ctx, "jsonErr", nil)
+				return
+			}
+			eventID := uint(idRaw)
 
-					newEvent := TabCalendarEvent{
-						Title:     from.Title,
-						StartDate: from.Start,
-						EndDate:   from.End,
-						BgColor:   from.Color,
-						IsPublic:  from.Is_public,
-						Remark:    from.Remark,
-					}
-					if newEvent.BgColor == "" {
-						// 获取日历颜色
-						var calendar TabCalendar
-						models.DB.Where("id = ?", oldEvent.CalendarID).First(&calendar)
-						newEvent.BgColor = calendar.Color
-					}
+			oldEvent := TabCalendarEvent{}
+			if models.DB.Where("id = ?", eventID).First(&oldEvent).Error == nil {
+				// 检查权限（只有创建人可以修改）
+				if oldEvent.UserID != user.ID {
+					ReturnJson(ctx, "permission_denied", nil)
+					return
+				}
 
-					if models.DB.Model(&oldEvent).Updates(&newEvent).Error == nil {
-						// 记录日志
-						newContent, _ := json.Marshal(newEvent)
-						oldContent, _ := json.Marshal(oldEvent)
-						log := TabCalendarLog{
-							CalendarID: oldEvent.CalendarID,
-							EventID:    oldEvent.ID,
-							UserID:     user.ID,
-							ActionType: "update_event",
-							OldContent: string(oldContent),
-							NewContent: string(newContent),
-							IP:         ctx.ClientIP(),
-						}
-						models.DB.Create(&log)
-						ReturnJson(ctx, "apiOK", nil)
-					} else {
-						ReturnJson(ctx, "apiErr", nil)
+				// 解析字段
+				startStr, _ := data["start"].(string)
+				endStr, _ := data["end"].(string)
+				title, _ := data["title"].(string)
+				color, _ := data["color"].(string)
+				remark, _ := data["remark"].(string)
+				isPublic, _ := data["is_public"].(bool)
+
+				startDate, _ := time.Parse("2006-01-02 15:04:05", startStr)
+				endDate, _ := time.Parse("2006-01-02 15:04:05", endStr)
+
+				newEvent := TabCalendarEvent{
+					Title:     title,
+					StartDate: &startDate,
+					EndDate:   &endDate,
+					BgColor:   color,
+					IsPublic:  isPublic,
+					Remark:    remark,
+				}
+				if newEvent.BgColor == "" {
+					// 获取日历颜色
+					var calendar TabCalendar
+					models.DB.Where("id = ?", oldEvent.CalendarID).First(&calendar)
+					newEvent.BgColor = calendar.Color
+				}
+
+				if models.DB.Model(&oldEvent).Updates(&newEvent).Error == nil {
+					// 记录日志
+					newContent, _ := json.Marshal(newEvent)
+					oldContent, _ := json.Marshal(oldEvent)
+					log := TabCalendarLog{
+						CalendarID: oldEvent.CalendarID,
+						EventID:    oldEvent.ID,
+						UserID:     user.ID,
+						ActionType: "update_event",
+						OldContent: string(oldContent),
+						NewContent: string(newContent),
+						IP:         ctx.ClientIP(),
 					}
+					models.DB.Create(&log)
+					ReturnJson(ctx, "apiOK", nil)
 				} else {
-					ReturnJson(ctx, "event_not_find", nil)
+					ReturnJson(ctx, "apiErr", nil)
 				}
 			} else {
-				ReturnJson(ctx, "jsonErr", nil)
+				ReturnJson(ctx, "event_not_find", nil)
 			}
 		} else {
 			ReturnJson(ctx, "userCookieError", nil)
