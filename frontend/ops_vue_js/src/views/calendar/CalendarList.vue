@@ -5,20 +5,21 @@ import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { calendarApi } from '@/api/calendar'
-import { useUserStore } from '@/stores/user'
 import { IconPlus, IconCalendar, IconTrash, IconEdit } from '@tabler/icons-vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 usePageTitle('appname.calendar')
 const { t } = useI18n()
 const router = useRouter()
 const toast = useToastStore()
-const userStore = useUserStore()
 
 const calendars = ref([])
 const loading = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
+const showDeleteModal = ref(false)
 const editingCalendar = ref(null)
+const deletingCalendar = ref(null)
 
 const form = ref({
   name: '',
@@ -112,12 +113,14 @@ async function updateCalendar() {
 }
 
 async function deleteCalendar(calendar) {
-  if (!confirm(t('calendar.confirm_delete'))) {
-    return
-  }
+  deletingCalendar.value = calendar
+  showDeleteModal.value = true
+}
 
+async function confirmDelete() {
+  if (!deletingCalendar.value) return
   try {
-    const { errCode } = await calendarApi.deleteCalendar(calendar.ID)
+    const { errCode } = await calendarApi.deleteCalendar(deletingCalendar.value.ID)
     if (errCode === 0) {
       toast.success(t('calendar.delete_success'))
       fetchCalendars()
@@ -126,6 +129,9 @@ async function deleteCalendar(calendar) {
     }
   } catch {
     // 拦截器已处理
+  } finally {
+    showDeleteModal.value = false
+    deletingCalendar.value = null
   }
 }
 
@@ -188,14 +194,14 @@ onMounted(fetchCalendars)
 
               <div class="flex items-center gap-1" @click.stop>
                 <button
-                  v-if="calendar.UserID === userStore.userInfo?.ID"
+                  v-if="calendar.canEdit"
                   @click="openEditModal(calendar)"
                   class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dk-muted"
                 >
                   <IconEdit :size="16" />
                 </button>
                 <button
-                  v-if="calendar.UserID === userStore.userInfo?.ID"
+                  v-if="calendar.canEdit"
                   @click="deleteCalendar(calendar)"
                   class="rounded p-1 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-dk-muted"
                 >
@@ -373,4 +379,15 @@ onMounted(fetchCalendars)
       </div>
     </div>
   </div>
+
+  <!-- Delete Confirm Dialog -->
+  <ConfirmDialog
+    v-model="showDeleteModal"
+    :title="t('calendar.confirm_delete')"
+    :message="t('calendar.confirm_delete_message', { name: deletingCalendar?.Name || '' })"
+    :confirm-text="t('delete')"
+    :cancel-text="t('cancel')"
+    danger
+    @confirm="confirmDelete"
+  />
 </template>

@@ -1,4 +1,6 @@
 {
+  "delete": "删除",
+  "cancel": "取消",
   "common": {
     "actions": "操作",
     "search": "搜索",
@@ -625,6 +627,7 @@
     "update_success": "更新成功",
     "delete_success": "删除成功",
     "confirm_delete": "确定要删除此日历吗？",
+    "confirm_delete_message": "确定要删除日历「{name}」吗？此操作不可撤销。",
     "loading": "加载中...",
     "add_event": "添加事件",
     "edit_event": "编辑事件",

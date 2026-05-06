@@ -15,7 +15,7 @@
  * 或者作为组件使用 v-model：
  *   <ConfirmDialog v-model="show" @confirm="..." @cancel="..." />
  */
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, getCurrentInstance } from "vue";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps({
@@ -47,7 +47,11 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "confirm", "cancel"]);
 
-const { t } = useI18n();
+// 优先用组件内 i18n，Teleport 场景下可能为空，从全局补足
+const instance = getCurrentInstance();
+const { t: componentT } = useI18n();
+const globalT = instance?.appContext?.config?.globalProperties?.$i18n?.t;
+const t = (key, ...args) => componentT(key, ...args) || globalT?.(key, ...args) || key;
 
 function close() {
   emit("update:modelValue", false);

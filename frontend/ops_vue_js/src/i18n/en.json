@@ -1,4 +1,6 @@
 {
+  "delete": "Delete",
+  "cancel": "Cancel",
   "common": {
     "actions": "Actions",
     "search": "Search",
@@ -625,6 +627,7 @@
     "update_success": "Calendar updated successfully",
     "delete_success": "Calendar deleted successfully",
     "confirm_delete": "Are you sure you want to delete this calendar?",
+    "confirm_delete_message": "Are you sure you want to delete calendar '{name}'? This action cannot be undone.",
     "loading": "Loading...",
     "add_event": "Add Event",
     "edit_event": "Edit Event",

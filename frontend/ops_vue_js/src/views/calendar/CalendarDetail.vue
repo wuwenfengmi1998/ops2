@@ -13,6 +13,7 @@ import { useUserStore } from "@/stores/user"
 import { calendarApi } from "@/api/calendar"
 import { useDateUtils } from "@/composables/useDateUtils"
 import DatatimePickerForFullCalendar from "@/components/datatimePickerForFullCalendar.vue"
+import ConfirmDialog from "@/components/ConfirmDialog.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -61,6 +62,8 @@ const pageData = ref({
   submitChecked: false,
   lastEventsSnapshot: null,
 })
+
+const showDeleteModal = ref(false)
 
 // 选中/取消选中事件
 function unseleEvent(eventID) {
@@ -187,19 +190,23 @@ async function saveEvent() {
 }
 
 async function deleteEvent() {
-  if (!confirm(t('calendar.confirm_delete_event'))) return
+  showDeleteModal.value = true
+}
 
+async function confirmDeleteEvent() {
   try {
     const result = await calendarApi.deleteEvent(eventData.value.id)
     if (result.errCode === 0) {
-      toast.success(t('calendar.event_delete_success'))
+      toast.success(t("calendar.event_delete_success"))
       closeEventModal()
       getEvents()
     } else {
-      toast.error(t('message.server_error'))
+      toast.error(t("message.server_error"))
     }
   } catch {
     // 拦截器已处理
+  } finally {
+    showDeleteModal.value = false
   }
 }
 
@@ -319,12 +326,20 @@ const calendarOptions = ref({
   },
 
   headerToolbar: {
-    left: "prevYear,prev,today,next,nextYear",
-    center: "title",
-    right: "",
+    left: "backToList,prevYear,prev,today,next,nextYear",
+    center: "myTitle",
+    right: "title",
   },
 
   customButtons: {
+    backToList: {
+      text: t("calendar.calendars"),
+      click() { router.push("/calendars") },
+    },
+    myTitle: {
+      text: calendarInfo.value?.Name || "",
+      disabled: true,
+    },
     prevYear: {
       text: t("schedule.previous_year"),
       click() { calendarRef.value.getApi().prevYear(); getEvents() },
@@ -439,9 +454,15 @@ const calendarOptions = ref({
   },
 })
 
+// 监听日历信息变化
+watch(calendarInfo, () => {
+  calendarOptions.value.customButtons.myTitle.text = calendarInfo.value?.Name || ""
+})
+
 // 监听语言变化
 watch(locale, () => {
   calendarOptions.value.locale = locale.value
+  calendarOptions.value.customButtons.backToList.text = t("calendar.calendars")
   calendarOptions.value.customButtons.prevYear.text = t("schedule.previous_year")
   calendarOptions.value.customButtons.nextYear.text = t("schedule.next_year")
   calendarOptions.value.customButtons.prev.text = t("schedule.previous_month")
@@ -674,9 +695,35 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- Delete Confirm Dialog -->
+  <ConfirmDialog
+    v-model="showDeleteModal"
+    :title="t('calendar.delete_event')"
+    :message="t('calendar.confirm_delete_event')"
+    :confirm-text="t('delete')"
+    :cancel-text="t('cancel')"
+    danger
+    @confirm="confirmDeleteEvent"
+  />
 </template>
 
 <style scoped>
+/* 日历名称按钮样式 */
+:deep(.fc-myTitle-button) {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  padding: 0 8px;
+}
+:deep(.fc-myTitle-button:disabled) {
+  opacity: 1 !important;
+}
+
 /* 父容器作为裁剪视口 */
 :deep(.fc-daygrid-event .fc-event-title-container) {
   overflow: hidden !important;
