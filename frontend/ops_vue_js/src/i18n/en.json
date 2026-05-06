@@ -658,6 +658,11 @@
     "deleted": "Deleted",
     "confirm_restore": "Are you sure you want to restore this calendar?",
     "confirm_restore_message": "Are you sure you want to restore calendar '{name}'?",
-    "admin_panel": "Admin"
+    "admin_panel": "Admin",
+    "copy_event": "Copy Event",
+    "paste_event": "Paste Event",
+    "copy_success": "Event copied",
+    "paste_success": "Event pasted",
+    "no_event_to_paste": "No event to paste"
   }
 }

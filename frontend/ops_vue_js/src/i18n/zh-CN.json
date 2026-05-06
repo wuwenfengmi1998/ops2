@@ -659,6 +659,11 @@
     "deleted": "已删除",
     "confirm_restore": "确定要恢复此日历吗？",
     "confirm_restore_message": "确定要恢复日历「{name}」吗？",
-    "admin_panel": "管理"
+    "admin_panel": "管理",
+    "copy_event": "复制日程",
+    "paste_event": "粘贴日程",
+    "copy_success": "日程已复制",
+    "paste_success": "日程已粘贴",
+    "no_event_to_paste": "没有可粘贴的日程"
   }
 }

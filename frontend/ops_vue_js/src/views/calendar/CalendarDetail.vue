@@ -65,6 +65,113 @@ const pageData = ref({
 
 const showDeleteModal = ref(false)
 
+// 右键菜单
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  eventInfo: null,
+})
+
+// 剪贴板：存储复制的日程数据
+const clipboard = ref(null)
+
+// 右键菜单处理
+function handleEventContextMenu(info) {
+  info.jsEvent.preventDefault()
+  const canEdit = info.event.extendedProps?.canEdit ?? false
+  contextMenu.value = {
+    visible: true,
+    x: info.jsEvent.clientX,
+    y: info.jsEvent.clientY,
+    eventInfo: {
+      id: parseInt(info.event.id),
+      title: info.event.title,
+      start: info.event.startStr,
+      end: info.event.end ? info.event.endStr : info.event.startStr,
+      color: info.event.backgroundColor,
+      scheduleType: info.event.extendedProps?.scheduleType || 'work',
+      isPublic: info.event.extendedProps?.isPublic || false,
+      canEdit: canEdit,
+    },
+    targetDate: info.event.startStr.split('T')[0],
+  }
+}
+
+function closeContextMenu() {
+  contextMenu.value.visible = false
+}
+
+function copyEvent() {
+  if (!contextMenu.value.eventInfo) return
+  clipboard.value = { ...contextMenu.value.eventInfo }
+  toast.success(t('calendar.copy_success'))
+  closeContextMenu()
+}
+
+async function pasteEvent() {
+  if (!clipboard.value) {
+    toast.warning(t('calendar.no_event_to_paste'))
+    closeContextMenu()
+    return
+  }
+
+  // 确定粘贴目标日期：优先右键菜单记录的日期，其次选中日程的 start
+  let targetStart = contextMenu.value.targetDate
+  if (!targetStart) {
+    const selectedEvent = calendarOptions.value.events.find(
+      item => item.id === pageData.value.seleEventID
+    )
+    if (selectedEvent) {
+      targetStart = selectedEvent.start.split('T')[0]
+    }
+  }
+  if (!targetStart) {
+    toast.warning(t('calendar.no_event_to_paste'))
+    closeContextMenu()
+    return
+  }
+
+  // 计算原始日程的时长（天数）
+  const origStart = clipboard.value.start.split('T')[0]
+  const origEnd = clipboard.value.end.split('T')[0]
+  const origStartMs = new Date(origStart).getTime()
+  const origEndMs = new Date(origEnd).getTime()
+  const durationMs = origEndMs - origStartMs
+  const isSameDay = durationMs === 0 || origStart === origEnd
+
+  // 粘贴的结束日期 = 目标起始日期 + 原始时长
+  let targetEnd = targetStart
+  if (!isSameDay) {
+    const targetEndMs = new Date(targetStart).getTime() + durationMs
+    targetEnd = new Date(targetEndMs).toISOString().split('T')[0]
+  }
+
+  try {
+    const result = await calendarApi.addEvent({
+      calendar_id: calendarId.value,
+      title: clipboard.value.title,
+      start: toDatetime(targetStart),
+      end: toDatetime(
+        isSameDay
+          ? targetEnd
+          : DateUtils.toRealEnd(targetEnd),
+      ),
+      schedule_type: clipboard.value.scheduleType,
+      is_public: clipboard.value.isPublic,
+    })
+    if (result.errCode === 0) {
+      toast.success(t('calendar.paste_success'))
+      getEvents()
+    } else {
+      toast.error(t('message.server_error'))
+    }
+  } catch {
+    // 拦截器已处理
+  }
+  closeContextMenu()
+}
+
 // 选中/取消选中事件
 function unseleEvent(eventID) {
   const target = calendarOptions.value.events.find(item => item.id === eventID)
@@ -323,6 +430,21 @@ const calendarOptions = ref({
       info.el.style.backgroundColor = "#f5f5f5"
     }
     info.el.style.border = "1px solid #e5e7eb"
+    // 空白格子右键菜单
+    info.el.addEventListener("contextmenu", (e) => {
+      e.preventDefault()
+      const y = info.date.getFullYear()
+      const m = String(info.date.getMonth() + 1).padStart(2, '0')
+      const d = String(info.date.getDate()).padStart(2, '0')
+      const dateStr = `${y}-${m}-${d}`
+      contextMenu.value = {
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        eventInfo: null,
+        targetDate: dateStr,
+      }
+    })
   },
 
   headerToolbar: {
@@ -373,6 +495,11 @@ const calendarOptions = ref({
     if (titleEl) {
       requestAnimationFrame(() => applyScrollToTitle(titleEl))
     }
+    // 绑定右键菜单
+    info.el.addEventListener("contextmenu", (e) => {
+      e.stopPropagation() // 阻止冒泡到 dayCell
+      handleEventContextMenu({ event: info.event, jsEvent: e })
+    })
   },
 
   datesSet(info) {
@@ -484,6 +611,8 @@ let refreshTimer = null
 
 onMounted(() => {
   fetchCalendarInfo()
+  // 点击任意位置关闭右键菜单
+  document.addEventListener('click', closeContextMenu)
   // 每 5 秒刷新一次数据
   refreshTimer = setInterval(() => {
     getEvents()
@@ -506,6 +635,7 @@ onMounted(() => {
       resizeObserver.disconnect()
       resizeObserver = null
     }
+    document.removeEventListener('click', closeContextMenu)
     clearTimeout(resizeTimer)
   })
 })
@@ -694,6 +824,31 @@ onMounted(() => {
         <FullCalendar ref="calendarRef" :options="calendarOptions" />
       </div>
     </div>
+  </div>
+
+  <!-- 右键菜单 -->
+  <div
+    v-if="contextMenu.visible"
+    class="fixed z-[60] min-w-[140px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+    :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+  >
+    <button
+      v-if="contextMenu.eventInfo"
+      @click="copyEvent"
+      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      {{ t('calendar.copy_event') }}
+    </button>
+    <button
+      @click="pasteEvent"
+      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
+      :class="{ 'opacity-40 cursor-not-allowed': !clipboard }"
+      :disabled="!clipboard"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+      {{ t('calendar.paste_event') }}
+    </button>
   </div>
 
   <!-- Delete Confirm Dialog -->
