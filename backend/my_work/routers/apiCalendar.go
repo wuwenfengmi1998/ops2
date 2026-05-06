@@ -325,26 +325,35 @@ func ApiCalendar(r *gin.RouterGroup) {
 	r.POST("/calendar/events", func(ctx *gin.Context) {
 		isAuth, _, data := AuthenticationAuthority(ctx)
 		if isAuth {
-			var from fromGetCalendarEvents
-			if err := mapstructure.Decode(data, &from); err == nil {
-				var events []TabCalendarEvent
-				models.DB.Where("calendar_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL",
-					from.CalendarID, from.End, from.Start).Find(&events)
-
-				// 为事件添加编辑权限标识
-				var relist []map[string]interface{}
-				for _, event := range events {
-					data, _ := json.Marshal(event)
-					var temp map[string]interface{}
-					json.Unmarshal(data, &temp)
-					// 这里可以根据需要添加 edit 字段
-					relist = append(relist, temp)
-				}
-
-				ReturnJson(ctx, "apiOK", gin.H{"list": relist})
-			} else {
+			// 直接从 data 中解析，避免 float64 → uint 类型问题
+			calendarIDRaw, ok := data["calendar_id"].(float64)
+			if !ok || calendarIDRaw == 0 {
 				ReturnJson(ctx, "jsonErr", nil)
+				return
 			}
+			calendarID := uint(calendarIDRaw)
+
+			// 解析日期字符串
+			startStr, _ := data["start"].(string)
+			endStr, _ := data["end"].(string)
+			startDate, _ := time.Parse("2006-01-02", startStr)
+			endDate, _ := time.Parse("2006-01-02", endStr)
+
+			var events []TabCalendarEvent
+			models.DB.Where("calendar_id = ? AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL",
+				calendarID, &endDate, &startDate).Find(&events)
+
+			// 为事件添加编辑权限标识
+			var relist []map[string]interface{}
+			for _, event := range events {
+				data, _ := json.Marshal(event)
+				var temp map[string]interface{}
+				json.Unmarshal(data, &temp)
+				// 这里可以根据需要添加 edit 字段
+				relist = append(relist, temp)
+			}
+
+			ReturnJson(ctx, "apiOK", gin.H{"list": relist})
 		} else {
 			ReturnJson(ctx, "userCookieError", nil)
 		}
@@ -373,7 +382,6 @@ func ApiCalendar(r *gin.RouterGroup) {
 			startStr, _ := data["start"].(string)
 			endStr, _ := data["end"].(string)
 			title, _ := data["title"].(string)
-			color, _ := data["color"].(string)
 			remark, _ := data["remark"].(string)
 			isPublic, _ := data["is_public"].(bool)
 			scheduleType, _ := data["schedule_type"].(string)
@@ -386,17 +394,13 @@ func ApiCalendar(r *gin.RouterGroup) {
 
 			event := TabCalendarEvent{
 				CalendarID:   calendarID,
-				UserID:       user.ID,
-				Title:        title,
-				StartDate:    &startDate,
-				EndDate:      &endDate,
+				UserID:      user.ID,
+				Title:       title,
+				StartDate:   &startDate,
+				EndDate:     &endDate,
 				ScheduleType: scheduleType,
-				BgColor:      color,
-				IsPublic:     isPublic,
-				Remark:       remark,
-			}
-			if event.BgColor == "" {
-				event.BgColor = calendar.Color
+				IsPublic:    isPublic,
+				Remark:      remark,
 			}
 
 			if models.DB.Create(&event).Error == nil {
@@ -444,7 +448,6 @@ func ApiCalendar(r *gin.RouterGroup) {
 				startStr, _ := data["start"].(string)
 				endStr, _ := data["end"].(string)
 				title, _ := data["title"].(string)
-				color, _ := data["color"].(string)
 				remark, _ := data["remark"].(string)
 				isPublic, _ := data["is_public"].(bool)
 				scheduleType, _ := data["schedule_type"].(string)
@@ -460,15 +463,8 @@ func ApiCalendar(r *gin.RouterGroup) {
 					StartDate:    &startDate,
 					EndDate:      &endDate,
 					ScheduleType: scheduleType,
-					BgColor:      color,
 					IsPublic:     isPublic,
 					Remark:       remark,
-				}
-				if newEvent.BgColor == "" {
-					// 获取日历颜色
-					var calendar TabCalendar
-					models.DB.Where("id = ?", oldEvent.CalendarID).First(&calendar)
-					newEvent.BgColor = calendar.Color
 				}
 
 				if models.DB.Model(&oldEvent).Updates(&newEvent).Error == nil {

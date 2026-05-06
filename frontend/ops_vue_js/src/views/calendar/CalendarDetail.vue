@@ -119,6 +119,12 @@ function selectColor(colorValue) {
   }
 }
 
+// 根据日程类型获取颜色
+function getColorByScheduleType(scheduleType) {
+  const found = colorOptions.value.find(c => c.type === scheduleType)
+  return found ? found.value : "#3788d9" // 默认蓝色
+}
+
 // 日期转后端格式：YYYY-MM-DD 00:00:00
 function toDatetime(dateStr) {
   return dateStr ? dateStr + " 00:00:00" : ""
@@ -220,7 +226,7 @@ async function getEvents() {
           end: item.StartDate === item.EndDate
             ? item.EndDate
             : DateUtils.toCalendarEnd(item.EndDate),
-          backgroundColor: item.BgColor,
+          backgroundColor: getColorByScheduleType(item.ScheduleType),
           borderColor: item.ID === pageData.value.seleEventID ? "#000000" : "#F7F7F7",
           allDay: true,
           extendedProps: {
