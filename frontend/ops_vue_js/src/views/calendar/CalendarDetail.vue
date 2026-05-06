@@ -47,12 +47,12 @@ const eventData = ref({
 })
 
 const colorOptions = ref([
-  { value: "#3788d9", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
-  { value: "#06d6a0", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
-  { value: "#976BC2", label: t("schedule.exam"), name: t("schedule.exam"), type: "exam" },
+  { value: "#066fd1", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
+  { value: "#09d119", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
+  { value: "#ff00ff", label: t("schedule.exam"), name: t("schedule.exam"), type: "exam" },
   { value: "#ffca3a", label: t("schedule.standby"), name: t("schedule.standby"), type: "standby" },
-  { value: "#D16C13", label: t("schedule.personal_holiday"), name: t("schedule.personal_holiday"), type: "personal_holiday" },
-  { value: "#D10D21", label: t("schedule.public_holiday"), name: t("schedule.public_holiday"), type: "public_holiday" },
+  { value: "#d16c13", label: t("schedule.personal_holiday"), name: t("schedule.personal_holiday"), type: "personal_holiday" },
+  { value: "#d10d21", label: t("schedule.public_holiday"), name: t("schedule.public_holiday"), type: "public_holiday" },
 ])
 
 const pageData = ref({
