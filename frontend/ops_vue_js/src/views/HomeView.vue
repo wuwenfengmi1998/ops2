@@ -131,19 +131,19 @@ onMounted(() => {
     <h2 class="mb-6 text-2xl font-bold text-gray-900 dark:text-white">{{ t('message.welcome') }}</h2>
 
     <!-- 日程卡片 -->
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-dk-muted dark:bg-dk-card">
-      <div class="mb-3 flex items-center justify-between">
+    <!-- <div class="mb-6 rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-dk-muted dark:bg-dk-card"> -->
+      <!-- <div class="mb-3 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('appname.schedule') }}</h3>
         <span class="text-sm text-gray-500 dark:text-gray-400">{{ t('home.today', { date: todayDisplay }) }}</span>
-      </div>
+      </div> -->
 
       <!-- 加载状态 -->
-      <div v-if="loadingSchedules" class="py-4 text-center text-gray-500">
+      <!-- <div v-if="loadingSchedules" class="py-4 text-center text-gray-500">
         {{ t('home.loading') }}
-      </div>
+      </div> -->
 
       <!-- 日程列表 -->
-      <div v-else-if="todaySchedules.length > 0">
+      <!-- <div v-else-if="todaySchedules.length > 0">
         <div class="mb-2 text-sm text-gray-600 dark:text-gray-400">
           {{ t('home.today_schedule_count', { count: todayCount }) }}
         </div>
@@ -173,13 +173,13 @@ onMounted(() => {
             </div>
           </li>
         </ul>
-      </div>
+      </div> -->
 
       <!-- 无日程 -->
-      <div v-else class="py-4 text-center text-gray-500 dark:text-gray-400">
+      <!-- <div v-else class="py-4 text-center text-gray-500 dark:text-gray-400">
         {{ t('home.today_no_schedule') }}
-      </div>
-    </div>
+      </div> -->
+    <!-- </div> -->
 
     <!-- 功能入口卡片 -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

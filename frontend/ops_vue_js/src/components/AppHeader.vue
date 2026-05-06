@@ -53,7 +53,8 @@ const normalClass = "rounded-md px-3 py-2 text-sm font-medium text-gray-600 tran
 
 const navItems = computed(() => [
   { label: t("appname.home"), to: "/" },
-  { label: t("appname.schedule"), to: "/schedule" },
+  // { label: t("appname.schedule"), to: "/schedule" },
+  { label: t("appname.calendar"), to: "/calendars" },
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
   { label: t("appname.warehouse"), to: "/warehouse" },
@@ -144,6 +145,14 @@ const navItems = computed(() => [
               class="absolute right-0 z-50 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dk-muted dark:bg-dk-card"
             >
               <RouterLink
+                to="/user/my"
+                class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-muted"
+                @click="userDropdownOpen = false"
+              >
+                <IconUser :size="16" />
+                {{ t("message.profile_information") }}
+              </RouterLink>
+              <RouterLink
                 to="/settings/account"
                 class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-muted"
                 @click="userDropdownOpen = false"
@@ -218,6 +227,14 @@ const navItems = computed(() => [
               </div>
             </div>
             <hr class="my-1 border-gray-200 dark:border-dk-muted" />
+            <RouterLink
+              to="/user/my"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-muted"
+              @click="userDropdownOpen = false"
+            >
+              <IconUser :size="16" />
+              {{ t("message.profile_information") }}
+            </RouterLink>
             <RouterLink
               to="/settings/account"
               class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-muted"

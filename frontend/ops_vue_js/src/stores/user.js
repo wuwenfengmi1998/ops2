@@ -41,6 +41,7 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref(null)    // TabUserInfo_ 详情
   const userCookie = ref(null)  // Cookie session
   const isLoggedIn = ref(false)
+  const groups = ref([])        // 用户加入的群组列表
   // ── Getters ──
   const cookieValue = computed(() => userCookie.value?.Value ?? '')
 
@@ -62,6 +63,14 @@ export const useUserStore = defineStore('user', () => {
 
   // 是否系统管理员（后端直接返回）
   const isSysAdmin = ref(false)
+
+  // 是否为日历管理员（在 calendar_admin 群组中）
+  const isCalendarAdmin = computed(() =>
+    groups.value.some(g => g.name === 'calendar_admin')
+  )
+
+  // 用户加入的群组名称列表（计算属性）
+  const groupNames = computed(() => groups.value.map(g => g.name))
 
   // ── Actions ──
   function login(cookie) {
@@ -86,6 +95,7 @@ export const useUserStore = defineStore('user', () => {
     user.value = null
     userInfo.value = null
     isSysAdmin.value = false
+    groups.value = []
     isLoggedIn.value = false
     removeStorage(STORAGE_KEY_COOKIE)
   }
@@ -98,6 +108,8 @@ export const useUserStore = defineStore('user', () => {
         userInfo.value = data.userInfo ?? null
         // 存储系统管理员状态
         isSysAdmin.value = data.isSysAdmin === true
+        // 存储用户群组列表
+        groups.value = data.groups ?? []
       }
     } catch {
       // 拦截器已处理错误提示
@@ -123,6 +135,9 @@ export const useUserStore = defineStore('user', () => {
     userCookie,
     isLoggedIn,
     isSysAdmin,
+    isCalendarAdmin,
+    groups,
+    groupNames,
     cookieValue,
     avatarUrl,
     birthday,

@@ -129,6 +129,27 @@ const router = createRouter({
           name: 'customer-edit',
           component: () => import('@/views/customer/CustomerFormPage.vue'),
         },
+        {
+          path: 'calendars/admin',
+          name: 'calendars-admin',
+          component: () => import('@/views/calendar/CalendarAdminList.vue'),
+          meta: { requireSysAdmin: true },
+        },
+        {
+          path: 'calendars',
+          name: 'calendars',
+          component: () => import('@/views/calendar/CalendarList.vue'),
+        },
+        {
+          path: 'calendar/:id',
+          name: 'calendar-detail',
+          component: () => import('@/views/calendar/CalendarDetail.vue'),
+        },
+        {
+          path: 'user/my',
+          name: 'user-my',
+          component: () => import('@/views/user/MyProfile.vue'),
+        },
       ],
     },
 
@@ -184,9 +205,10 @@ const router = createRouter({
 router.beforeEach((to) => {
   const userStore = useUserStore()
 
-  // 不需要登录的页面
-  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule', '/404']
-  if (publicPages.includes(to.path)) return true
+  // 不需要登录的页面（精确匹配或前缀匹配）
+  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule', '/calendars', '/404']
+  const publicPrefixes = ['/calendar/']
+  if (publicPages.includes(to.path) || publicPrefixes.some(p => to.path.startsWith(p))) return true
 
   // 未登录 → 跳转登录
   if (!userStore.isLoggedIn) {

@@ -164,7 +164,7 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			return
 		}
 
-	var params struct {
+		var params struct {
 			GroupID  float64 `json:"group_id" mapstructure:"group_id"`
 			Page     float64 `json:"page" mapstructure:"page"`
 			PageSize float64 `json:"page_size" mapstructure:"page_size"`
@@ -407,6 +407,8 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			WarehouseUpdateAdminsCash()
 		case "customer_admin":
 			CustomerUpdateAdminsCash()
+		case "calendar_admin":
+			CalendarUpdateAdminsCash()
 		}
 
 		ReturnJson(ctx, "apiOK", nil)
@@ -462,6 +464,8 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			WarehouseUpdateAdminsCash()
 		case "customer_admin":
 			CustomerUpdateAdminsCash()
+		case "calendar_admin":
+			CalendarUpdateAdminsCash()
 		}
 
 		ReturnJson(ctx, "apiOK", nil)
@@ -570,6 +574,28 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 					ID:         log.ID,
 					Module:     "schedule",
 					EntityID:   log.ScheduleID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  log.CreatedAt,
+				})
+			}
+		}
+
+		if params.Module == "all" || params.Module == "calendar" {
+			var logs []TabCalendarLog
+			query := models.DB.Model(&TabCalendarLog{})
+			if params.Module == "calendar" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "calendar",
+					EntityID:   log.CalendarID,
 					UserID:     log.UserID,
 					ActionType: log.ActionType,
 					IP:         log.IP,

@@ -1,0 +1,1008 @@
+<script setup>
+import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import FullCalendar from "@fullcalendar/vue3"
+import dayGridPlugin from "@fullcalendar/daygrid"
+import timeGridPlugin from "@fullcalendar/timegrid"
+import interactionPlugin from "@fullcalendar/interaction"
+import listPlugin from "@fullcalendar/list"
+import { useI18n } from "vue-i18n"
+import { usePageTitle } from "@/composables/usePageTitle"
+import { useToastStore } from "@/stores/toast"
+import { useUserStore } from "@/stores/user"
+import { useUsersStore } from "@/stores/users"
+import { calendarApi } from "@/api/calendar"
+import { useDateUtils } from "@/composables/useDateUtils"
+import DatatimePickerForFullCalendar from "@/components/datatimePickerForFullCalendar.vue"
+import ConfirmDialog from "@/components/ConfirmDialog.vue"
+
+const route = useRoute()
+const router = useRouter()
+const { t, locale } = useI18n()
+const toast = useToastStore()
+const userStore = useUserStore()
+const usersStore = useUsersStore()
+const DateUtils = useDateUtils()
+
+const calendarId = ref(parseInt(route.params.id))
+const calendarInfo = ref({})
+const loading = ref(false)
+
+usePageTitle('appname.calendar_detail')
+
+const calendarRef = ref(null)
+const calendarNowShow = ref()
+
+const showModal = ref(false)
+const eventData = ref({
+  id: 0,
+  title: "",
+  startDate: "",
+  endDate: "",
+  color: "#3788d9",
+  scheduleType: "work",
+  isPublic: false,
+  isEditing: false,
+  isEditable: false,
+})
+
+const colorOptions = ref([
+  { value: "#3788d9", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
+  { value: "#06d6a0", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
+  { value: "#976BC2", label: t("schedule.exam"), name: t("schedule.exam"), type: "exam" },
+  { value: "#ffca3a", label: t("schedule.standby"), name: t("schedule.standby"), type: "standby" },
+  { value: "#D16C13", label: t("schedule.personal_holiday"), name: t("schedule.personal_holiday"), type: "personal_holiday" },
+  { value: "#D10D21", label: t("schedule.public_holiday"), name: t("schedule.public_holiday"), type: "public_holiday" },
+])
+
+const pageData = ref({
+  seleEventID: 0,
+  selectedDate: '', // 选中的格子日期，用于 Ctrl+V 粘贴
+  lastClickTime: 0,
+  lastClickTimeStr: "",
+  lastEventClickTime: 0,
+  lastEventClickID: 0,
+  submitChecked: false,
+  lastEventsSnapshot: null,
+  eventBindUserID: [], // 事件ID → 创建者UserID 映射
+})
+
+const showDeleteModal = ref(false)
+
+// 右键菜单
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  eventInfo: null,
+})
+
+// 剪贴板：存储复制的日程数据
+const clipboard = ref(null)
+
+// 右键菜单处理
+function handleEventContextMenu(info) {
+  info.jsEvent.preventDefault()
+  const canEdit = info.event.extendedProps?.canEdit ?? false
+  contextMenu.value = {
+    visible: true,
+    x: info.jsEvent.clientX,
+    y: info.jsEvent.clientY,
+    eventInfo: {
+      id: parseInt(info.event.id),
+      title: info.event.title,
+      start: info.event.startStr,
+      end: info.event.end ? info.event.endStr : info.event.startStr,
+      color: info.event.backgroundColor,
+      scheduleType: info.event.extendedProps?.scheduleType || 'work',
+      isPublic: info.event.extendedProps?.isPublic || false,
+      canEdit: canEdit,
+    },
+    targetDate: info.event.startStr.split('T')[0],
+  }
+}
+
+function closeContextMenu() {
+  contextMenu.value.visible = false
+}
+
+// 通过事件ID获取创建者用户ID
+function getUserIdFromEventID(eventID) {
+  const target = pageData.value.eventBindUserID.find(item => item.eventID === eventID)
+  return target ? target.userID : 0
+}
+
+// 通过用户ID获取用户名
+function getUsernameFromUserID(userID) {
+  if (userID == 0) return ""
+  return usersStore.getUsernameFromUserID(userID)
+}
+
+function copyEvent() {
+  if (!contextMenu.value.eventInfo) return
+  clipboard.value = { ...contextMenu.value.eventInfo }
+  toast.success(t('calendar.copy_success'))
+  closeContextMenu()
+}
+
+async function pasteEvent() {
+  if (!clipboard.value) {
+    toast.warning(t('calendar.no_event_to_paste'))
+    closeContextMenu()
+    return
+  }
+
+  // 确定粘贴目标日期：优先右键菜单记录的日期，其次选中日程的 start
+  let targetStart = contextMenu.value.targetDate
+  if (!targetStart) {
+    const selectedEvent = calendarOptions.value.events.find(
+      item => item.id === pageData.value.seleEventID
+    )
+    if (selectedEvent) {
+      targetStart = selectedEvent.start.split('T')[0]
+    }
+  }
+  closeContextMenu()
+  if (!targetStart) {
+    toast.warning(t('calendar.no_event_to_paste'))
+    return
+  }
+
+  await pasteToDate(targetStart)
+}
+
+// 选中/取消选中事件
+function unseleEvent(eventID) {
+  const target = calendarOptions.value.events.find(item => item.id === eventID)
+  if (target) {
+    target.borderColor = "#F7F7F7"
+  }
+}
+
+function unseleEventAll() {
+  unseleEvent(pageData.value.seleEventID)
+  pageData.value.seleEventID = 0
+}
+
+function closeEventModal() {
+  showModal.value = false
+}
+
+function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9", scheduleType = "work", isPublic = false, isEditing = false, isEditable = true) {
+  eventData.value = {
+    id: id,
+    title: title,
+    startDate: dateStr,
+    endDate: dataEnd,
+    color: color,
+    scheduleType: scheduleType,
+    isPublic: isPublic,
+    isEditing: isEditing,
+    isEditable: isEditable,
+  }
+  showModal.value = true
+}
+
+function editEvent(info) {
+  const canEdit = info.event.extendedProps?.canEdit ?? false
+  openEventModal(
+    info.event.startStr,
+    info.event.end ? info.event.endStr : info.event.startStr,
+    parseInt(info.event.id),
+    info.event.title,
+    info.event.backgroundColor,
+    info.event.extendedProps?.scheduleType || "work",
+    info.event.extendedProps?.isPublic || false,
+    true,
+    canEdit,
+  )
+}
+
+function selectColor(colorValue) {
+  if (eventData.value.isEditable) {
+    eventData.value.color = colorValue
+    // 根据颜色更新日程类型
+    const selectedColor = colorOptions.value.find(c => c.value === colorValue)
+    if (selectedColor) {
+      eventData.value.scheduleType = selectedColor.type
+    }
+  }
+}
+
+// 根据日程类型获取颜色
+function getColorByScheduleType(scheduleType) {
+  const found = colorOptions.value.find(c => c.type === scheduleType)
+  return found ? found.value : "#3788d9" // 默认蓝色
+}
+
+// 日期转后端格式：YYYY-MM-DD 00:00:00
+function toDatetime(dateStr) {
+  return dateStr ? dateStr + " 00:00:00" : ""
+}
+
+async function saveEvent() {
+  if (!eventData.value.title.trim()) {
+    pageData.value.submitChecked = true
+    toast.warning(t('calendar.event_title_required'))
+    return
+  }
+  pageData.value.submitChecked = false
+
+  if (!eventData.value.startDate || !eventData.value.endDate) {
+    toast.warning(t('schedule.date_required'))
+    return
+  }
+
+  try {
+    let result
+    if (eventData.value.isEditing) {
+      result = await calendarApi.updateEvent({
+        id: eventData.value.id,
+        title: eventData.value.title.trim(),
+        start: toDatetime(eventData.value.startDate),
+        end: toDatetime(
+          eventData.value.startDate === eventData.value.endDate
+            ? eventData.value.endDate
+            : DateUtils.toRealEnd(eventData.value.endDate),
+        ),
+        schedule_type: eventData.value.scheduleType,
+        is_public: eventData.value.isPublic,
+      })
+    } else {
+      result = await calendarApi.addEvent({
+        calendar_id: calendarId.value,
+        title: eventData.value.title.trim(),
+        start: toDatetime(eventData.value.startDate),
+        end: toDatetime(
+          eventData.value.startDate === eventData.value.endDate
+            ? eventData.value.endDate
+            : DateUtils.toRealEnd(eventData.value.endDate),
+        ),
+        schedule_type: eventData.value.scheduleType,
+        is_public: eventData.value.isPublic,
+      })
+    }
+
+    if (result.errCode === 0) {
+      toast.success(t('calendar.event_save_success'))
+      closeEventModal()
+      getEvents()
+    } else {
+      toast.error(t('message.server_error'))
+    }
+  } catch {
+    // 拦截器已处理
+  }
+}
+
+async function deleteEvent() {
+  showDeleteModal.value = true
+}
+
+async function confirmDeleteEvent() {
+  try {
+    const result = await calendarApi.deleteEvent(eventData.value.id)
+    if (result.errCode === 0) {
+      toast.success(t("calendar.event_delete_success"))
+      closeEventModal()
+      getEvents()
+    } else {
+      toast.error(t("message.server_error"))
+    }
+  } catch {
+    // 拦截器已处理
+  } finally {
+    showDeleteModal.value = false
+  }
+}
+
+async function getEvents() {
+  if (!calendarRef.value) return
+
+  const calApi = calendarRef.value.getApi()
+  const start = DateUtils.dateToStr(calendarNowShow.value.start)
+  const end = DateUtils.toRealEnd(calendarNowShow.value.end)
+
+  try {
+    const { errCode, data } = await calendarApi.getEvents({
+      calendar_id: calendarId.value,
+      start: start,
+      end: end,
+    })
+
+    if (errCode === 0) {
+      calendarOptions.value.events = []
+      pageData.value.eventBindUserID = []
+      ;(data.list || []).forEach(item => {
+        const canEdit = item.canEdit === true
+        pageData.value.eventBindUserID.push({
+          eventID: item.ID,
+          userID: item.UserID,
+        })
+        calendarOptions.value.events.push({
+          id: item.ID,
+          title: item.Title,
+          start: item.StartDate,
+          end: item.StartDate === item.EndDate
+            ? item.EndDate
+            : DateUtils.toCalendarEnd(item.EndDate),
+          backgroundColor: getColorByScheduleType(item.ScheduleType),
+          borderColor: item.ID === pageData.value.seleEventID ? "#000000" : "#F7F7F7",
+          allDay: true,
+          editable: canEdit,
+          durationEditable: canEdit,
+          extendedProps: {
+            scheduleType: item.ScheduleType || "work",
+            isPublic: item.IsPublic || false,
+            canEdit: canEdit,
+          },
+        })
+      })
+
+      // 检测数据是否变化（多浏览器同步场景），变了就重新计算滚动
+      const newSnapshot = JSON.stringify(data.list)
+      if (newSnapshot !== pageData.value.lastEventsSnapshot) {
+        pageData.value.lastEventsSnapshot = newSnapshot
+        setTimeout(recalcScrollTitles, 150)
+      }
+    }
+  } catch {
+    // 拦截器已处理
+  }
+}
+
+async function fetchCalendarInfo() {
+  loading.value = true
+  try {
+    const { errCode, data } = await calendarApi.getCalendars()
+    if (errCode === 0) {
+      const calendar = (data.list || []).find(c => c.ID === calendarId.value)
+      if (calendar) {
+        calendarInfo.value = calendar
+      } else {
+        toast.error(t('calendar.calendar_not_found'))
+        router.push('/calendars')
+      }
+    }
+  } catch {
+    // 拦截器已处理
+  } finally {
+    loading.value = false
+  }
+}
+
+// ─── 滚动标题工具函数 ───────────────────────────────────────────────────────
+function applyScrollToTitle(titleEl) {
+  titleEl.removeAttribute("data-truncated")
+  titleEl.style.removeProperty("--scroll-distance")
+  const overflow = titleEl.scrollWidth - titleEl.clientWidth
+  if (overflow > 0) {
+    titleEl.style.setProperty("--scroll-distance", `-${overflow}px`)
+    titleEl.setAttribute("data-truncated", "true")
+  }
+}
+
+function recalcScrollTitles() {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const calendarEl = calendarRef.value?.$el
+      if (!calendarEl) return
+      calendarEl.querySelectorAll(".fc-event-title").forEach(applyScrollToTitle)
+    })
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+const calendarOptions = ref({
+  height: "100%",
+  contentHeight: "auto",
+  locale: locale.value,
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
+  nowIndicator: true,
+  weekends: true,
+  initialView: "dayGridMonth",
+  selectable: true,
+  editable: true,
+  dayMaxEvents: true,
+  firstDay: 1,
+  expandRows: true,
+  stickyHeaderDates: true,
+
+  dayCellDidMount(info) {
+    if (info.date.getDay() === 0 || info.date.getDay() === 6) {
+      info.el.style.backgroundColor = "#f5f5f5"
+    }
+    info.el.style.border = "1px solid #e5e7eb"
+    // 空白格子右键菜单
+    info.el.addEventListener("contextmenu", (e) => {
+      e.preventDefault()
+      const y = info.date.getFullYear()
+      const m = String(info.date.getMonth() + 1).padStart(2, '0')
+      const d = String(info.date.getDate()).padStart(2, '0')
+      const dateStr = `${y}-${m}-${d}`
+      contextMenu.value = {
+        visible: true,
+        x: e.clientX,
+        y: e.clientY,
+        eventInfo: null,
+        targetDate: dateStr,
+      }
+    })
+  },
+
+  headerToolbar: {
+    left: "backToList,prevYear,prev,today,next,nextYear",
+    center: "myTitle",
+    right: "title",
+  },
+
+  customButtons: {
+    backToList: {
+      text: t("calendar.calendars"),
+      click() { router.push("/calendars") },
+    },
+    myTitle: {
+      text: calendarInfo.value?.Name || "",
+      disabled: true,
+    },
+    prevYear: {
+      text: t("schedule.previous_year"),
+      click() { calendarRef.value.getApi().prevYear(); getEvents() },
+    },
+    nextYear: {
+      text: t("schedule.next_year"),
+      click() { calendarRef.value.getApi().nextYear(); getEvents() },
+    },
+    prev: {
+      text: t("schedule.previous_month"),
+      click() { calendarRef.value.getApi().prev(); getEvents() },
+    },
+    next: {
+      text: t("schedule.next_month"),
+      click() { calendarRef.value.getApi().next(); getEvents() },
+    },
+    today: {
+      text: t("schedule.today"),
+      click() { calendarRef.value.getApi().today(); getEvents() },
+    },
+    week: {
+      text: t("schedule.week"),
+      click() { calendarRef.value.getApi().changeView("timeGridWeek") },
+    },
+  },
+
+  events: [],
+
+  eventDidMount(info) {
+    const titleEl = info.el.querySelector(".fc-event-title")
+    if (titleEl) {
+      requestAnimationFrame(() => applyScrollToTitle(titleEl))
+    }
+    // 绑定右键菜单
+    info.el.addEventListener("contextmenu", (e) => {
+      e.stopPropagation() // 阻止冒泡到 dayCell
+      handleEventContextMenu({ event: info.event, jsEvent: e })
+    })
+  },
+
+  datesSet(info) {
+    calendarNowShow.value = info
+    getEvents()
+  },
+
+  dateClick(info) {
+    const nowTime = new Date().getTime()
+    const timeDifference = nowTime - pageData.value.lastClickTime
+    unseleEventAll()
+    pageData.value.selectedDate = info.dateStr
+
+    if (info.dateStr === pageData.value.lastClickTimeStr) {
+      if (timeDifference < 400 && timeDifference > 0) {
+        if (userStore.isLoggedIn) {
+          openEventModal(info.dateStr, info.dateStr)
+        } else {
+          toast.warning(t("message.login_to_your_account"))
+          router.replace("/login?redirect=/calendar/" + calendarId.value)
+        }
+      }
+    }
+    pageData.value.lastClickTimeStr = info.dateStr
+    pageData.value.lastClickTime = nowTime
+  },
+
+  select(info) {
+    if (info.end - info.start > 86400000) {
+      if (userStore.isLoggedIn) {
+        openEventModal(info.startStr, info.endStr)
+      } else {
+        toast.warning(t("message.login_to_your_account"))
+      }
+    }
+  },
+
+  eventClick(info) {
+    const nowTime = new Date().getTime()
+    const timeDifference = nowTime - pageData.value.lastEventClickTime
+    const eventid = parseInt(info.event.id)
+
+    unseleEventAll()
+    pageData.value.selectedDate = ''
+    const target = calendarOptions.value.events.find(item => String(item.id) === String(info.event.id))
+    if (target) {
+      target.borderColor = "#000000"
+      pageData.value.seleEventID = target.id
+    }
+
+    if (eventid === pageData.value.lastEventClickID) {
+      if (timeDifference < 400 && timeDifference > 0) {
+        editEvent(info)
+        unseleEventAll()
+      }
+    }
+    pageData.value.lastEventClickID = eventid
+    pageData.value.lastEventClickTime = nowTime
+  },
+
+  eventDrop(info) {
+    const canEdit = info.event.extendedProps?.canEdit ?? false
+    if (!canEdit) {
+      info.revert()
+      toast.warning(t("message.no_permission"))
+      return
+    }
+    // 拖拽后直接更新
+    const startStr = info.event.startStr
+    const endStr = info.event.end ? info.event.endStr : startStr
+    calendarApi.updateEvent({
+      id: parseInt(info.event.id),
+      title: info.event.title,
+      start: toDatetime(startStr),
+      end: toDatetime(startStr === endStr ? endStr : DateUtils.toRealEnd(endStr)),
+      schedule_type: info.event.extendedProps?.scheduleType || "work",
+    }).then(r => {
+      if (r.errCode !== 0) toast.error(t('message.server_error'))
+      else getEvents()
+    })
+  },
+})
+
+// 监听日历信息变化
+watch(calendarInfo, () => {
+  calendarOptions.value.customButtons.myTitle.text = calendarInfo.value?.Name || ""
+})
+
+// 监听语言变化
+watch(locale, () => {
+  calendarOptions.value.locale = locale.value
+  calendarOptions.value.customButtons.backToList.text = t("calendar.calendars")
+  calendarOptions.value.customButtons.prevYear.text = t("schedule.previous_year")
+  calendarOptions.value.customButtons.nextYear.text = t("schedule.next_year")
+  calendarOptions.value.customButtons.prev.text = t("schedule.previous_month")
+  calendarOptions.value.customButtons.next.text = t("schedule.next_month")
+  calendarOptions.value.customButtons.today.text = t("schedule.today")
+  calendarOptions.value.customButtons.week.text = t("schedule.week")
+  colorOptions.value = [
+    { value: "#3788d9", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
+    { value: "#06d6a0", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
+    { value: "#ff595e", label: t("schedule.exam"), name: t("schedule.exam"), type: "exam" },
+    { value: "#ffca3a", label: t("schedule.standby"), name: t("schedule.standby"), type: "standby" },
+    { value: "#D16C13", label: t("schedule.personal_holiday"), name: t("schedule.personal_holiday"), type: "personal_holiday" },
+    { value: "#D10D21", label: t("schedule.public_holiday"), name: t("schedule.public_holiday"), type: "public_holiday" },
+  ]
+})
+
+// 键盘快捷键：Ctrl+C 复制选中日程，Ctrl+V 粘贴到选中格子
+function handleKeyDown(e) {
+  // 忽略在输入框中的快捷键
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'c') {
+      // Ctrl+C：复制选中日程
+      if (pageData.value.seleEventID) {
+        const selectedEvent = calendarOptions.value.events.find(
+          item => item.id === pageData.value.seleEventID
+        )
+        if (selectedEvent) {
+          // 将 end 统一转为 YYYY-MM-DD 字符串（多天事件的 end 是 Date 对象）
+          let endStr = selectedEvent.end || selectedEvent.start
+          if (endStr instanceof Date) {
+            const y = endStr.getFullYear()
+            const m = String(endStr.getMonth() + 1).padStart(2, '0')
+            const d = String(endStr.getDate()).padStart(2, '0')
+            endStr = `${y}-${m}-${d}`
+          }
+          clipboard.value = {
+            id: selectedEvent.id,
+            title: selectedEvent.title,
+            start: selectedEvent.start,
+            end: endStr,
+            color: selectedEvent.backgroundColor,
+            scheduleType: selectedEvent.extendedProps?.scheduleType || 'work',
+            isPublic: selectedEvent.extendedProps?.isPublic || false,
+          }
+          toast.success(t('calendar.copy_success'))
+        }
+      }
+    } else if (e.key === 'v') {
+      // Ctrl+V：粘贴到选中格子
+      if (clipboard.value && pageData.value.selectedDate) {
+        e.preventDefault()
+        pasteToDate(pageData.value.selectedDate)
+      }
+    }
+  }
+}
+
+// 粘贴到指定日期
+async function pasteToDate(targetStart) {
+  if (!clipboard.value) return
+
+  const origStart = clipboard.value.start.split('T')[0]
+  const origEnd = clipboard.value.end.split('T')[0]
+
+  // 计算原始事件天数（使用本地日期避免时区偏移）
+  const origStartDate = new Date(origStart)
+  const origEndDate = new Date(origEnd)
+  const diffDays = Math.round((origEndDate - origStartDate) / 86400000)
+  const isSameDay = diffDays === 0
+
+  let targetEnd = targetStart
+  if (!isSameDay) {
+    // 用本地日期方法计算目标结束日期，避免 toISOString() 的 UTC 时区偏移
+    const targetEndDate = new Date(targetStart)
+    targetEndDate.setDate(targetEndDate.getDate() + diffDays)
+    const y = targetEndDate.getFullYear()
+    const m = String(targetEndDate.getMonth() + 1).padStart(2, '0')
+    const d = String(targetEndDate.getDate()).padStart(2, '0')
+    targetEnd = `${y}-${m}-${d}`
+  }
+
+  try {
+    const result = await calendarApi.addEvent({
+      calendar_id: calendarId.value,
+      title: clipboard.value.title,
+      start: toDatetime(targetStart),
+      end: toDatetime(
+        isSameDay
+          ? targetEnd
+          : DateUtils.toRealEnd(targetEnd),
+      ),
+      schedule_type: clipboard.value.scheduleType,
+      is_public: clipboard.value.isPublic,
+    })
+    if (result.errCode === 0) {
+      toast.success(t('calendar.paste_success'))
+      getEvents()
+    } else {
+      toast.error(t('message.server_error'))
+    }
+  } catch {
+    // 拦截器已处理
+  }
+}
+
+let resizeObserver = null
+let refreshTimer = null
+
+onMounted(() => {
+  fetchCalendarInfo()
+  // 点击任意位置关闭右键菜单
+  document.addEventListener('click', closeContextMenu)
+  // 键盘快捷键
+  document.addEventListener('keydown', handleKeyDown)
+  // 每 5 秒刷新一次数据
+  refreshTimer = setInterval(() => {
+    getEvents()
+  }, 5000)
+  // 监听日历容器宽度变化
+  let resizeTimer = null
+  resizeObserver = new ResizeObserver(() => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => recalcScrollTitles(), 150)
+  })
+  if (calendarRef.value?.$el) {
+    resizeObserver.observe(calendarRef.value.$el)
+  }
+  onBeforeUnmount(() => {
+    if (refreshTimer) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+    }
+    if (resizeObserver) {
+      resizeObserver.disconnect()
+      resizeObserver = null
+    }
+    document.removeEventListener('click', closeContextMenu)
+    document.removeEventListener('keydown', handleKeyDown)
+    clearTimeout(resizeTimer)
+  })
+})
+</script>
+
+<template>
+  <div class="flex w-full flex-col relative">
+    <!-- 事件编辑模态框 -->
+    <div
+      v-if="showModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/20"
+    >
+      <div
+        class="modal-content bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[95vh] flex flex-col"
+      >
+        <!-- 模态框头部 -->
+        <div
+          class="modal-header border-b p-4 flex justify-between items-center flex-shrink-0"
+        >
+          <h5 class="modal-title text-lg font-semibold">
+            {{
+              userStore.isLoggedIn
+                ? eventData.isEditing
+                  ? t("calendar.edit_event")
+                  : t("calendar.add_event")
+                : t("calendar.view_event")
+            }}
+          </h5>
+          <div
+            v-if="eventData.isEditing && userStore.isLoggedIn && getUserIdFromEventID(eventData.id)"
+            class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2"
+          >
+            <img
+              :src="usersStore.getAvatarUrlFromUserID(getUserIdFromEventID(eventData.id))"
+              class="h-6 w-6 rounded-full"
+              alt="avatar"
+            />
+            <span class="text-sm text-gray-500">
+              {{ t("calendar.created_by", { name: getUsernameFromUserID(getUserIdFromEventID(eventData.id)) }) }}
+            </span>
+          </div>
+          <button
+            @click="closeEventModal"
+            class="btn-close text-gray-500 hover:text-gray-700"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-x"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+              <path d="M18 6l-12 12"></path>
+              <path d="M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 主体区域 -->
+        <div class="modal-body p-4 flex-1 overflow-y-auto">
+          <!-- 日期选择区域 -->
+          <DatatimePickerForFullCalendar
+            v-model:startDate="eventData.startDate"
+            v-model:endDate="eventData.endDate"
+            :color="eventData.color"
+            :title="eventData.title"
+            :isEditable="eventData.isEditable"
+          />
+
+          <!-- 内容输入区域 -->
+          <div class="mb-4">
+            <div class="uni-easyinput input relative">
+              <div
+                class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
+                :class="{
+                  'border-gray-300': eventData.title || !pageData.submitChecked,
+                  'border-red-500': !eventData.title && pageData.submitChecked,
+                }"
+              >
+                <input
+                  v-model="eventData.title"
+                  type="text"
+                  maxlength="140"
+                  class="uni-easyinput__content-input w-full px-3 py-2 outline-none"
+                  :placeholder="t('calendar.event_title_placeholder')"
+                  @keyup.enter="saveEvent"
+                  :disabled="!eventData.isEditable"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 颜色选择区域 -->
+          <div class="mb-4">
+            <div class="color_box grid grid-cols-3 gap-2">
+              <div
+                v-for="color in colorOptions"
+                :key="color.value"
+                class="color_box_item"
+              >
+                <label
+                  class="uni-label-pointer form-colorinput flex items-center gap-2 cursor-pointer"
+                  @click="selectColor(color.value)"
+                >
+                  <div class="uni-radio-wrapper">
+                    <div
+                      class="uni-radio-input flex items-center justify-center w-6 h-6 rounded-full transition-all"
+                      :style="{
+                        backgroundColor: color.value,
+                        borderColor: color.value,
+                      }"
+                    >
+                      <svg
+                        v-if="eventData.color === color.value"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 32 32"
+                      >
+                        <path
+                          d="M1.952 18.080q-0.32-0.352-0.416-0.88t0.128-0.976l0.16-0.352q0.224-0.416 0.64-0.528t0.8 0.176l6.496 4.704q0.384 0.288 0.912 0.272t0.88-0.336l17.312-14.272q0.352-0.288 0.848-0.256t0.848 0.352l-0.416-0.416q0.32 0.352 0.32 0.816t-0.32 0.816l-18.656 18.912q-0.32 0.352-0.8 0.352t-0.8-0.32l-7.936-8.064z"
+                          fill="#ffffff"
+                        ></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <span class="text-gray-700">{{ color.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 日程类型标签 -->
+          <div class="mb-4 px-1">
+            <span class="text-sm text-gray-600">{{ t('schedule.event_type') }}: </span>
+            <span class="text-sm font-medium" :style="{ color: eventData.color }">{{ t('schedule.' + eventData.scheduleType) || eventData.scheduleType }}</span>
+          </div>
+
+          <!-- 公共日程开关 -->
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-gray-700">{{ t('calendar.is_public_event') }}</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                v-model="eventData.isPublic"
+                type="checkbox"
+                class="sr-only peer"
+                :disabled="!eventData.isEditable"
+              />
+              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 底部固定 -->
+        <div
+          v-if="userStore.isLoggedIn"
+          class="modal-footer border-t p-4 flex justify-end items-center flex-shrink-0"
+        >
+          <div class="flex gap-2">
+            <button
+              v-if="eventData.isEditing"
+              @click="deleteEvent"
+              class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
+            >
+              {{ t('delete') }}
+            </button>
+            <button
+              v-if="!eventData.isEditing"
+              @click="saveEvent"
+              class="btn btn-primary px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
+            >
+              {{ t('calendar.add_event') }}
+            </button>
+            <button
+              v-if="eventData.isEditing"
+              @click="saveEvent"
+              class="btn btn-primary px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
+            >
+              {{ t('calendar.edit_event') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日历主体区域 -->
+    <div
+      class="flex-1 rounded-lg border border-gray-200 bg-white p-0.5 shadow dark:border-dk-muted dark:bg-dk-card"
+    >
+      <div class="h-full w-full overflow-hidden rounded-md">
+        <FullCalendar ref="calendarRef" :options="calendarOptions" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 右键菜单 -->
+  <div
+    v-if="contextMenu.visible"
+    class="fixed z-[60] min-w-[140px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dk-muted dark:bg-dk-card"
+    :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+  >
+    <button
+      v-if="contextMenu.eventInfo"
+      @click="copyEvent"
+      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      {{ t('calendar.copy_event') }}
+    </button>
+    <button
+      @click="pasteEvent"
+      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
+      :class="{ 'opacity-40 cursor-not-allowed': !clipboard }"
+      :disabled="!clipboard"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+      {{ t('calendar.paste_event') }}
+    </button>
+  </div>
+
+  <!-- Delete Confirm Dialog -->
+  <ConfirmDialog
+    v-model="showDeleteModal"
+    :title="t('calendar.delete_event')"
+    :message="t('calendar.confirm_delete_event')"
+    :confirm-text="t('delete')"
+    :cancel-text="t('cancel')"
+    danger
+    @confirm="confirmDeleteEvent"
+  />
+</template>
+
+<style scoped>
+/* 减少工具栏与日历主体之间的间距 */
+:deep(.fc .fc-toolbar) {
+  margin-bottom: 8px;
+}
+
+/* 日历名称按钮样式 */
+:deep(.fc-myTitle-button) {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  padding: 0 0px;
+  pointer-events: none;
+}
+:deep(.fc-myTitle-button:disabled) {
+  opacity: 1 !important;
+}
+
+/* 父容器作为裁剪视口 */
+:deep(.fc-daygrid-event .fc-event-title-container) {
+  overflow: hidden !important;
+}
+
+/* 默认状态：单行截断省略 */
+:deep(.fc-daygrid-event .fc-event-title) {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  will-change: transform;
+}
+
+/* 需要滚动的标题 */
+:deep(.fc-daygrid-event .fc-event-title[data-truncated="true"]) {
+  text-overflow: clip !important;
+  display: inline-block !important;
+  animation: marquee-bounce 6s ease-in-out infinite !important;
+}
+
+@keyframes marquee-bounce {
+  0%, 20% { transform: translateX(0); }
+  60% { transform: translateX(var(--scroll-distance, 0px)); }
+  80% { transform: translateX(var(--scroll-distance, 0px)); }
+  100% { transform: translateX(0); }
+}
+</style>
