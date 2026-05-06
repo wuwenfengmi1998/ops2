@@ -82,6 +82,15 @@ type TabWarehouseItemCustomerBind struct {
 	CreatedAt  *time.Time `gorm:"type:datetime;autoCreateTime"`
 }
 
+// TabCalendarEventUserBind 日程与用户关联表（日程分配给的用户）
+type TabCalendarEventUserBind struct {
+	ID        uint       `gorm:"primarykey"`
+	EventID   uint       `gorm:"not null;index;comment:关联日程ID"`
+	UserID    uint       `gorm:"not null;index;comment:关联用户ID"`
+	CreatorID uint       `gorm:"not null;comment:分配人id"`
+	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime"`
+}
+
 func BindsInit() {
 	models.DB.AutoMigrate(
 		&TabPurchaseFileBind{},
@@ -93,6 +102,7 @@ func BindsInit() {
 		&TabWorkOrderPurchaseOrderBind{},
 		&TabWorkOrderCustomerBind{},
 		&TabWarehouseItemCustomerBind{},
+		&TabCalendarEventUserBind{},
 	)
 
 }
