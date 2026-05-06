@@ -37,6 +37,7 @@ const eventData = ref({
   startDate: "",
   endDate: "",
   color: "#3788d9",
+  scheduleType: "work",
   isPublic: false,
   isEditing: false,
   isEditable: false,
@@ -78,13 +79,14 @@ function closeEventModal() {
   showModal.value = false
 }
 
-function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9", isPublic = false, isEditing = false, isEditable = true) {
+function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9", scheduleType = "work", isPublic = false, isEditing = false, isEditable = true) {
   eventData.value = {
     id: id,
     title: title,
     startDate: dateStr,
     endDate: dataEnd,
     color: color,
+    scheduleType: scheduleType,
     isPublic: isPublic,
     isEditing: isEditing,
     isEditable: isEditable,
@@ -99,6 +101,7 @@ function editEvent(info) {
     parseInt(info.event.id),
     info.event.title,
     info.event.backgroundColor,
+    info.event.extendedProps?.scheduleType || "work",
     info.event.extendedProps?.isPublic || false,
     true,
     info.event.durationEditable,
@@ -108,6 +111,11 @@ function editEvent(info) {
 function selectColor(colorValue) {
   if (eventData.value.isEditable) {
     eventData.value.color = colorValue
+    // 根据颜色更新日程类型
+    const selectedColor = colorOptions.value.find(c => c.value === colorValue)
+    if (selectedColor) {
+      eventData.value.scheduleType = selectedColor.type
+    }
   }
 }
 
@@ -129,9 +137,6 @@ async function saveEvent() {
     return
   }
 
-  const selectedColor = colorOptions.value.find(c => c.value === eventData.value.color)
-  const scheduleType = selectedColor ? selectedColor.type : "work"
-
   try {
     let result
     if (eventData.value.isEditing) {
@@ -144,7 +149,7 @@ async function saveEvent() {
             ? eventData.value.endDate
             : DateUtils.toRealEnd(eventData.value.endDate),
         ),
-        schedule_type: scheduleType,
+        schedule_type: eventData.value.scheduleType,
         is_public: eventData.value.isPublic,
       })
     } else {
@@ -157,7 +162,7 @@ async function saveEvent() {
             ? eventData.value.endDate
             : DateUtils.toRealEnd(eventData.value.endDate),
         ),
-        schedule_type: scheduleType,
+        schedule_type: eventData.value.scheduleType,
         is_public: eventData.value.isPublic,
       })
     }
@@ -218,6 +223,10 @@ async function getEvents() {
           backgroundColor: item.BgColor,
           borderColor: item.ID === pageData.value.seleEventID ? "#000000" : "#F7F7F7",
           allDay: true,
+          extendedProps: {
+            scheduleType: item.ScheduleType || "work",
+            isPublic: item.IsPublic || false,
+          },
         })
       })
     }
@@ -391,8 +400,6 @@ const calendarOptions = ref({
 
   eventDrop(info) {
     // 拖拽后直接更新
-    const selectedColor = colorOptions.value.find(c => c.value === info.event.backgroundColor)
-    const scheduleType = selectedColor ? selectedColor.type : "work"
     const startStr = info.event.startStr
     const endStr = info.event.end ? info.event.endStr : startStr
     calendarApi.updateEvent({
@@ -400,7 +407,7 @@ const calendarOptions = ref({
       title: info.event.title,
       start: toDatetime(startStr),
       end: toDatetime(startStr === endStr ? endStr : DateUtils.toRealEnd(endStr)),
-      schedule_type: scheduleType,
+      schedule_type: info.event.extendedProps?.scheduleType || "work",
     }).then(r => {
       if (r.errCode !== 0) toast.error(t('message.server_error'))
       else getEvents()
@@ -567,6 +574,12 @@ onMounted(() => {
                 </label>
               </div>
             </div>
+          </div>
+
+          <!-- 日程类型标签 -->
+          <div class="mb-4 px-1">
+            <span class="text-sm text-gray-600">{{ t('schedule.event_type') }}: </span>
+            <span class="text-sm font-medium" :style="{ color: eventData.color }">{{ t('schedule.' + eventData.scheduleType) || eventData.scheduleType }}</span>
           </div>
 
           <!-- 公共日程开关 -->

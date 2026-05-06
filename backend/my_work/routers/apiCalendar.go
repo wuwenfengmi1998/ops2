@@ -27,17 +27,17 @@ type TabCalendar struct {
 
 // TabCalendarEvent 日历事件表
 type TabCalendarEvent struct {
-	ID         uint `gorm:"primarykey"`
-	CalendarID uint `gorm:"not null;index;comment:关联日历ID"`
-	UserID     uint `gorm:"not null;comment:创建人ID"`
-	//UsersID    []uint     `gorm:"type:json; null;comment:其他关联用户ID"`
-	Title     string     `gorm:"size:200;not null;comment:事件标题"`
-	StartDate *time.Time `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
-	EndDate   *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
-	IsAllDay  bool       `gorm:"default:true;comment:是否全日事件"`
-	BgColor   string     `gorm:"size:50;default:#3788d9;comment:背景颜色"`
-	IsPublic  bool       `gorm:"default:false;comment:是否为公共日程"`
-	Remark    string     `gorm:"type:text;comment:备注"`
+	ID           uint `gorm:"primarykey"`
+	CalendarID   uint `gorm:"not null;index;comment:关联日历ID"`
+	UserID       uint `gorm:"not null;comment:创建人ID"`
+	Title        string     `gorm:"size:200;not null;comment:事件标题"`
+	StartDate    *time.Time `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
+	EndDate      *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
+	IsAllDay     bool       `gorm:"default:true;comment:是否全日事件"`
+	ScheduleType string     `gorm:"size:50;default:work;comment:日程类型: work-工作 duty-值班 exam-考试 standby-待命 personal_holiday-调休 personal_holiday-公假"`
+	BgColor      string     `gorm:"size:50;default:#3788d9;comment:背景颜色"`
+	IsPublic     bool       `gorm:"default:false;comment:是否为公共日程"`
+	Remark       string     `gorm:"type:text;comment:备注"`
 
 	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime;comment:创建时间"`
 	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:最后修改时间"`
@@ -376,19 +376,24 @@ func ApiCalendar(r *gin.RouterGroup) {
 			color, _ := data["color"].(string)
 			remark, _ := data["remark"].(string)
 			isPublic, _ := data["is_public"].(bool)
+			scheduleType, _ := data["schedule_type"].(string)
+			if scheduleType == "" {
+				scheduleType = "work"
+			}
 
 			startDate, _ := time.Parse("2006-01-02 15:04:05", startStr)
 			endDate, _ := time.Parse("2006-01-02 15:04:05", endStr)
 
 			event := TabCalendarEvent{
-				CalendarID: calendarID,
-				UserID:     user.ID,
-				Title:      title,
-				StartDate:  &startDate,
-				EndDate:    &endDate,
-				BgColor:    color,
-				IsPublic:   isPublic,
-				Remark:     remark,
+				CalendarID:   calendarID,
+				UserID:       user.ID,
+				Title:        title,
+				StartDate:    &startDate,
+				EndDate:      &endDate,
+				ScheduleType: scheduleType,
+				BgColor:      color,
+				IsPublic:     isPublic,
+				Remark:       remark,
 			}
 			if event.BgColor == "" {
 				event.BgColor = calendar.Color
@@ -442,17 +447,22 @@ func ApiCalendar(r *gin.RouterGroup) {
 				color, _ := data["color"].(string)
 				remark, _ := data["remark"].(string)
 				isPublic, _ := data["is_public"].(bool)
+				scheduleType, _ := data["schedule_type"].(string)
+				if scheduleType == "" {
+					scheduleType = "work"
+				}
 
 				startDate, _ := time.Parse("2006-01-02 15:04:05", startStr)
 				endDate, _ := time.Parse("2006-01-02 15:04:05", endStr)
 
 				newEvent := TabCalendarEvent{
-					Title:     title,
-					StartDate: &startDate,
-					EndDate:   &endDate,
-					BgColor:   color,
-					IsPublic:  isPublic,
-					Remark:    remark,
+					Title:        title,
+					StartDate:    &startDate,
+					EndDate:      &endDate,
+					ScheduleType: scheduleType,
+					BgColor:      color,
+					IsPublic:     isPublic,
+					Remark:       remark,
 				}
 				if newEvent.BgColor == "" {
 					// 获取日历颜色

@@ -312,6 +312,7 @@
     "standby": "Standby",
     "personal_holiday": "Personal Holiday",
     "public_holiday": "Public Holiday",
+    "event_type": "Event Type",
     "to": "To",
     "close": "Close",
     "copy": "Copy",
