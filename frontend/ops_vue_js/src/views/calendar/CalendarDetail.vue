@@ -709,16 +709,22 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 减少工具栏与日历主体之间的间距 */
+:deep(.fc .fc-toolbar) {
+  margin-bottom: 8px;
+}
+
 /* 日历名称按钮样式 */
 :deep(.fc-myTitle-button) {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
   cursor: default !important;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #374151;
-  padding: 0 8px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  padding: 0 0px;
+  pointer-events: none;
 }
 :deep(.fc-myTitle-button:disabled) {
   opacity: 1 !important;
