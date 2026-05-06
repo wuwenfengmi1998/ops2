@@ -37,6 +37,7 @@ const eventData = ref({
   startDate: "",
   endDate: "",
   color: "#3788d9",
+  isPublic: false,
   isEditing: false,
   isEditable: false,
 })
@@ -77,13 +78,14 @@ function closeEventModal() {
   showModal.value = false
 }
 
-function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9", isEditing = false, isEditable = true) {
+function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9", isPublic = false, isEditing = false, isEditable = true) {
   eventData.value = {
     id: id,
     title: title,
     startDate: dateStr,
     endDate: dataEnd,
     color: color,
+    isPublic: isPublic,
     isEditing: isEditing,
     isEditable: isEditable,
   }
@@ -97,6 +99,7 @@ function editEvent(info) {
     parseInt(info.event.id),
     info.event.title,
     info.event.backgroundColor,
+    info.event.extendedProps?.isPublic || false,
     true,
     info.event.durationEditable,
   )
@@ -142,6 +145,7 @@ async function saveEvent() {
             : DateUtils.toRealEnd(eventData.value.endDate),
         ),
         schedule_type: scheduleType,
+        is_public: eventData.value.isPublic,
       })
     } else {
       result = await calendarApi.addEvent({
@@ -154,6 +158,7 @@ async function saveEvent() {
             : DateUtils.toRealEnd(eventData.value.endDate),
         ),
         schedule_type: scheduleType,
+        is_public: eventData.value.isPublic,
       })
     }
 
@@ -562,6 +567,20 @@ onMounted(() => {
                 </label>
               </div>
             </div>
+          </div>
+
+          <!-- 公共日程开关 -->
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-gray-700">{{ t('calendar.is_public_event') }}</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                v-model="eventData.isPublic"
+                type="checkbox"
+                class="sr-only peer"
+                :disabled="!eventData.isEditable"
+              />
+              <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+            </label>
           </div>
         </div>
 

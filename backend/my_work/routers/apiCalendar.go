@@ -3,6 +3,7 @@ package routers
 import (
 	"encoding/json"
 	"ops/models"
+	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -35,6 +36,7 @@ type TabCalendarEvent struct {
 	EndDate    *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
 	IsAllDay   bool       `gorm:"default:true;comment:是否全日事件"`
 	BgColor    string     `gorm:"size:50;default:#3788d9;comment:背景颜色"`
+	IsPublic   bool       `gorm:"default:false;comment:是否为公共日程"`
 	Remark     string     `gorm:"type:text;comment:备注"`
 
 	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime;comment:创建时间"`
@@ -89,20 +91,48 @@ type fromAddCalendarEvent struct {
 	Start      *time.Time `json:"start" binding:"required"`
 	End        *time.Time `json:"end" binding:"required"`
 	Color      string     `json:"color"`
+	Is_public  bool       `json:"is_public"`
 	Remark     string     `json:"remark"`
 }
 
 type fromUpdateCalendarEvent struct {
-	ID     uint       `json:"id" binding:"required"`
-	Title  string     `json:"title" binding:"required"`
-	Start  *time.Time `json:"start" binding:"required"`
-	End    *time.Time `json:"end" binding:"required"`
-	Color  string     `json:"color"`
-	Remark string     `json:"remark"`
+	ID        uint       `json:"id" binding:"required"`
+	Title     string     `json:"title" binding:"required"`
+	Start     *time.Time `json:"start" binding:"required"`
+	End       *time.Time `json:"end" binding:"required"`
+	Color     string     `json:"color"`
+	Is_public bool       `json:"is_public"`
+	Remark    string     `json:"remark"`
 }
 
 type fromDeleteCalendarEvent struct {
 	ID uint `json:"id" binding:"required"`
+}
+
+var (
+	calendarUserGroup TabUserGroups
+	calendarAdmins    []uint
+)
+
+// CalendarUpdateAdminsCash 更新客户管理员缓存
+func CalendarUpdateAdminsCash() {
+	calendarAdmins = nil
+	calendarAdmins = append(calendarAdmins, 1) // id=1 系统管理员默认拥有所有权限
+	var binds []TabUserGroupBinds
+	models.DB.Where("group_id = ?", calendarUserGroup.ID).Find(&binds)
+	for _, item := range binds {
+		if !slices.Contains(calendarAdmins, item.UserID) {
+			calendarAdmins = append(calendarAdmins, item.UserID)
+		}
+	}
+}
+
+// canModifyCustomer 判断是否有权限修改/删除客户（创建者或管理员）
+func canModifyCalendar(userID, creatorUserID uint) bool {
+	if slices.Contains(calendarAdmins, userID) {
+		return true
+	}
+	return userID == creatorUserID
 }
 
 func ApiCalendarInit() {
@@ -110,6 +140,12 @@ func ApiCalendarInit() {
 	models.DB.AutoMigrate(&TabCalendar{})
 	models.DB.AutoMigrate(&TabCalendarEvent{})
 	models.DB.AutoMigrate(&TabCalendarLog{})
+
+	// 自动创建 calendar_admin 用户组
+	models.DB.Where("name = ?", "calendar_admin").FirstOrCreate(&calendarUserGroup, TabUserGroups{
+		Name: "calendar_admin",
+		Type: "usergroup",
+	})
 }
 
 func ApiCalendar(r *gin.RouterGroup) {
@@ -152,12 +188,41 @@ func ApiCalendar(r *gin.RouterGroup) {
 		}
 	})
 
-	// 获取日历列表
+	// 获取日历列表（不需要登录）
 	r.POST("/calendar/list", func(ctx *gin.Context) {
+		isAuth, user, _ := AuthenticationAuthority(ctx)
 
 		var calendars []TabCalendar
 		models.DB.Where("deleted_at IS NULL").Order("created_at DESC").Find(&calendars)
-		ReturnJson(ctx, "apiOK", gin.H{"list": calendars})
+
+		type CalendarWithEdit struct {
+			TabCalendar
+			CanEdit bool `json:"canEdit"`
+		}
+		var result []CalendarWithEdit
+		for _, cal := range calendars {
+			// 私有日历：只有创建者可见
+			if !cal.IsPublic {
+				if !isAuth || cal.UserID != user.ID {
+					continue
+				}
+				result = append(result, CalendarWithEdit{
+					TabCalendar: cal,
+					CanEdit:     true,
+				})
+				continue
+			}
+			// 公开日历
+			canEdit := false
+			if isAuth {
+				canEdit = canModifyCalendar(user.ID, cal.UserID)
+			}
+			result = append(result, CalendarWithEdit{
+				TabCalendar: cal,
+				CanEdit:     canEdit,
+			})
+		}
+		ReturnJson(ctx, "apiOK", gin.H{"list": result})
 
 	})
 
@@ -303,6 +368,7 @@ func ApiCalendar(r *gin.RouterGroup) {
 					StartDate:  from.Start,
 					EndDate:    from.End,
 					BgColor:    from.Color,
+					IsPublic:   from.Is_public,
 					Remark:     from.Remark,
 				}
 				if event.BgColor == "" {
@@ -352,6 +418,7 @@ func ApiCalendar(r *gin.RouterGroup) {
 						StartDate: from.Start,
 						EndDate:   from.End,
 						BgColor:   from.Color,
+						IsPublic:  from.Is_public,
 						Remark:    from.Remark,
 					}
 					if newEvent.BgColor == "" {

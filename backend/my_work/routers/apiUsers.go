@@ -339,7 +339,7 @@ func AuthenticationAuthority(ctx *gin.Context) (bool, TabUser, map[string]interf
 		}
 
 	} else {
-		ReturnJson(ctx, "userCookieError", nil)
+		//ReturnJson(ctx, "userCookieError", nil)
 		return false, user, nil
 	}
 

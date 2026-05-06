@@ -638,6 +638,7 @@
     "remark_placeholder": "请输入备注",
     "event_save_success": "事件保存成功",
     "event_delete_success": "事件删除成功",
-    "confirm_delete_event": "确定要删除此事件吗？"
+    "confirm_delete_event": "确定要删除此事件吗？",
+    "is_public_event": "公共日程"
   }
 }

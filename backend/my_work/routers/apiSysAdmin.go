@@ -164,7 +164,7 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			return
 		}
 
-	var params struct {
+		var params struct {
 			GroupID  float64 `json:"group_id" mapstructure:"group_id"`
 			Page     float64 `json:"page" mapstructure:"page"`
 			PageSize float64 `json:"page_size" mapstructure:"page_size"`
@@ -462,6 +462,8 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			WarehouseUpdateAdminsCash()
 		case "customer_admin":
 			CustomerUpdateAdminsCash()
+		case "calendar_admin":
+			CalendarUpdateAdminsCash()
 		}
 
 		ReturnJson(ctx, "apiOK", nil)

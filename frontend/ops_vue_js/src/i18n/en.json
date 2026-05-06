@@ -638,6 +638,7 @@
     "remark_placeholder": "Enter remark",
     "event_save_success": "Event saved successfully",
     "event_delete_success": "Event deleted successfully",
-    "confirm_delete_event": "Are you sure you want to delete this event?"
+    "confirm_delete_event": "Are you sure you want to delete this event?",
+    "is_public_event": "Public Event"
   }
 }
