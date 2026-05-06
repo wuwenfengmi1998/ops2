@@ -627,6 +627,7 @@
     "loading": "加载中...",
     "add_event": "添加事件",
     "edit_event": "编辑事件",
+    "view_event": "查看事件",
     "delete_event": "删除事件",
     "event_title": "事件标题",
     "event_title_required": "请输入事件标题",

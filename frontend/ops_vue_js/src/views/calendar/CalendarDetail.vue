@@ -12,7 +12,7 @@ import { useToastStore } from "@/stores/toast"
 import { useUserStore } from "@/stores/user"
 import { calendarApi } from "@/api/calendar"
 import { useDateUtils } from "@/composables/useDateUtils"
-import { IconPlus, IconTrash, IconEdit, IconCalendar } from "@tabler/icons-vue"
+import DatatimePickerForFullCalendar from "@/components/datatimePickerForFullCalendar.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -37,16 +37,17 @@ const eventData = ref({
   startDate: "",
   endDate: "",
   color: "#3788d9",
-  remark: "",
   isEditing: false,
-  isEditable: false
+  isEditable: false,
 })
 
 const colorOptions = ref([
-  { value: "#3788d9", label: t("schedule.work") },
-  { value: "#06d6a0", label: t("schedule.duty") },
-  { value: "#ff595e", label: t("schedule.exam") },
-  { value: "#ffca3a", label: t("schedule.standby") },
+  { value: "#3788d9", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
+  { value: "#06d6a0", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
+  { value: "#ff595e", label: t("schedule.exam"), name: t("schedule.exam"), type: "exam" },
+  { value: "#ffca3a", label: t("schedule.standby"), name: t("schedule.standby"), type: "standby" },
+  { value: "#D16C13", label: t("schedule.personal_holiday"), name: t("schedule.personal_holiday"), type: "personal_holiday" },
+  { value: "#D10D21", label: t("schedule.public_holiday"), name: t("schedule.public_holiday"), type: "public_holiday" },
 ])
 
 const pageData = ref({
@@ -55,91 +56,127 @@ const pageData = ref({
   lastClickTimeStr: "",
   lastEventClickTime: 0,
   lastEventClickID: 0,
-  submitChecked: false
+  submitChecked: false,
+  lastEventsSnapshot: null,
 })
 
-function openEventModal(startDate, endDate) {
+// 选中/取消选中事件
+function unseleEvent(eventID) {
+  const target = calendarOptions.value.events.find(item => item.id === eventID)
+  if (target) {
+    target.borderColor = "#F7F7F7"
+  }
+}
+
+function unseleEventAll() {
+  unseleEvent(pageData.value.seleEventID)
+  pageData.value.seleEventID = 0
+}
+
+function closeEventModal() {
+  showModal.value = false
+}
+
+function openEventModal(dateStr, dataEnd, id = 0, title = "", color = "#3788d9", isEditing = false, isEditable = true) {
   eventData.value = {
-    id: 0,
-    title: "",
-    startDate: startDate || "",
-    endDate: endDate || "",
-    color: calendarInfo.value.Color || "#3788d9",
-    remark: "",
-    isEditing: false,
-    isEditable: true
+    id: id,
+    title: title,
+    startDate: dateStr,
+    endDate: dataEnd,
+    color: color,
+    isEditing: isEditing,
+    isEditable: isEditable,
   }
   showModal.value = true
 }
 
-function editEvent(event) {
-  eventData.value = {
-    id: event.id,
-    title: event.title,
-    startDate: event.start,
-    endDate: event.end || event.start,
-    color: event.backgroundColor,
-    remark: event.extendedProps?.remark || "",
-    isEditing: true,
-    isEditable: true
+function editEvent(info) {
+  openEventModal(
+    info.event.startStr,
+    info.event.end ? info.event.endStr : info.event.startStr,
+    parseInt(info.event.id),
+    info.event.title,
+    info.event.backgroundColor,
+    true,
+    info.event.durationEditable,
+  )
+}
+
+function selectColor(colorValue) {
+  if (eventData.value.isEditable) {
+    eventData.value.color = colorValue
   }
-  showModal.value = true
+}
+
+// 日期转后端格式：YYYY-MM-DD 00:00:00
+function toDatetime(dateStr) {
+  return dateStr ? dateStr + " 00:00:00" : ""
 }
 
 async function saveEvent() {
   if (!eventData.value.title.trim()) {
-    toast.error(t('calendar.event_title_required'))
+    pageData.value.submitChecked = true
+    toast.warning(t('calendar.event_title_required'))
+    return
+  }
+  pageData.value.submitChecked = false
+
+  if (!eventData.value.startDate || !eventData.value.endDate) {
+    toast.warning(t('schedule.date_required'))
     return
   }
 
-  pageData.value.submitChecked = true
+  const selectedColor = colorOptions.value.find(c => c.value === eventData.value.color)
+  const scheduleType = selectedColor ? selectedColor.type : "work"
 
   try {
     let result
     if (eventData.value.isEditing) {
       result = await calendarApi.updateEvent({
         id: eventData.value.id,
-        title: eventData.value.title,
-        start: eventData.value.startDate,
-        end: eventData.value.endDate,
-        color: eventData.value.color,
-        remark: eventData.value.remark
+        title: eventData.value.title.trim(),
+        start: toDatetime(eventData.value.startDate),
+        end: toDatetime(
+          eventData.value.startDate === eventData.value.endDate
+            ? eventData.value.endDate
+            : DateUtils.toRealEnd(eventData.value.endDate),
+        ),
+        schedule_type: scheduleType,
       })
     } else {
       result = await calendarApi.addEvent({
         calendar_id: calendarId.value,
-        title: eventData.value.title,
-        start: eventData.value.startDate,
-        end: eventData.value.endDate,
-        color: eventData.value.color,
-        remark: eventData.value.remark
+        title: eventData.value.title.trim(),
+        start: toDatetime(eventData.value.startDate),
+        end: toDatetime(
+          eventData.value.startDate === eventData.value.endDate
+            ? eventData.value.endDate
+            : DateUtils.toRealEnd(eventData.value.endDate),
+        ),
+        schedule_type: scheduleType,
       })
     }
 
     if (result.errCode === 0) {
       toast.success(t('calendar.event_save_success'))
-      showModal.value = false
+      closeEventModal()
       getEvents()
     } else {
       toast.error(t('message.server_error'))
     }
   } catch {
     // 拦截器已处理
-  } finally {
-    pageData.value.submitChecked = false
   }
 }
 
 async function deleteEvent() {
-  if (!confirm(t('calendar.confirm_delete_event'))) {
-    return
-  }
+  if (!confirm(t('calendar.confirm_delete_event'))) return
 
   try {
     const result = await calendarApi.deleteEvent(eventData.value.id)
     if (result.errCode === 0) {
       toast.success(t('calendar.event_delete_success'))
-      showModal.value = false
+      closeEventModal()
       getEvents()
     } else {
       toast.error(t('message.server_error'))
@@ -152,31 +189,32 @@ async function deleteEvent() {
 async function getEvents() {
   if (!calendarRef.value) return
 
-  const calendarApi2 = calendarRef.value.getApi()
-  const view = calendarApi2.view
-  const start = DateUtils.formatDate(view.activeStart)
-  const end = DateUtils.formatDate(view.activeEnd)
+  const calApi = calendarRef.value.getApi()
+  const start = DateUtils.dateToStr(calendarNowShow.value.start)
+  const end = DateUtils.toRealEnd(calendarNowShow.value.end)
 
   try {
     const { errCode, data } = await calendarApi.getEvents({
       calendar_id: calendarId.value,
       start: start,
-      end: end
+      end: end,
     })
 
     if (errCode === 0) {
-      const events = (data.list || []).map(event => ({
-        id: event.ID,
-        title: event.Title,
-        start: event.StartDate,
-        end: event.EndDate,
-        backgroundColor: event.BgColor,
-        borderColor: event.BgColor,
-        extendedProps: {
-          remark: event.Remark
-        }
-      }))
-      calendarOptions.value.events = events
+      calendarOptions.value.events = []
+      ;(data.list || []).forEach(item => {
+        calendarOptions.value.events.push({
+          id: item.ID,
+          title: item.Title,
+          start: item.StartDate,
+          end: item.StartDate === item.EndDate
+            ? item.EndDate
+            : DateUtils.toCalendarEnd(item.EndDate),
+          backgroundColor: item.BgColor,
+          borderColor: item.ID === pageData.value.seleEventID ? "#000000" : "#F7F7F7",
+          allDay: true,
+        })
+      })
     }
   } catch {
     // 拦截器已处理
@@ -203,17 +241,28 @@ async function fetchCalendarInfo() {
   }
 }
 
-function unseleEvent(eventID) {
-  const target = calendarOptions.value.events.find(item => item.id === eventID)
-  if (target) {
-    target.borderColor = target.backgroundColor
+// ─── 滚动标题工具函数 ───────────────────────────────────────────────────────
+function applyScrollToTitle(titleEl) {
+  titleEl.removeAttribute("data-truncated")
+  titleEl.style.removeProperty("--scroll-distance")
+  const overflow = titleEl.scrollWidth - titleEl.clientWidth
+  if (overflow > 0) {
+    titleEl.style.setProperty("--scroll-distance", `-${overflow}px`)
+    titleEl.setAttribute("data-truncated", "true")
   }
 }
 
-function unseleEventAll() {
-  unseleEvent(pageData.value.seleEventID)
-  pageData.value.seleEventID = 0
+function recalcScrollTitles() {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      const calendarEl = calendarRef.value?.$el
+      if (!calendarEl) return
+      calendarEl.querySelectorAll(".fc-event-title").forEach(applyScrollToTitle)
+    })
+  })
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const calendarOptions = ref({
   height: "100%",
@@ -230,51 +279,54 @@ const calendarOptions = ref({
   expandRows: true,
   stickyHeaderDates: true,
 
+  dayCellDidMount(info) {
+    if (info.date.getDay() === 0 || info.date.getDay() === 6) {
+      info.el.style.backgroundColor = "#f5f5f5"
+    }
+    info.el.style.border = "1px solid #e5e7eb"
+  },
+
   headerToolbar: {
     left: "prevYear,prev,today,next,nextYear",
     center: "title",
-    right: ""
+    right: "",
   },
 
   customButtons: {
     prevYear: {
       text: t("schedule.previous_year"),
-      click() {
-        calendarRef.value.getApi().prevYear()
-        getEvents()
-      }
+      click() { calendarRef.value.getApi().prevYear(); getEvents() },
     },
     nextYear: {
       text: t("schedule.next_year"),
-      click() {
-        calendarRef.value.getApi().nextYear()
-        getEvents()
-      }
+      click() { calendarRef.value.getApi().nextYear(); getEvents() },
     },
     prev: {
       text: t("schedule.previous_month"),
-      click() {
-        calendarRef.value.getApi().prev()
-        getEvents()
-      }
+      click() { calendarRef.value.getApi().prev(); getEvents() },
     },
     next: {
       text: t("schedule.next_month"),
-      click() {
-        calendarRef.value.getApi().next()
-        getEvents()
-      }
+      click() { calendarRef.value.getApi().next(); getEvents() },
     },
     today: {
       text: t("schedule.today"),
-      click() {
-        calendarRef.value.getApi().today()
-        getEvents()
-      }
-    }
+      click() { calendarRef.value.getApi().today(); getEvents() },
+    },
+    week: {
+      text: t("schedule.week"),
+      click() { calendarRef.value.getApi().changeView("timeGridWeek") },
+    },
   },
 
   events: [],
+
+  eventDidMount(info) {
+    const titleEl = info.el.querySelector(".fc-event-title")
+    if (titleEl) {
+      requestAnimationFrame(() => applyScrollToTitle(titleEl))
+    }
+  },
 
   datesSet(info) {
     calendarNowShow.value = info
@@ -284,7 +336,6 @@ const calendarOptions = ref({
   dateClick(info) {
     const nowTime = new Date().getTime()
     const timeDifference = nowTime - pageData.value.lastClickTime
-
     unseleEventAll()
 
     if (info.dateStr === pageData.value.lastClickTimeStr) {
@@ -314,179 +365,278 @@ const calendarOptions = ref({
   eventClick(info) {
     const nowTime = new Date().getTime()
     const timeDifference = nowTime - pageData.value.lastEventClickTime
+    const eventid = parseInt(info.event.id)
 
-    if (info.event.id === pageData.value.lastEventClickID) {
-      if (timeDifference < 400 && timeDifference > 0) {
-        editEvent({
-          id: info.event.id,
-          title: info.event.title,
-          start: info.event.startStr?.split('T')[0] || info.event.start?.toISOString().split('T')[0],
-          end: info.event.endStr?.split('T')[0] || info.event.end?.toISOString().split('T')[0],
-          backgroundColor: info.event.backgroundColor
-        })
-      }
-    }
-    pageData.value.lastEventClickID = info.event.id
-    pageData.value.lastEventClickTime = nowTime
-
-    // 选中效果
     unseleEventAll()
     const target = calendarOptions.value.events.find(item => String(item.id) === String(info.event.id))
     if (target) {
       target.borderColor = "#000000"
       pageData.value.seleEventID = target.id
     }
-  }
+
+    if (eventid === pageData.value.lastEventClickID) {
+      if (timeDifference < 400 && timeDifference > 0) {
+        editEvent(info)
+        unseleEventAll()
+      }
+    }
+    pageData.value.lastEventClickID = eventid
+    pageData.value.lastEventClickTime = nowTime
+  },
+
+  eventDrop(info) {
+    // 拖拽后直接更新
+    const selectedColor = colorOptions.value.find(c => c.value === info.event.backgroundColor)
+    const scheduleType = selectedColor ? selectedColor.type : "work"
+    const startStr = info.event.startStr
+    const endStr = info.event.end ? info.event.endStr : startStr
+    calendarApi.updateEvent({
+      id: parseInt(info.event.id),
+      title: info.event.title,
+      start: toDatetime(startStr),
+      end: toDatetime(startStr === endStr ? endStr : DateUtils.toRealEnd(endStr)),
+      schedule_type: scheduleType,
+    }).then(r => {
+      if (r.errCode !== 0) toast.error(t('message.server_error'))
+      else getEvents()
+    })
+  },
 })
+
+// 监听语言变化
+watch(locale, () => {
+  calendarOptions.value.locale = locale.value
+  calendarOptions.value.customButtons.prevYear.text = t("schedule.previous_year")
+  calendarOptions.value.customButtons.nextYear.text = t("schedule.next_year")
+  calendarOptions.value.customButtons.prev.text = t("schedule.previous_month")
+  calendarOptions.value.customButtons.next.text = t("schedule.next_month")
+  calendarOptions.value.customButtons.today.text = t("schedule.today")
+  calendarOptions.value.customButtons.week.text = t("schedule.week")
+  colorOptions.value = [
+    { value: "#3788d9", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
+    { value: "#06d6a0", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
+    { value: "#ff595e", label: t("schedule.exam"), name: t("schedule.exam"), type: "exam" },
+    { value: "#ffca3a", label: t("schedule.standby"), name: t("schedule.standby"), type: "standby" },
+    { value: "#D16C13", label: t("schedule.personal_holiday"), name: t("schedule.personal_holiday"), type: "personal_holiday" },
+    { value: "#D10D21", label: t("schedule.public_holiday"), name: t("schedule.public_holiday"), type: "public_holiday" },
+  ]
+})
+
+let resizeObserver = null
 
 onMounted(() => {
   fetchCalendarInfo()
+  // 监听日历容器宽度变化
+  let resizeTimer = null
+  resizeObserver = new ResizeObserver(() => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => recalcScrollTitles(), 150)
+  })
+  if (calendarRef.value?.$el) {
+    resizeObserver.observe(calendarRef.value.$el)
+  }
+  onBeforeUnmount(() => {
+    if (resizeObserver) {
+      resizeObserver.disconnect()
+      resizeObserver = null
+    }
+    clearTimeout(resizeTimer)
+  })
 })
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 px-6 py-6">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <button
-          @click="router.push('/calendars')"
-          class="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dk-muted"
-        >
-          ←
-        </button>
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-            {{ calendarInfo.Name || t('calendar.loading') }}
-          </h3>
-          <p v-if="calendarInfo.Description" class="text-sm text-gray-500 dark:text-gray-400">
-            {{ calendarInfo.Description }}
-          </p>
-        </div>
-      </div>
-      <div
-        v-if="userStore.isLoggedIn"
-        class="flex items-center gap-2"
-      >
-        <button
-          @click="openEventModal()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          <IconPlus :size="16" />
-          {{ t('calendar.add_event') }}
-        </button>
-      </div>
-    </div>
-
-    <div class="rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card">
-      <FullCalendar
-        ref="calendarRef"
-        :options="calendarOptions"
-      />
-    </div>
-
-    <!-- Event Modal -->
+  <div class="flex w-full flex-col relative">
+    <!-- 事件编辑模态框 -->
     <div
       v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="showModal = false"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-gray-800/20"
     >
-      <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-dk-card">
-        <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-          {{ eventData.isEditing ? t('calendar.edit_event') : t('calendar.add_event') }}
-        </h3>
-
-        <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('calendar.event_title') }} *
-          </label>
-          <input
-            v-model="eventData.title"
-            type="text"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-            :placeholder="t('calendar.event_title_placeholder')"
-          />
-        </div>
-
-        <div class="mb-4 grid grid-cols-2 gap-3">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t('calendar.start_date') }} *
-            </label>
-            <input
-              v-model="eventData.startDate"
-              type="date"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t('calendar.end_date') }} *
-            </label>
-            <input
-              v-model="eventData.endDate"
-              type="date"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-            />
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('calendar.color') }}
-          </label>
-          <div class="flex gap-2">
-            <button
-              v-for="color in colorOptions"
-              :key="color.value"
-              @click="eventData.color = color.value"
-              class="h-8 w-8 rounded-full transition-transform hover:scale-110"
-              :class="{ 'ring-2 ring-blue-500 ring-offset-2': eventData.color === color.value }"
-              :style="{ backgroundColor: color.value }"
-              :title="color.label"
-            ></button>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ t('calendar.remark') }}
-          </label>
-          <textarea
-            v-model="eventData.remark"
-            rows="3"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
-            :placeholder="t('calendar.remark_placeholder')"
-          ></textarea>
-        </div>
-
-        <div class="flex justify-between">
+      <div
+        class="modal-content bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[95vh] flex flex-col"
+      >
+        <!-- 模态框头部 -->
+        <div
+          class="modal-header border-b p-4 flex justify-between items-center flex-shrink-0"
+        >
+          <h5 class="modal-title text-lg font-semibold">
+            {{
+              userStore.isLoggedIn
+                ? eventData.isEditing
+                  ? t("calendar.edit_event")
+                  : t("calendar.add_event")
+                : t("calendar.view_event")
+            }}
+          </h5>
           <button
-            v-if="eventData.isEditing"
-            @click="deleteEvent"
-            class="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            @click="closeEventModal"
+            class="btn-close text-gray-500 hover:text-gray-700"
           >
-            <IconTrash :size="16" />
-            {{ t('delete') }}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="icon icon-tabler icons-tabler-outline icon-tabler-x"
+            >
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+              <path d="M18 6l-12 12"></path>
+              <path d="M6 6l12 12"></path>
+            </svg>
           </button>
-          <div v-else></div>
+        </div>
 
+        <!-- 主体区域 -->
+        <div class="modal-body p-4 flex-1 overflow-y-auto">
+          <!-- 日期选择区域 -->
+          <DatatimePickerForFullCalendar
+            v-model:startDate="eventData.startDate"
+            v-model:endDate="eventData.endDate"
+            :color="eventData.color"
+            :title="eventData.title"
+            :isEditable="eventData.isEditable"
+          />
+
+          <!-- 内容输入区域 -->
+          <div class="mb-4">
+            <div class="uni-easyinput input relative">
+              <div
+                class="uni-easyinput__content is-input-border border border-gray-300 rounded-md bg-white relative"
+                :class="{
+                  'border-gray-300': eventData.title || !pageData.submitChecked,
+                  'border-red-500': !eventData.title && pageData.submitChecked,
+                }"
+              >
+                <input
+                  v-model="eventData.title"
+                  type="text"
+                  maxlength="140"
+                  class="uni-easyinput__content-input w-full px-3 py-2 outline-none"
+                  :placeholder="t('calendar.event_title_placeholder')"
+                  @keyup.enter="saveEvent"
+                  :disabled="!eventData.isEditable"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 颜色选择区域 -->
+          <div class="mb-4">
+            <div class="color_box grid grid-cols-3 gap-2">
+              <div
+                v-for="color in colorOptions"
+                :key="color.value"
+                class="color_box_item"
+              >
+                <label
+                  class="uni-label-pointer form-colorinput flex items-center gap-2 cursor-pointer"
+                  @click="selectColor(color.value)"
+                >
+                  <div class="uni-radio-wrapper">
+                    <div
+                      class="uni-radio-input flex items-center justify-center w-6 h-6 rounded-full transition-all"
+                      :style="{
+                        backgroundColor: color.value,
+                        borderColor: color.value,
+                      }"
+                    >
+                      <svg
+                        v-if="eventData.color === color.value"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 32 32"
+                      >
+                        <path
+                          d="M1.952 18.080q-0.32-0.352-0.416-0.88t0.128-0.976l0.16-0.352q0.224-0.416 0.64-0.528t0.8 0.176l6.496 4.704q0.384 0.288 0.912 0.272t0.88-0.336l17.312-14.272q0.352-0.288 0.848-0.256t0.848 0.352l-0.416-0.416q0.32 0.352 0.32 0.816t-0.32 0.816l-18.656 18.912q-0.32 0.352-0.8 0.352t-0.8-0.32l-7.936-8.064z"
+                          fill="#ffffff"
+                        ></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <span class="text-gray-700">{{ color.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部固定 -->
+        <div
+          v-if="userStore.isLoggedIn"
+          class="modal-footer border-t p-4 flex justify-end items-center flex-shrink-0"
+        >
           <div class="flex gap-2">
             <button
-              @click="showModal = false"
-              class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-muted"
+              v-if="eventData.isEditing"
+              @click="deleteEvent"
+              class="btn px-4 py-2 text-white bg-red-500 hover:bg-red-600 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
             >
-              {{ t('cancel') }}
+              {{ t('delete') }}
             </button>
             <button
+              v-if="!eventData.isEditing"
               @click="saveEvent"
-              :disabled="pageData.submitChecked"
-              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              class="btn btn-primary px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
             >
-              {{ t('save') }}
+              {{ t('calendar.add_event') }}
+            </button>
+            <button
+              v-if="eventData.isEditing"
+              @click="saveEvent"
+              class="btn btn-primary px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+              :disabled="!eventData.isEditable"
+            >
+              {{ t('calendar.edit_event') }}
             </button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 日历主体区域 -->
+    <div
+      class="flex-1 rounded-lg border border-gray-200 bg-white p-0.5 shadow dark:border-dk-muted dark:bg-dk-card"
+    >
+      <div class="h-full w-full overflow-hidden rounded-md">
+        <FullCalendar ref="calendarRef" :options="calendarOptions" />
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 父容器作为裁剪视口 */
+:deep(.fc-daygrid-event .fc-event-title-container) {
+  overflow: hidden !important;
+}
+
+/* 默认状态：单行截断省略 */
+:deep(.fc-daygrid-event .fc-event-title) {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  will-change: transform;
+}
+
+/* 需要滚动的标题 */
+:deep(.fc-daygrid-event .fc-event-title[data-truncated="true"]) {
+  text-overflow: clip !important;
+  display: inline-block !important;
+  animation: marquee-bounce 6s ease-in-out infinite !important;
+}
+
+@keyframes marquee-bounce {
+  0%, 20% { transform: translateX(0); }
+  60% { transform: translateX(var(--scroll-distance, 0px)); }
+  80% { transform: translateX(var(--scroll-distance, 0px)); }
+  100% { transform: translateX(0); }
+}
+</style>

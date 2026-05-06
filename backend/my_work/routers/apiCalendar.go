@@ -26,14 +26,16 @@ type TabCalendar struct {
 
 // TabCalendarEvent 日历事件表
 type TabCalendarEvent struct {
-	ID         uint   `gorm:"primarykey"`
-	CalendarID uint   `gorm:"not null;index;comment:关联日历ID"`
-	UserID     uint   `gorm:"not null;comment:创建人ID"`
-	Title      string `gorm:"size:200;not null;comment:事件标题"`
-	StartDate  string `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
-	EndDate    string `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
-	BgColor    string `gorm:"size:50;default:#3788d9;comment:背景颜色"`
-	Remark     string `gorm:"type:text;comment:备注"`
+	ID         uint       `gorm:"primarykey"`
+	CalendarID uint       `gorm:"not null;index;comment:关联日历ID"`
+	UserID     uint       `gorm:"not null;comment:创建人ID"`
+	UsersID    []uint     `gorm:"type:json; null;comment:其他关联用户ID"`
+	Title      string     `gorm:"size:200;not null;comment:事件标题"`
+	StartDate  *time.Time `gorm:"size:10;not null;index;comment:开始日期 YYYY-MM-DD"`
+	EndDate    *time.Time `gorm:"size:10;not null;index;comment:结束日期 YYYY-MM-DD"`
+	IsAllDay   bool       `gorm:"default:true;comment:是否全日事件"`
+	BgColor    string     `gorm:"size:50;default:#3788d9;comment:背景颜色"`
+	Remark     string     `gorm:"type:text;comment:备注"`
 
 	CreatedAt *time.Time     `gorm:"type:datetime;autoCreateTime;comment:创建时间"`
 	UpdatedAt *time.Time     `gorm:"type:datetime;autoUpdateTime;comment:最后修改时间"`
@@ -60,7 +62,7 @@ type fromCreateCalendar struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 	Color       string `json:"color"`
-	IsPublic    bool   `json:"is_public"`
+	Is_public   bool   `json:"is_public"`
 }
 
 type fromUpdateCalendar struct {
@@ -68,7 +70,7 @@ type fromUpdateCalendar struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 	Color       string `json:"color"`
-	IsPublic    bool   `json:"is_public"`
+	Is_public   bool   `json:"is_public"`
 }
 
 type fromDeleteCalendar struct {
@@ -76,27 +78,27 @@ type fromDeleteCalendar struct {
 }
 
 type fromGetCalendarEvents struct {
-	CalendarID uint   `json:"calendar_id" binding:"required"`
-	Start      string `json:"start" binding:"required"`
-	End        string `json:"end" binding:"required"`
+	CalendarID uint       `json:"calendar_id" binding:"required"`
+	Start      *time.Time `json:"start" binding:"required"`
+	End        *time.Time `json:"end" binding:"required"`
 }
 
 type fromAddCalendarEvent struct {
-	CalendarID uint   `json:"calendar_id" binding:"required"`
-	Title      string `json:"title" binding:"required"`
-	Start      string `json:"start" binding:"required"`
-	End        string `json:"end" binding:"required"`
-	Color      string `json:"color"`
-	Remark     string `json:"remark"`
+	CalendarID uint       `json:"calendar_id" binding:"required"`
+	Title      string     `json:"title" binding:"required"`
+	Start      *time.Time `json:"start" binding:"required"`
+	End        *time.Time `json:"end" binding:"required"`
+	Color      string     `json:"color"`
+	Remark     string     `json:"remark"`
 }
 
 type fromUpdateCalendarEvent struct {
-	ID         uint   `json:"id" binding:"required"`
-	Title      string `json:"title" binding:"required"`
-	Start      string `json:"start" binding:"required"`
-	End        string `json:"end" binding:"required"`
-	Color      string `json:"color"`
-	Remark     string `json:"remark"`
+	ID     uint       `json:"id" binding:"required"`
+	Title  string     `json:"title" binding:"required"`
+	Start  *time.Time `json:"start" binding:"required"`
+	End    *time.Time `json:"end" binding:"required"`
+	Color  string     `json:"color"`
+	Remark string     `json:"remark"`
 }
 
 type fromDeleteCalendarEvent struct {
@@ -122,7 +124,7 @@ func ApiCalendar(r *gin.RouterGroup) {
 					Name:        from.Name,
 					Description: from.Description,
 					Color:       from.Color,
-					IsPublic:    from.IsPublic,
+					IsPublic:    from.Is_public,
 				}
 				if calendar.Color == "" {
 					calendar.Color = "#3788d9"
@@ -152,14 +154,11 @@ func ApiCalendar(r *gin.RouterGroup) {
 
 	// 获取日历列表
 	r.POST("/calendar/list", func(ctx *gin.Context) {
-		isAuth, _, _ := AuthenticationAuthority(ctx)
-		if isAuth {
-			var calendars []TabCalendar
-			models.DB.Where("deleted_at IS NULL").Order("created_at DESC").Find(&calendars)
-			ReturnJson(ctx, "apiOK", gin.H{"list": calendars})
-		} else {
-			ReturnJson(ctx, "userCookieError", nil)
-		}
+
+		var calendars []TabCalendar
+		models.DB.Where("deleted_at IS NULL").Order("created_at DESC").Find(&calendars)
+		ReturnJson(ctx, "apiOK", gin.H{"list": calendars})
+
 	})
 
 	// 更新日历
@@ -180,7 +179,7 @@ func ApiCalendar(r *gin.RouterGroup) {
 						Name:        from.Name,
 						Description: from.Description,
 						Color:       from.Color,
-						IsPublic:    from.IsPublic,
+						IsPublic:    from.Is_public,
 					}
 					if newCalendar.Color == "" {
 						newCalendar.Color = "#3788d9"
@@ -349,11 +348,11 @@ func ApiCalendar(r *gin.RouterGroup) {
 					}
 
 					newEvent := TabCalendarEvent{
-						Title:   from.Title,
+						Title:     from.Title,
 						StartDate: from.Start,
-						EndDate: from.End,
-						BgColor: from.Color,
-						Remark:  from.Remark,
+						EndDate:   from.End,
+						BgColor:   from.Color,
+						Remark:    from.Remark,
 					}
 					if newEvent.BgColor == "" {
 						// 获取日历颜色

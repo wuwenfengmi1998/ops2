@@ -188,14 +188,14 @@ onMounted(fetchCalendars)
 
               <div class="flex items-center gap-1" @click.stop>
                 <button
-                  v-if="calendar.UserID === userStore.userInfo.ID"
+                  v-if="calendar.UserID === userStore.userInfo?.ID"
                   @click="openEditModal(calendar)"
                   class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dk-muted"
                 >
                   <IconEdit :size="16" />
                 </button>
                 <button
-                  v-if="calendar.UserID === userStore.userInfo.ID"
+                  v-if="calendar.UserID === userStore.userInfo?.ID"
                   @click="deleteCalendar(calendar)"
                   class="rounded p-1 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-dk-muted"
                 >

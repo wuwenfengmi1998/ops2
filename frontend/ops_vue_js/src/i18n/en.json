@@ -627,6 +627,7 @@
     "loading": "Loading...",
     "add_event": "Add Event",
     "edit_event": "Edit Event",
+    "view_event": "View Event",
     "delete_event": "Delete Event",
     "event_title": "Event Title",
     "event_title_required": "Event title is required",
