@@ -24,6 +24,7 @@ const modules = [
   { id: 'schedule', label: 'schedule.title' },
   { id: 'warehouse', label: 'warehouse.title' },
   { id: 'work_order', label: 'work_order.title' },
+  { id: 'calendar', label: 'calendar.calendars' },
 ]
 const activeModule = ref('all')
 
@@ -83,6 +84,7 @@ function getModuleClass(module) {
     purchase: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     schedule: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
     warehouse: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+    calendar: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
     work_order: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
   }
   return map[module] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'

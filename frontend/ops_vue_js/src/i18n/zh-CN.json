@@ -553,6 +553,7 @@
     "module_purchase": "采购",
     "module_schedule": "日程",
     "module_warehouse": "仓库",
+    "module_calendar": "日历",
     "module_work_order": "工单",
     "action_create": "创建",
     "action_update": "更新",

@@ -581,6 +581,28 @@ func ApiSysAdmin(r *gin.RouterGroup) {
 			}
 		}
 
+		if params.Module == "all" || params.Module == "calendar" {
+			var logs []TabCalendarLog
+			query := models.DB.Model(&TabCalendarLog{})
+			if params.Module == "calendar" {
+				query.Order("created_at DESC").Find(&logs)
+			} else {
+				query.Order("created_at DESC").Limit(1000).Find(&logs)
+			}
+			for _, log := range logs {
+				allLogs = append(allLogs, LogEntry{
+					ID:         log.ID,
+					Module:     "calendar",
+					EntityID:   log.CalendarID,
+					UserID:     log.UserID,
+					ActionType: log.ActionType,
+					IP:         log.IP,
+					Remark:     log.Remark,
+					CreatedAt:  log.CreatedAt,
+				})
+			}
+		}
+
 		if params.Module == "all" || params.Module == "warehouse" {
 			var logs []TabWarehouseLog
 			query := models.DB.Model(&TabWarehouseLog{})
