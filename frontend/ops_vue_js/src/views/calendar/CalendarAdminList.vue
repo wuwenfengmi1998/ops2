@@ -15,7 +15,6 @@ const usersStore = useUsersStore()
 
 const calendars = ref([])
 const loading = ref(false)
-const eventCounts = ref({}) // calendarId -> event count
 
 // 编辑相关
 const showEditModal = ref(false)
@@ -54,42 +53,11 @@ async function fetchCalendars() {
           usersStore.fetchUser(cal.UserID)
         }
       })
-      // 获取每个日历的事件数量
-      fetchEventCounts()
     }
   } catch {
     // 拦截器已处理
   } finally {
     loading.value = false
-  }
-}
-
-async function fetchEventCounts() {
-  // 获取一年前到现在的事件，用于统计
-  const now = new Date()
-  const oneYearAgo = new Date()
-  oneYearAgo.setFullYear(now.getFullYear() - 1)
-
-  const startStr = oneYearAgo.toISOString().split('T')[0]
-  const endStr = now.toISOString().split('T')[0]
-
-  try {
-    const { errCode, data } = await calendarApi.getEvents({
-      start_date: startStr,
-      end_date: endStr
-    })
-    if (errCode === 0 && data.list) {
-      // 按日历ID统计事件数量
-      const counts = {}
-      data.list.forEach(event => {
-        if (event.CalendarID) {
-          counts[event.CalendarID] = (counts[event.CalendarID] || 0) + 1
-        }
-      })
-      eventCounts.value = counts
-    }
-  } catch {
-    // 忽略错误
   }
 }
 
@@ -304,7 +272,7 @@ onMounted(fetchCalendars)
                 <td class="whitespace-nowrap px-6 py-4 text-center">
                   <div class="inline-flex items-center gap-1 text-gray-900 dark:text-dk-text">
                     <IconCalendar :size="16" class="text-gray-400" />
-                    <span class="font-medium">{{ eventCounts[calendar.ID] || 0 }}</span>
+                    <span class="font-medium">{{ calendar.event_count ?? 0 }}</span>
                   </div>
                 </td>
 

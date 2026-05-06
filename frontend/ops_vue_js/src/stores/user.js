@@ -64,6 +64,11 @@ export const useUserStore = defineStore('user', () => {
   // 是否系统管理员（后端直接返回）
   const isSysAdmin = ref(false)
 
+  // 是否为日历管理员（在 calendar_admin 群组中）
+  const isCalendarAdmin = computed(() =>
+    groups.value.some(g => g.name === 'calendar_admin')
+  )
+
   // 用户加入的群组名称列表（计算属性）
   const groupNames = computed(() => groups.value.map(g => g.name))
 
@@ -130,6 +135,7 @@ export const useUserStore = defineStore('user', () => {
     userCookie,
     isLoggedIn,
     isSysAdmin,
+    isCalendarAdmin,
     groups,
     groupNames,
     cookieValue,

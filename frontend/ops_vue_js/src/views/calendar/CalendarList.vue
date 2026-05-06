@@ -1,17 +1,20 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { calendarApi } from '@/api/calendar'
-import { IconPlus, IconCalendar, IconTrash, IconEdit } from '@tabler/icons-vue'
+import { IconPlus, IconCalendar, IconTrash, IconEdit, IconSettings } from '@tabler/icons-vue'
+import { useUserStore } from '@/stores/user'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 usePageTitle('appname.calendar')
 const { t } = useI18n()
 const router = useRouter()
 const toast = useToastStore()
+const userStore = useUserStore()
+const isCalendarAdmin = computed(() => userStore.isCalendarAdmin)
 
 const calendars = ref([])
 const loading = ref(false)
@@ -148,13 +151,23 @@ onMounted(fetchCalendars)
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-dk-muted">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('calendar.calendars') }}</h3>
-        <button
-          @click="openCreateModal"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          <IconPlus :size="16" />
-          {{ t('calendar.create_calendar') }}
-        </button>
+        <div class="flex items-center gap-2">
+          <RouterLink
+            v-if="isCalendarAdmin"
+            to="/calendars/admin"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-muted"
+          >
+            <IconSettings :size="16" />
+            {{ t('calendar.admin_panel') }}
+          </RouterLink>
+          <button
+            @click="openCreateModal"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            <IconPlus :size="16" />
+            {{ t('calendar.create_calendar') }}
+          </button>
+        </div>
       </div>
 
       <!-- Calendar List -->

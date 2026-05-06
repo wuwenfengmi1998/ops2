@@ -444,7 +444,8 @@
     "security": "Security",
     "security_description": "Manage your account security settings",
     "my_groups": "My Groups",
-    "no_groups": "Not joined any groups yet"
+    "no_groups": "Not joined any groups yet",
+    "admin_panel": "Admin"
   },
   "button": {
     "submit": "Submit",
@@ -656,6 +657,7 @@
     "restore_success": "Restored successfully",
     "deleted": "Deleted",
     "confirm_restore": "Are you sure you want to restore this calendar?",
-    "confirm_restore_message": "Are you sure you want to restore calendar '{name}'?"
+    "confirm_restore_message": "Are you sure you want to restore calendar '{name}'?",
+    "admin_panel": "Admin"
   }
 }

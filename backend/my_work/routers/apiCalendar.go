@@ -286,11 +286,17 @@ func ApiCalendar(r *gin.RouterGroup) {
 		}
 	})
 
-	// 获取所有日历（包括已删除的，系统管理员专用）
+	// 获取所有日历（包括已删除的，管理员专用）
 	r.POST("/calendar/list_all", func(ctx *gin.Context) {
-		isAuth, _, _ := AuthenticationAuthority(ctx)
+		isAuth, user, _ := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		// 限制只有日历管理员可访问
+		if !slices.Contains(calendarAdmins, user.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
 			return
 		}
 
@@ -298,15 +304,33 @@ func ApiCalendar(r *gin.RouterGroup) {
 		var calendars []TabCalendar
 		models.DB.Unscoped().Order("created_at DESC").Find(&calendars)
 
+		// 一次性查询所有日历的事件数量（仅统计未删除的事件）
+		type calendarEventCount struct {
+			CalendarID uint `gorm:"column:calendar_id"`
+			Cnt        int  `gorm:"column:cnt"`
+		}
+		var rows []calendarEventCount
+		models.DB.Model(&TabCalendarEvent{}).
+			Select("calendar_id, COUNT(*) as cnt").
+			Where("deleted_at IS NULL").
+			Group("calendar_id").
+			Scan(&rows)
+		eventCountMap := make(map[uint]int)
+		for _, row := range rows {
+			eventCountMap[row.CalendarID] = row.Cnt
+		}
+
 		type CalendarWithEdit struct {
 			TabCalendar
-			CanEdit bool `json:"canEdit"`
+			CanEdit    bool `json:"canEdit"`
+			EventCount int  `json:"event_count"`
 		}
 		var result []CalendarWithEdit
 		for _, cal := range calendars {
 			result = append(result, CalendarWithEdit{
 				TabCalendar: cal,
 				CanEdit:     true,
+				EventCount:  eventCountMap[cal.ID],
 			})
 		}
 		ReturnJson(ctx, "apiOK", gin.H{"list": result})
@@ -317,6 +341,12 @@ func ApiCalendar(r *gin.RouterGroup) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
 		if !isAuth {
 			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		// 限制只有日历管理员可操作
+		if !slices.Contains(calendarAdmins, user.ID) {
+			ReturnJson(ctx, "permission_denied", nil)
 			return
 		}
 

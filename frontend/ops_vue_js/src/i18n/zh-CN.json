@@ -444,7 +444,8 @@
     "security": "安全设置",
     "security_description": "管理您的账户安全设置",
     "my_groups": "我的群组",
-    "no_groups": "暂未加入任何群组"
+    "no_groups": "暂未加入任何群组",
+    "admin_panel": "管理"
   },
   "button": {
     "submit": "提交",
@@ -657,6 +658,7 @@
     "restore_success": "恢复成功",
     "deleted": "已删除",
     "confirm_restore": "确定要恢复此日历吗？",
-    "confirm_restore_message": "确定要恢复日历「{name}」吗？"
+    "confirm_restore_message": "确定要恢复日历「{name}」吗？",
+    "admin_panel": "管理"
   }
 }
