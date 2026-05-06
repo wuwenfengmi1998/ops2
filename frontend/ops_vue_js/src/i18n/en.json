@@ -643,6 +643,13 @@
     "event_save_success": "Event saved successfully",
     "event_delete_success": "Event deleted successfully",
     "confirm_delete_event": "Are you sure you want to delete this event?",
-    "is_public_event": "Public Event"
+    "is_public_event": "Public Event",
+    "admin_title": "Calendar Admin",
+    "event_count": "Event Count",
+    "restore": "Restore",
+    "restore_success": "Restored successfully",
+    "deleted": "Deleted",
+    "confirm_restore": "Are you sure you want to restore this calendar?",
+    "confirm_restore_message": "Are you sure you want to restore calendar '{name}'?"
   }
 }

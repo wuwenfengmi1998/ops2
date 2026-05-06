@@ -111,6 +111,10 @@ type fromDeleteCalendarEvent struct {
 	ID uint `json:"id" binding:"required"`
 }
 
+type fromRestoreCalendar struct {
+	ID uint `json:"id" binding:"required"`
+}
+
 var (
 	calendarUserGroup TabUserGroups
 	calendarAdmins    []uint
@@ -278,6 +282,72 @@ func ApiCalendar(r *gin.RouterGroup) {
 		} else {
 			ReturnJson(ctx, "userCookieError", nil)
 		}
+	})
+
+	// 获取所有日历（包括已删除的，系统管理员专用）
+	r.POST("/calendar/list_all", func(ctx *gin.Context) {
+		isAuth, _, _ := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		// 使用 Unscoped 查询所有日历（包括软删除的）
+		var calendars []TabCalendar
+		models.DB.Unscoped().Order("created_at DESC").Find(&calendars)
+
+		type CalendarWithEdit struct {
+			TabCalendar
+			CanEdit bool `json:"canEdit"`
+		}
+		var result []CalendarWithEdit
+		for _, cal := range calendars {
+			result = append(result, CalendarWithEdit{
+				TabCalendar: cal,
+				CanEdit:     true,
+			})
+		}
+		ReturnJson(ctx, "apiOK", gin.H{"list": result})
+	})
+
+	// 恢复已删除的日历
+	r.POST("/calendar/restore", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		var from fromRestoreCalendar
+		if err := mapstructure.Decode(data, &from); err != nil {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+
+		// 使用 Unscoped 查询（包括软删除的）
+		var calendar TabCalendar
+		if models.DB.Unscoped().Where("id = ?", from.ID).First(&calendar).Error != nil {
+			ReturnJson(ctx, "calendar_not_find", nil)
+			return
+		}
+
+		// 恢复软删除（将 deleted_at 设为 NULL）
+		if models.DB.Unscoped().Model(&calendar).Update("deleted_at", nil).Error != nil {
+			ReturnJson(ctx, "apiErr", nil)
+			return
+		}
+
+		// 记录日志
+		newContent, _ := json.Marshal(calendar)
+		log := TabCalendarLog{
+			CalendarID: calendar.ID,
+			UserID:     user.ID,
+			ActionType: "restore",
+			NewContent: string(newContent),
+			IP:         ctx.ClientIP(),
+		}
+		models.DB.Create(&log)
+		ReturnJson(ctx, "apiOK", nil)
 	})
 
 	// 删除日历

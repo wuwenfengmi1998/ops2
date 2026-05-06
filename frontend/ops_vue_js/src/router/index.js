@@ -130,6 +130,12 @@ const router = createRouter({
           component: () => import('@/views/customer/CustomerFormPage.vue'),
         },
         {
+          path: 'calendars/admin',
+          name: 'calendars-admin',
+          component: () => import('@/views/calendar/CalendarAdminList.vue'),
+          meta: { requireSysAdmin: true },
+        },
+        {
           path: 'calendars',
           name: 'calendars',
           component: () => import('@/views/calendar/CalendarList.vue'),

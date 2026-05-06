@@ -31,6 +31,7 @@ const tabs = [
   { id: 'logs', label: t('sysadmin.tab_logs') },
   { id: 'operation_logs', label: t('sysadmin.tab_operation_logs') },
   { id: 'customer', label: t('customer.title'), to: '/customer' },
+  { id: 'calendar', label: t('calendar.admin_title'), to: '/calendars/admin' },
 ]
 
 async function fetchSysAdmins() {

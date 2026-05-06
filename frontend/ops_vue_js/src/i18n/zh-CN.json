@@ -644,6 +644,13 @@
     "event_save_success": "事件保存成功",
     "event_delete_success": "事件删除成功",
     "confirm_delete_event": "确定要删除此事件吗？",
-    "is_public_event": "公共日程"
+    "is_public_event": "公共日程",
+    "admin_title": "日历管理",
+    "event_count": "日程数量",
+    "restore": "恢复",
+    "restore_success": "恢复成功",
+    "deleted": "已删除",
+    "confirm_restore": "确定要恢复此日历吗？",
+    "confirm_restore_message": "确定要恢复日历「{name}」吗？"
   }
 }
