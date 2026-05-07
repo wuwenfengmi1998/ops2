@@ -95,6 +95,13 @@ func ApiScheduleInit() {
 }
 
 func ApiSchedule(r *gin.RouterGroup) {
+
+	r.Use(func(ctx *gin.Context) { //此模块已停用，拦截所有请求
+		ReturnJson(ctx, "App off", nil)
+		ctx.Abort()
+
+	})
+
 	r.POST("/getevents", func(ctx *gin.Context) {
 		data, cookie := SeparateData(ctx)
 		user, er := AuthenticationAuthorityFromCookie(cookie)

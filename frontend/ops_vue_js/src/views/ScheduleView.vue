@@ -728,6 +728,10 @@ let timer = null;
 let resizeObserver = null;
 
 onMounted(() => {
+//模块已停用，跳转到新模块
+router.push('/calendars')
+return
+
   getEvents();
   timer = setInterval(() => {
     getEvents();
