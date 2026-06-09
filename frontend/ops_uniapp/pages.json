@@ -1,0 +1,166 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "主页"
+			}
+		},
+		{
+			"path": "pages/order/order",
+			"style": {
+				"navigationBarTitleText": "订单"
+			}
+		},
+		{
+			"path": "pages/order/order-detail",
+			"style": {
+				"navigationBarTitleText": "订单详情"
+			}
+		},
+		{
+			"path": "pages/order/order-add",
+			"style": {
+				"navigationBarTitleText": "新增订单"
+			}
+		},
+		{
+			"path": "pages/order/edit-order",
+			"style": {
+				"navigationBarTitleText": "编辑订单"
+			}
+		},
+		{
+			"path": "pages/workorder/workorder",
+			"style": {
+				"navigationBarTitleText": "工单"
+			}
+		},
+		{
+			"path": "pages/workorder/add-workorder",
+			"style": {
+				"navigationBarTitleText": "新建工单"
+			}
+		},
+		{
+			"path": "pages/workorder/show-workorder",
+			"style": {
+				"navigationBarTitleText": "工单详情"
+			}
+		},
+		{
+			"path": "pages/workorder/edit-workorder",
+			"style": {
+				"navigationBarTitleText": "编辑工单"
+			}
+		},
+		{
+			"path": "pages/warehouse/warehouse",
+			"style": {
+				"navigationBarTitleText": "仓库"
+			}
+		},
+		{
+			"path": "pages/warehouse/item-detail",
+			"style": {
+				"navigationBarTitleText": "物品详情"
+			}
+		},
+		{
+			"path": "pages/warehouse/add-item",
+			"style": {
+				"navigationBarTitleText": "新增物品"
+			}
+		},
+		{
+			"path": "pages/warehouse/item-edit",
+			"style": {
+				"navigationBarTitleText": "编辑物品"
+			}
+		},
+		{
+			"path": "pages/user/user",
+			"style": {
+				"navigationBarTitleText": "用户"
+			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": "登录"
+			}
+		},
+		{
+			"path": "pages/settings/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/printer-test/printer-test",
+			"style": {
+				"navigationBarTitleText": "打印机测试"
+			}
+		},
+		{
+			"path": "pages/message/message",
+			"style": {
+				"navigationBarTitleText": "消息"
+			}
+		},
+		{
+			"path": "pages/search/search",
+			"style": {
+				"navigationBarTitleText": "搜索"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8",
+		"usingComponents": {
+			"my-toast": "/components/my-toast/my-toast"
+		}
+	},
+	"tabBar": {
+		"color": "#7A7E83",
+		"selectedColor": "#007AFF",
+		"borderStyle": "black",
+		"backgroundColor": "#FFFFFF",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"iconPath": "static/tabbar/home.png",
+				"selectedIconPath": "static/tabbar/home-active.png",
+				"text": "主页"
+			},
+			{
+				"pagePath": "pages/order/order",
+				"iconPath": "static/tabbar/order.png",
+				"selectedIconPath": "static/tabbar/order-active.png",
+				"text": "订单"
+			},
+			{
+				"pagePath": "pages/workorder/workorder",
+				"iconPath": "static/tabbar/workorder.png",
+				"selectedIconPath": "static/tabbar/workorder-active.png",
+				"text": "工单"
+			},
+			{
+				"pagePath": "pages/warehouse/warehouse",
+				"iconPath": "static/tabbar/warehouse.png",
+				"selectedIconPath": "static/tabbar/warehouse-active.png",
+				"text": "仓库"
+			},
+			{
+				"pagePath": "pages/user/user",
+				"iconPath": "static/tabbar/user.png",
+				"selectedIconPath": "static/tabbar/user-active.png",
+				"text": "用户"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}
