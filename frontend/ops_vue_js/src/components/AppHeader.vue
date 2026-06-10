@@ -52,13 +52,14 @@ const activeClass = "bg-blue-50 text-blue-600 dark:bg-dk-card dark:text-blue-400
 const normalClass = "rounded-md px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dk-subtle dark:hover:bg-dk-card dark:hover:text-dk-text";
 
 const navItems = computed(() => [
+  { label: t("appname.aichat"), to: "/aichat" },
   { label: t("appname.home"), to: "/" },
   // { label: t("appname.schedule"), to: "/schedule" },
   { label: t("appname.calendar"), to: "/calendars" },
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
   { label: t("appname.warehouse"), to: "/warehouse" },
-  { label: t("appname.aichat"), to: "/aichat" },
+  
 ]);
 </script>
 

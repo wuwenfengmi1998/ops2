@@ -70,14 +70,27 @@ func buildTimeContext(now time.Time) string {
 - 本周：%s 至 %s
 - 本月：%s 至 %s
 - 今年：%s 至 %s`,
-		now.Format("2006-01-02 15:04:05 MST"),
-		todayStart.Format("2006-01-02"), todayStart.Format("2006-01-02 15:04:05"), todayStart.AddDate(0, 0, 1).Add(-time.Second).Format("2006-01-02 15:04:05"),
-		todayStart.AddDate(0, 0, -1).Format("2006-01-02"),
-		todayStart.AddDate(0, 0, 1).Format("2006-01-02"),
-		weekStart.Format("2006-01-02"), weekStart.AddDate(0, 0, 7).Add(-time.Second).Format("2006-01-02"),
-		monthStart.Format("2006-01-02"), monthStart.AddDate(0, 1, 0).Add(-time.Second).Format("2006-01-02"),
-		yearStart.Format("2006-01-02"), yearStart.AddDate(1, 0, 0).Add(-time.Second).Format("2006-01-02"),
+		formatDateTimeWithWeek(now, "2006-01-02 15:04:05 MST"),
+		formatDateWithWeek(todayStart), formatDateTimeWithWeek(todayStart, "2006-01-02 15:04:05"), formatDateTimeWithWeek(todayStart.AddDate(0, 0, 1).Add(-time.Second), "2006-01-02 15:04:05"),
+		formatDateWithWeek(todayStart.AddDate(0, 0, -1)),
+		formatDateWithWeek(todayStart.AddDate(0, 0, 1)),
+		formatDateWithWeek(weekStart), formatDateWithWeek(weekStart.AddDate(0, 0, 7).Add(-time.Second)),
+		formatDateWithWeek(monthStart), formatDateWithWeek(monthStart.AddDate(0, 1, 0).Add(-time.Second)),
+		formatDateWithWeek(yearStart), formatDateWithWeek(yearStart.AddDate(1, 0, 0).Add(-time.Second)),
 	)
+}
+
+func formatDateWithWeek(t time.Time) string {
+	return formatDateTimeWithWeek(t, "2006-01-02")
+}
+
+func formatDateTimeWithWeek(t time.Time, layout string) string {
+	return fmt.Sprintf("%s（%s）", t.Format(layout), weekdayName(t.Weekday()))
+}
+
+func weekdayName(weekday time.Weekday) string {
+	names := []string{"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"}
+	return names[weekday]
 }
 
 func dateStart(t time.Time) time.Time {

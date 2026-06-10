@@ -37,11 +37,11 @@
     "warehouse_items": "物品总览",
     "work_order": "工单",
     "calendar": "日历",
-    "aichat": "AI 对话"
+    "aichat": "AI 助手"
   },
   "aichat": {
-    "title": "AI 对话",
-    "subtitle": "通过流式响应与 AI 助手对话，可显示后端工具执行过程。",
+    "title": "AI 助手",
+    "subtitle": "通过流式响应与 AI 助手对话。",
     "empty_title": "开始一次 AI 对话",
     "empty_hint": "输入问题后按 Enter 发送，Shift + Enter 换行。",
     "input_placeholder": "输入消息...",

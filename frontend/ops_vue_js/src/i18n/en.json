@@ -37,11 +37,11 @@
     "warehouse_items": "Items Overview",
     "work_order": "Work Order",
     "calendar": "Calendar",
-    "aichat": "AI Chat"
+    "aichat": "AI Assistant"
   },
   "aichat": {
-    "title": "AI Chat",
-    "subtitle": "Chat with the AI assistant using streaming responses and backend tool traces.",
+    "title": "AI Assistant",
+    "subtitle": "Chat with the AI assistant using streaming responses.",
     "empty_title": "Start an AI chat",
     "empty_hint": "Type a question and press Enter to send. Use Shift + Enter for a new line.",
     "input_placeholder": "Type a message...",

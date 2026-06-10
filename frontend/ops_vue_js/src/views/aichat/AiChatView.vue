@@ -24,9 +24,9 @@ const inputText = ref('')
 const selectedImage = ref(null)
 const pending = ref(false)
 const traces = ref([])
-const tracesCollapsed = ref(false)
+const tracesCollapsed = ref(true)
 const reasoning = ref('')
-const reasoningCollapsed = ref(false)
+const reasoningCollapsed = ref(true)
 const stats = ref(null)
 const profiles = ref([])
 const activeProfile = ref('')
@@ -278,9 +278,9 @@ function bindServerConversation(conversation) {
 
 function resetStreamDetails() {
   traces.value = []
-  tracesCollapsed.value = false
+  tracesCollapsed.value = true
   reasoning.value = ''
-  reasoningCollapsed.value = false
+  reasoningCollapsed.value = true
   stats.value = null
   clearSelectedImage()
 }
@@ -473,9 +473,9 @@ async function sendMessage() {
   inputText.value = ''
   clearSelectedImage()
   traces.value = []
-  tracesCollapsed.value = false
+  tracesCollapsed.value = true
   reasoning.value = ''
-  reasoningCollapsed.value = false
+  reasoningCollapsed.value = true
   stats.value = null
 
   const userMessage = { role: 'user', content: text }
