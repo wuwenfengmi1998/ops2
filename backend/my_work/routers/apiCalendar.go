@@ -1,7 +1,9 @@
 package routers
 
 import (
+	"context"
 	"encoding/json"
+	"ops/agents"
 	"ops/models"
 	"slices"
 	"time"
@@ -141,6 +143,57 @@ type CalendarScheduleEvent struct {
 	CanEdit      bool   `json:"canEdit"`
 }
 
+type calendarScheduleProvider struct{}
+
+func (calendarScheduleProvider) QuerySchedules(ctx context.Context, query agents.ScheduleQuery) ([]agents.ScheduleEvent, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	startDate, err := time.Parse("2006-01-02", query.StartDate)
+	if err != nil {
+		return nil, err
+	}
+	endDate, err := time.Parse("2006-01-02", query.EndDate)
+	if err != nil {
+		return nil, err
+	}
+
+	var user *TabUser
+	if query.UserID > 0 {
+		user = &TabUser{ID: query.UserID}
+	}
+	events, err := QueryCalendarSchedulesForAI(CalendarScheduleQuery{
+		CalendarID: query.CalendarID,
+		StartDate:  startDate,
+		EndDate:    endDate,
+		User:       user,
+		Limit:      query.Limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]agents.ScheduleEvent, 0, len(events))
+	for _, event := range events {
+		result = append(result, agents.ScheduleEvent{
+			ID:           event.ID,
+			CalendarID:   event.CalendarID,
+			UserID:       event.UserID,
+			Title:        event.Title,
+			StartDate:    event.StartDate,
+			EndDate:      event.EndDate,
+			ScheduleType: event.ScheduleType,
+			IsPublic:     event.IsPublic,
+			Remark:       event.Remark,
+			CanEdit:      event.CanEdit,
+		})
+	}
+	return result, nil
+}
+
 func QueryCalendarSchedulesForAI(query CalendarScheduleQuery) ([]CalendarScheduleEvent, error) {
 	startDate := dateOnly(query.StartDate)
 	endDate := dateOnly(query.EndDate)
@@ -261,6 +314,7 @@ func ApiCalendarInit() {
 	})
 
 	CalendarUpdateAdminsCash()
+	agents.RegisterScheduleProvider(calendarScheduleProvider{})
 }
 
 func ApiCalendar(r *gin.RouterGroup) {

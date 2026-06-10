@@ -888,53 +888,17 @@ func buildToolConfigs(configs []models.ConfigsAIChatTool_) []agents.ToolConfig {
 }
 
 func buildFunctionTools(configs []agents.ToolConfig) []openaiTool {
-	tools := make([]openaiTool, 0)
-	for _, config := range configs {
-		if !config.Enabled {
-			continue
-		}
-		switch strings.ToLower(strings.TrimSpace(config.Name)) {
-		case "time":
-			tools = append(tools, openaiTool{
-				Type: "function",
-				Function: openaiFunctionDefinition{
-					Name:        "time",
-					Description: "解析当前时间、相对日期和日期范围。遇到本月、今天、本周等相对日期时先调用本工具获得明确日期。",
-					Parameters: map[string]interface{}{
-						"type": "object",
-						"properties": map[string]interface{}{
-							"range": map[string]interface{}{
-								"type":        "string",
-								"enum":        []string{"today", "yesterday", "tomorrow", "this_week", "last_week", "next_week", "this_month", "last_month", "next_month", "this_year", "custom"},
-								"description": "要解析的日期范围。",
-							},
-							"timezone":   map[string]interface{}{"type": "string", "description": "可选时区，例如 Asia/Shanghai。"},
-							"start_date": map[string]interface{}{"type": "string", "description": "custom 范围开始日期，格式 YYYY-MM-DD。"},
-							"end_date":   map[string]interface{}{"type": "string", "description": "custom 范围结束日期，格式 YYYY-MM-DD。"},
-						},
-						"required": []string{"range"},
-					},
-				},
-			})
-		case "ops_ai_assistant_schedule_query", "ops_ai_assistant":
-			tools = append(tools, openaiTool{
-				Type: "function",
-				Function: openaiFunctionDefinition{
-					Name:        "ops_ai_assistant_schedule_query",
-					Description: "按明确日期范围查询当前用户可见的 OPS 日历/日程。相对日期需先调用 time 获取 start_date/end_date。",
-					Parameters: map[string]interface{}{
-						"type": "object",
-						"properties": map[string]interface{}{
-							"start_date":  map[string]interface{}{"type": "string", "description": "开始日期，格式 YYYY-MM-DD。"},
-							"end_date":    map[string]interface{}{"type": "string", "description": "结束日期，格式 YYYY-MM-DD。"},
-							"calendar_id": map[string]interface{}{"type": "integer", "description": "可选日历 ID；不传则查询全部可见日程。"},
-							"limit":       map[string]interface{}{"type": "integer", "description": "可选返回上限，默认 100，最大 200。"},
-						},
-						"required": []string{"start_date", "end_date"},
-					},
-				},
-			})
-		}
+	schemas := agents.FunctionToolSchemas(configs)
+	tools := make([]openaiTool, 0, len(schemas))
+	for _, schema := range schemas {
+		tools = append(tools, openaiTool{
+			Type: "function",
+			Function: openaiFunctionDefinition{
+				Name:        schema.Name,
+				Description: schema.Description,
+				Parameters:  schema.Parameters,
+			},
+		})
 	}
 	return tools
 }
@@ -1015,74 +979,12 @@ func runOpenAIToolLoop(ctx context.Context, profile models.ConfigsAIChatOpenAI_,
 	return messages, toolExecuted, fmt.Errorf("工具调用超过最大轮数")
 }
 
-type scheduleQueryArgs struct {
-	StartDate  string `json:"start_date"`
-	EndDate    string `json:"end_date"`
-	CalendarID uint   `json:"calendar_id,omitempty"`
-	Limit      int    `json:"limit,omitempty"`
-}
-
 func executeAIFunctionTool(ctx context.Context, name string, rawArgs []byte, currentUser *TabUser) ([]byte, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	default:
+	runtime := agents.FunctionToolRuntime{}
+	if currentUser != nil {
+		runtime.UserID = currentUser.ID
 	}
-
-	switch name {
-	case "time":
-		var args agents.TimeRangeArgs
-		if len(rawArgs) > 0 {
-			if err := json.Unmarshal(rawArgs, &args); err != nil {
-				return nil, err
-			}
-		}
-		result, err := agents.ResolveTimeRange(args, time.Now())
-		if err != nil {
-			return nil, err
-		}
-		return json.Marshal(result)
-	case "ops_ai_assistant_schedule_query", "ops_ai_assistant":
-		var args scheduleQueryArgs
-		if err := json.Unmarshal(rawArgs, &args); err != nil {
-			return nil, err
-		}
-		startDate, err := time.Parse("2006-01-02", args.StartDate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid start_date: %w", err)
-		}
-		endDate, err := time.Parse("2006-01-02", args.EndDate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid end_date: %w", err)
-		}
-		limit := args.Limit
-		if limit <= 0 {
-			limit = 100
-		}
-		if limit > 200 {
-			limit = 200
-		}
-		events, err := QueryCalendarSchedulesForAI(CalendarScheduleQuery{
-			CalendarID: args.CalendarID,
-			StartDate:  startDate,
-			EndDate:    endDate,
-			User:       currentUser,
-			Limit:      limit,
-		})
-		if err != nil {
-			return nil, err
-		}
-		return json.Marshal(map[string]interface{}{
-			"ok":         true,
-			"start_date": args.StartDate,
-			"end_date":   args.EndDate,
-			"count":      len(events),
-			"limit":      limit,
-			"events":     events,
-		})
-	default:
-		return nil, fmt.Errorf("unknown tool: %s", name)
-	}
+	return agents.ExecuteFunctionTool(ctx, runtime, name, rawArgs)
 }
 
 func selectOpenAIProfile(cfg models.ConfigsAIChat_, name string) (models.ConfigsAIChatOpenAI_, bool) {
