@@ -82,6 +82,7 @@ func main() {
 	routers.ApiWarehouseInit()
 	routers.ApiCustomerInit()
 	routers.ApiCalendarInit()
+	routers.ApiAIChatInit()
 
 	routers.BindsInit() //最后初始化绑定数据表
 

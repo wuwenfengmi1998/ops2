@@ -110,6 +110,12 @@ const router = createRouter({
           meta: { requireSysAdmin: true },
         },
         {
+          path: 'admin/aiconfig',
+          name: 'admin-aiconfig',
+          component: () => import('@/views/admin/AIConfigView.vue'),
+          meta: { requireSysAdmin: true },
+        },
+        {
           path: 'customer',
           name: 'customer',
           component: () => import('@/views/customer/CustomerList.vue'),
@@ -149,6 +155,11 @@ const router = createRouter({
           path: 'user/my',
           name: 'user-my',
           component: () => import('@/views/user/MyProfile.vue'),
+        },
+        {
+          path: 'aichat',
+          name: 'aichat',
+          component: () => import('@/views/aichat/AiChatView.vue'),
         },
       ],
     },
@@ -206,7 +217,7 @@ router.beforeEach((to) => {
   const userStore = useUserStore()
 
   // 不需要登录的页面（精确匹配或前缀匹配）
-  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule', '/calendars', '/404']
+  const publicPages = ['/', '/login', '/register', '/forgot_password', '/schedule', '/calendars', '/aichat', '/404']
   const publicPrefixes = ['/calendar/']
   if (publicPages.includes(to.path) || publicPrefixes.some(p => to.path.startsWith(p))) return true
 

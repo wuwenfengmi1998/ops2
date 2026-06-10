@@ -26,9 +26,41 @@ type ConfigsFile_ struct {
 	AllowPdfMime   map[string]string `mapstructure:"allowPdfMime"`
 }
 
+type ConfigsAIChatOpenAI_ struct {
+	Name         string `mapstructure:"name"`
+	Active       bool   `mapstructure:"active"`
+	ApiKey       string `mapstructure:"apiKey"`
+	BaseUrl      string `mapstructure:"baseUrl"`
+	Model        string `mapstructure:"model"`
+	Timeout      int    `mapstructure:"timeout"`
+	MaxTokens    int    `mapstructure:"maxTokens"`
+	SystemPrompt string `mapstructure:"systemPrompt"`
+}
+
+type ConfigsAIChatTool_ struct {
+	Name        string `mapstructure:"name"`
+	Enabled     bool   `mapstructure:"enabled"`
+	Description string `mapstructure:"description"`
+}
+
+type ConfigsAIChatToolRouter_ struct {
+	Enabled    bool                 `mapstructure:"enabled"`
+	OpenAIName string               `mapstructure:"openaiName"`
+	Timeout    int                  `mapstructure:"timeout"`
+	MaxTokens  int                  `mapstructure:"maxTokens"`
+	Tools      []ConfigsAIChatTool_ `mapstructure:"tools"`
+}
+
+type ConfigsAIChat_ struct {
+	Enabled    bool                     `mapstructure:"enabled"`
+	OpenAI     []ConfigsAIChatOpenAI_   `mapstructure:"openai"`
+	ToolRouter ConfigsAIChatToolRouter_ `mapstructure:"toolRouter"`
+}
+
 var ConfigsWed ConfigsWeb_
 var ConfigsUser ConfigsUser_
 var ConfigsFile ConfigsFile_
+var ConfigsAIChat ConfigsAIChat_
 
 func ConfigAllInit() error {
 
@@ -51,6 +83,36 @@ func ConfigAllInit() error {
 	err = mapstructure.Decode(Configs["file"].(map[string]interface{}), &ConfigsFile)
 	if err != nil {
 		panic(err)
+	}
+
+	//初始化aichat config
+	ConfigsAIChat = ConfigsAIChat_{
+		Enabled: false,
+		OpenAI: []ConfigsAIChatOpenAI_{
+			{
+				Name:         "default",
+				Active:       true,
+				BaseUrl:      "https://ark.cn-beijing.volces.com/api/v3",
+				Timeout:      120,
+				MaxTokens:    4096,
+				SystemPrompt: "你是一个有帮助的 AI 助手。",
+			},
+		},
+		ToolRouter: ConfigsAIChatToolRouter_{
+			Enabled:    true,
+			OpenAIName: "default",
+			Timeout:    30,
+			MaxTokens:  512,
+			Tools: []ConfigsAIChatTool_{
+				{Name: "time", Enabled: true, Description: "提供当前日期、时间和相对日期换算。"},
+			},
+		},
+	}
+	if aiChatConfig, ok := Configs["aichat"].(map[string]interface{}); ok {
+		err = mapstructure.Decode(aiChatConfig, &ConfigsAIChat)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return nil
