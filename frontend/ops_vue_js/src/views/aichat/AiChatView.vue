@@ -463,6 +463,128 @@ function makeTitle(items) {
   return text.length > 40 ? `${text.slice(0, 40)}...` : text
 }
 
+const markdownCache = new Map()
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderInlineMarkdown(value) {
+  return escapeHtml(value)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/(?<!!)\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+    .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+    .replace(/(^|\s)\*([^*]+)\*(?=\s|$)/g, '$1<em>$2</em>')
+    .replace(/(^|\s)_([^_]+)_(?=\s|$)/g, '$1<em>$2</em>')
+}
+
+function renderMarkdown(value) {
+  const source = String(value || '')
+  if (!source) return ''
+  const cached = markdownCache.get(source)
+  if (cached) return cached
+
+  const lines = source.replace(/\r\n/g, '\n').split('\n')
+  const html = []
+  let paragraph = []
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return
+    html.push(`<p>${renderInlineMarkdown(paragraph.join('\n')).replace(/\n/g, '<br>')}</p>`)
+    paragraph = []
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    const fence = line.match(/^\s*(```|~~~)\s*(.*)$/)
+    if (fence) {
+      flushParagraph()
+      const fenceMarker = fence[1]
+      const language = fence[2].trim()
+      const code = []
+      index += 1
+      while (index < lines.length && !lines[index].trim().startsWith(fenceMarker)) {
+        code.push(lines[index])
+        index += 1
+      }
+      const languageClass = language ? ` class="language-${escapeHtml(language)}"` : ''
+      html.push(`<pre><code${languageClass}>${escapeHtml(code.join('\n'))}</code></pre>`)
+      continue
+    }
+
+    if (!line.trim()) {
+      flushParagraph()
+      continue
+    }
+
+    const heading = line.match(/^(#{1,6})\s+(.+)$/)
+    if (heading) {
+      flushParagraph()
+      const level = heading[1].length
+      html.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`)
+      continue
+    }
+
+    if (/^\s*[-*_]{3,}\s*$/.test(line)) {
+      flushParagraph()
+      html.push('<hr>')
+      continue
+    }
+
+    const quote = line.match(/^>\s?(.*)$/)
+    if (quote) {
+      flushParagraph()
+      const quotes = [quote[1]]
+      while (index + 1 < lines.length && /^>\s?/.test(lines[index + 1])) {
+        index += 1
+        quotes.push(lines[index].replace(/^>\s?/, ''))
+      }
+      html.push(`<blockquote>${renderInlineMarkdown(quotes.join('\n')).replace(/\n/g, '<br>')}</blockquote>`)
+      continue
+    }
+
+    const unordered = line.match(/^\s*[-*+]\s+(.+)$/)
+    if (unordered) {
+      flushParagraph()
+      const items = [unordered[1]]
+      while (index + 1 < lines.length && /^\s*[-*+]\s+/.test(lines[index + 1])) {
+        index += 1
+        items.push(lines[index].replace(/^\s*[-*+]\s+/, ''))
+      }
+      html.push(`<ul>${items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join('')}</ul>`)
+      continue
+    }
+
+    const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/)
+    if (ordered) {
+      flushParagraph()
+      const items = [ordered[1]]
+      while (index + 1 < lines.length && /^\s*\d+[.)]\s+/.test(lines[index + 1])) {
+        index += 1
+        items.push(lines[index].replace(/^\s*\d+[.)]\s+/, ''))
+      }
+      html.push(`<ol>${items.map((item) => `<li>${renderInlineMarkdown(item)}</li>`).join('')}</ol>`)
+      continue
+    }
+
+    paragraph.push(line)
+  }
+
+  flushParagraph()
+  const rendered = html.join('')
+  if (markdownCache.size > 200) markdownCache.clear()
+  markdownCache.set(source, rendered)
+  return rendered
+}
+
 async function sendMessage() {
   const text = inputText.value.trim()
   const image = selectedImage.value
@@ -777,8 +899,13 @@ async function sendMessage() {
                   class="mb-2 max-h-64 max-w-full rounded-lg object-contain"
                 />
 
-                <p v-if="message.content || (message.role === 'assistant' && pending && index === messages.length - 1)" class="whitespace-pre-wrap break-words">
-                  {{ message.content || (message.role === 'assistant' && pending ? t('aichat.thinking') : '') }}
+                <div
+                  v-if="message.role !== 'user' && (message.content || (pending && index === messages.length - 1))"
+                  class="markdown-body break-words"
+                  v-html="renderMarkdown(message.content || (pending ? t('aichat.thinking') : ''))"
+                />
+                <p v-else-if="message.content" class="whitespace-pre-wrap break-words">
+                  {{ message.content }}
                 </p>
 
                 <div v-if="message.role !== 'user' && index === messages.length - 1 && pending" class="mt-2 inline-flex items-center gap-1 text-xs text-gray-500 dark:text-dk-subtle">
@@ -866,3 +993,140 @@ async function sendMessage() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.markdown-body :deep(*) {
+  overflow-wrap: anywhere;
+}
+
+.markdown-body :deep(p) {
+  margin: 0.25rem 0;
+  white-space: normal;
+}
+
+.markdown-body :deep(p:first-child),
+.markdown-body :deep(ul:first-child),
+.markdown-body :deep(ol:first-child),
+.markdown-body :deep(pre:first-child),
+.markdown-body :deep(blockquote:first-child),
+.markdown-body :deep(h1:first-child),
+.markdown-body :deep(h2:first-child),
+.markdown-body :deep(h3:first-child),
+.markdown-body :deep(h4:first-child),
+.markdown-body :deep(h5:first-child),
+.markdown-body :deep(h6:first-child) {
+  margin-top: 0;
+}
+
+.markdown-body :deep(p:last-child),
+.markdown-body :deep(ul:last-child),
+.markdown-body :deep(ol:last-child),
+.markdown-body :deep(pre:last-child),
+.markdown-body :deep(blockquote:last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  margin: 0.75rem 0 0.35rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 1.25rem;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 1.15rem;
+}
+
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  font-size: 1rem;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin: 0.4rem 0;
+  padding-left: 1.25rem;
+}
+
+.markdown-body :deep(ul) {
+  list-style: disc;
+}
+
+.markdown-body :deep(ol) {
+  list-style: decimal;
+}
+
+.markdown-body :deep(li + li) {
+  margin-top: 0.2rem;
+}
+
+.markdown-body :deep(blockquote) {
+  margin: 0.5rem 0;
+  border-left: 3px solid rgb(147 197 253);
+  padding-left: 0.75rem;
+  color: rgb(75 85 99);
+}
+
+.markdown-body :deep(pre) {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: rgb(17 24 39);
+  padding: 0.75rem;
+  color: rgb(243 244 246);
+}
+
+.markdown-body :deep(code) {
+  border-radius: 0.25rem;
+  background: rgb(229 231 235);
+  padding: 0.1rem 0.3rem;
+  font-size: 0.85em;
+}
+
+.markdown-body :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.markdown-body :deep(a) {
+  color: rgb(37 99 235);
+  text-decoration: underline;
+}
+
+.markdown-body :deep(hr) {
+  margin: 0.75rem 0;
+  border: 0;
+  border-top: 1px solid rgb(229 231 235);
+}
+
+:global(.dark) .markdown-body :deep(blockquote) {
+  color: rgb(209 213 219);
+}
+
+:global(.dark) .markdown-body :deep(code) {
+  background: rgb(55 65 81);
+}
+
+:global(.dark) .markdown-body :deep(pre) {
+  background: rgb(3 7 18);
+}
+
+:global(.dark) .markdown-body :deep(a) {
+  color: rgb(147 197 253);
+}
+
+:global(.dark) .markdown-body :deep(hr) {
+  border-top-color: rgb(55 65 81);
+}
+</style>
