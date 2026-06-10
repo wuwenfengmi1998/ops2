@@ -15,7 +15,11 @@ type FunctionToolSchema struct {
 }
 
 type FunctionToolRuntime struct {
-	UserID uint
+	UserID    uint
+	UserName  string
+	UserEmail string
+	UserType  string
+	UserInfo  *CurrentUserInfo
 }
 
 func FunctionToolSchemas(configs []ToolConfig) []FunctionToolSchema {
@@ -29,6 +33,8 @@ func FunctionToolSchemas(configs []ToolConfig) []FunctionToolSchema {
 			tools = append(tools, timeFunctionToolSchema())
 		case "ops_ai_assistant_schedule_query", "ops_ai_assistant":
 			tools = append(tools, opsAIAssistantScheduleQuerySchema())
+		case "ops_ai_assistant_current_user":
+			tools = append(tools, opsAIAssistantCurrentUserSchema())
 		}
 	}
 	return tools
@@ -56,6 +62,8 @@ func ExecuteFunctionTool(ctx context.Context, runtime FunctionToolRuntime, name 
 		return json.Marshal(result)
 	case "ops_ai_assistant_schedule_query", "ops_ai_assistant":
 		return executeOpsAIAssistantScheduleQuery(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_current_user":
+		return executeOpsAIAssistantCurrentUser(ctx, runtime, rawArgs)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}

@@ -106,6 +106,7 @@ func ConfigAllInit() error {
 			MaxTokens:  512,
 			Tools: []ConfigsAIChatTool_{
 				{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。"},
+				{Name: "ops_ai_assistant_current_user", Enabled: true, Description: "返回当前登录用户信息；未登录时提示需要登录才能获取信息。"},
 				{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。"},
 			},
 		},

@@ -140,6 +140,7 @@ type CalendarScheduleEvent struct {
 	ScheduleType string `json:"schedule_type"`
 	IsPublic     bool   `json:"is_public"`
 	Remark       string `json:"remark,omitempty"`
+	AccessNote   string `json:"access_note,omitempty"`
 	CanEdit      bool   `json:"canEdit"`
 }
 
@@ -188,6 +189,7 @@ func (calendarScheduleProvider) QuerySchedules(ctx context.Context, query agents
 			ScheduleType: event.ScheduleType,
 			IsPublic:     event.IsPublic,
 			Remark:       event.Remark,
+			AccessNote:   event.AccessNote,
 			CanEdit:      event.CanEdit,
 		})
 	}
@@ -249,9 +251,15 @@ func QueryCalendarSchedulesForAI(query CalendarScheduleQuery) ([]CalendarSchedul
 	result := make([]CalendarScheduleEvent, 0, len(events))
 	for _, event := range events {
 		canEdit := false
+		accessNote := ""
 		if currentUserID > 0 {
 			calendarCreatorID := calendarCreators[event.CalendarID]
 			canEdit = event.UserID == currentUserID || calendarCreatorID == currentUserID || slices.Contains(calendarAdmins, currentUserID)
+			if !event.IsPublic && event.ScheduleType == "work" {
+				accessNote = "非公开工作日程，仅因当前用户具备相关权限可见"
+			} else if !event.IsPublic {
+				accessNote = "非公开日程，仅因当前用户具备相关权限可见"
+			}
 		}
 		result = append(result, CalendarScheduleEvent{
 			ID:           event.ID,
@@ -263,6 +271,7 @@ func QueryCalendarSchedulesForAI(query CalendarScheduleQuery) ([]CalendarSchedul
 			ScheduleType: event.ScheduleType,
 			IsPublic:     event.IsPublic,
 			Remark:       event.Remark,
+			AccessNote:   accessNote,
 			CanEdit:      canEdit,
 		})
 	}
