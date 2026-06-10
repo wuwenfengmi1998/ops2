@@ -5,6 +5,7 @@ import { useUsersStore } from '@/stores/users'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { scheduleApi } from '@/api/schedule'
 import { purchaseApi } from '@/api/purchase'
+import AiChatView from '@/views/aichat/AiChatView.vue'
 import { ref, computed, onMounted } from 'vue'
 
 usePageTitle('appname.home')
@@ -183,7 +184,7 @@ onMounted(() => {
 
     <!-- 功能入口卡片 -->
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      
+
       <RouterLink
         to="/purchase"
         class="rounded-xl border border-gray-200 bg-white px-5 py-4 transition-shadow hover:shadow-md dark:border-dk-muted dark:bg-dk-card"
@@ -198,5 +199,9 @@ onMounted(() => {
         <p class="text-xs text-gray-400">{{ t('home.pending_orders') }}</p>
       </RouterLink>
     </div>
+
+    <section class="mt-6">
+      <AiChatView embedded />
+    </section>
   </div>
 </template>

@@ -13,11 +13,20 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { useToastStore } from '@/stores/toast'
 import { useUserStore } from '@/stores/user'
 
+const props = defineProps({
+  embedded: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 const { t } = useI18n()
 const toast = useToastStore()
 const userStore = useUserStore()
 
-usePageTitle('appname.aichat')
+if (!props.embedded) {
+  usePageTitle('appname.aichat')
+}
 
 const messages = ref([])
 const inputText = ref('')
@@ -699,8 +708,8 @@ async function sendMessage() {
 </script>
 
 <template>
-  <div class="mx-auto flex h-[calc(100vh-7rem)] max-w-7xl flex-col px-4 py-6">
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <div :class="embedded ? 'flex h-[70vh] min-h-[38rem] flex-col' : 'mx-auto flex h-[calc(100vh-7rem)] max-w-7xl flex-col px-4 py-6'">
+    <div :class="['mb-4 flex flex-wrap items-center justify-between gap-3', { 'px-1': embedded }]">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-dk-text">
           {{ t('aichat.title') }}

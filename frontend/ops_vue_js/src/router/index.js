@@ -159,7 +159,7 @@ const router = createRouter({
         {
           path: 'aichat',
           name: 'aichat',
-          component: () => import('@/views/aichat/AiChatView.vue'),
+          redirect: '/',
         },
       ],
     },
