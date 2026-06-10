@@ -52,6 +52,33 @@ type TabAIChatTool struct {
 	UpdatedAt   *time.Time `gorm:"type:datetime;autoUpdateTime"`
 }
 
+type TabAIChatConversation struct {
+	ID            uint           `gorm:"primaryKey;autoIncrement"`
+	UserID        uint           `gorm:"not null;index:idx_ai_chat_conversation_user_updated,priority:1"`
+	Title         string         `gorm:"size:200"`
+	OpenAIName    string         `gorm:"size:100;index"`
+	ClientLocalID string         `gorm:"size:100;index"`
+	MessageCount  int            `gorm:"default:0"`
+	LastMessageAt *time.Time     `gorm:"type:datetime;index"`
+	CreatedAt     *time.Time     `gorm:"type:datetime;autoCreateTime"`
+	UpdatedAt     *time.Time     `gorm:"type:datetime;autoUpdateTime;index:idx_ai_chat_conversation_user_updated,priority:2"`
+	DeletedAt     gorm.DeletedAt `gorm:"index"`
+}
+
+type TabAIChatMessage struct {
+	ID             uint       `gorm:"primaryKey;autoIncrement"`
+	ConversationID uint       `gorm:"not null;index:idx_ai_chat_message_conversation_seq,priority:1"`
+	UserID         uint       `gorm:"not null;index"`
+	Role           string     `gorm:"size:20;index"`
+	Content        string     `gorm:"type:text"`
+	ImageURL       string     `gorm:"type:text"`
+	Reasoning      string     `gorm:"type:text"`
+	TracesJSON     string     `gorm:"type:text"`
+	StatsJSON      string     `gorm:"type:text"`
+	Seq            int        `gorm:"index:idx_ai_chat_message_conversation_seq,priority:2"`
+	CreatedAt      *time.Time `gorm:"type:datetime;autoCreateTime"`
+}
+
 var aiChatConfigMu sync.RWMutex
 
 func ApiAIChatInit() {
@@ -60,6 +87,8 @@ func ApiAIChatInit() {
 		&TabAIChatOpenAIProfile{},
 		&TabAIChatToolRouter{},
 		&TabAIChatTool{},
+		&TabAIChatConversation{},
+		&TabAIChatMessage{},
 	)
 	if err != nil {
 		panic(err)

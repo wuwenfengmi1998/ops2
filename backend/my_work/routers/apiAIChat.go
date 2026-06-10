@@ -54,8 +54,11 @@ var allowedImageTypes = map[string]bool{
 
 // chatRequestFromFrontend is the expected POST body
 type chatRequest struct {
-	Messages   []chatMessage `json:"messages"`
-	OpenAIName string        `json:"openaiName,omitempty"`
+	Messages       []chatMessage `json:"messages"`
+	OpenAIName     string        `json:"openaiName,omitempty"`
+	ConversationID uint          `json:"conversationId,omitempty"`
+	ClientLocalID  string        `json:"clientLocalId,omitempty"`
+	SaveToServer   bool          `json:"saveToServer,omitempty"`
 }
 
 type chatMessage struct {
@@ -156,6 +159,12 @@ func ApiAIChat(r *gin.RouterGroup) {
 	r.GET("/openai", handleOpenAIProfiles)
 	r.POST("/chat", handleChat)
 
+	conversations := r.Group("/conversations")
+	conversations.POST("/list", handleAIChatConversationList)
+	conversations.POST("/get", handleAIChatConversationGet)
+	conversations.POST("/update", handleAIChatConversationUpdate)
+	conversations.POST("/delete", handleAIChatConversationDelete)
+
 	admin := r.Group("/admin")
 	admin.POST("/config", handleAIChatAdminGetConfig)
 	admin.POST("/config/update", handleAIChatAdminUpdateConfig)
@@ -193,7 +202,7 @@ func handleOpenAIProfiles(ctx *gin.Context) {
 }
 
 func handleChat(ctx *gin.Context) {
-	data, _ := SeparateData(ctx)
+	data, cookieValue := SeparateData(ctx)
 
 	if data == nil {
 		sendSSEError(ctx, "请求数据为空")
@@ -209,6 +218,13 @@ func handleChat(ctx *gin.Context) {
 	if len(req.Messages) == 0 {
 		sendSSEError(ctx, "消息不能为空")
 		return
+	}
+
+	var currentUser *TabUser
+	if cookieValue != "" {
+		if user, err := AuthenticationAuthorityFromCookie(cookieValue); err == nil {
+			currentUser = user
+		}
 	}
 
 	// Check ai config
@@ -230,11 +246,26 @@ func handleChat(ctx *gin.Context) {
 	flusher, _ := ctx.Writer.(http.Flusher)
 	tracker := newTokenUsageTracker()
 
+	traceEvents := []sseEvent{}
 	emitTrace := func(tool, stage, status, message string, data map[string]interface{}) {
-		sendSSE(ctx, flusher, sseEvent{Type: "trace", Tool: tool, Stage: stage, Status: status, Message: message, Data: data})
+		event := sseEvent{Type: "trace", Tool: tool, Stage: stage, Status: status, Message: message, Data: data}
+		traceEvents = append(traceEvents, event)
+		sendSSE(ctx, flusher, event)
 	}
 	emitStats := func(stats tokenUsageStats) {
 		sendSSE(ctx, flusher, sseEvent{Type: "stats", Stats: &stats})
+	}
+
+	conversation, persistErr := prepareAIChatPersistence(currentUser, req, profile.Name)
+	if persistErr != nil {
+		emitTrace("chat", "persist", "error", "聊天保存失败，将继续仅本次对话", map[string]interface{}{"error": persistErr.Error()})
+		conversation = nil
+	} else if conversation != nil {
+		sendSSE(ctx, flusher, sseEvent{Type: "conversation", Data: map[string]interface{}{
+			"id":            conversation.ID,
+			"title":         conversation.Title,
+			"clientLocalId": conversation.ClientLocalID,
+		}})
 	}
 
 	toolConfigs := []agents.ToolConfig{}
@@ -289,6 +320,9 @@ func handleChat(ctx *gin.Context) {
 	modelPromptTokens := estimateOpenAIMessagesTokens(apiReq.Messages)
 	completionTokens := 0
 	modelUsageReceived := false
+	assistantContent := strings.Builder{}
+	reasoningContent := strings.Builder{}
+	var finalStats *tokenUsageStats
 	streamStarted := time.Now()
 	windowStarted := streamStarted
 	windowTokens := 0
@@ -305,10 +339,12 @@ func handleChat(ctx *gin.Context) {
 				reasoningText = choice.Delta.Thinking
 			}
 			if reasoningText != "" {
+				reasoningContent.WriteString(reasoningText)
 				sendSSE(ctx, flusher, sseEvent{Type: "reasoning", Text: reasoningText})
 			}
 
 			if choice.Delta.Content != "" {
+				assistantContent.WriteString(choice.Delta.Content)
 				deltaTokens := estimateTokenCount(choice.Delta.Content)
 				completionTokens += deltaTokens
 				windowTokens += deltaTokens
@@ -321,17 +357,23 @@ func handleChat(ctx *gin.Context) {
 					peakTokensPerSecond = maxFloat(peakTokensPerSecond, float64(windowTokens)/elapsedWindow)
 				}
 				stats := tracker.setModelEstimate(modelPromptTokens, completionTokens).snapshot(tokensPerSecond(completionTokens, streamStarted), peakTokensPerSecond)
+				finalStats = &stats
 				sendSSE(ctx, flusher, sseEvent{Type: "delta", Text: choice.Delta.Content, Stats: &stats})
 			}
 		}
 		if chunk.Usage != nil {
 			modelUsageReceived = true
 			stats := tracker.setModelUsage(chunk.Usage).snapshot(tokensPerSecond(tracker.completionTokens, streamStarted), peakTokensPerSecond)
+			finalStats = &stats
 			emitStats(stats)
 		}
 	})
 	if err != nil {
-		sendSSE(ctx, flusher, sseEvent{Type: "error", Error: "请求失败: " + err.Error()})
+		errorText := "请求失败: " + err.Error()
+		if conversation != nil && assistantContent.Len() > 0 {
+			_ = persistAIChatAssistantMessage(conversation, assistantContent.String(), reasoningContent.String(), traceEvents, finalStats)
+		}
+		sendSSE(ctx, flusher, sseEvent{Type: "error", Error: errorText})
 		sendSSEDone(ctx, flusher)
 		return
 	}
@@ -344,9 +386,16 @@ func handleChat(ctx *gin.Context) {
 	}
 	emitTrace("model", "stream", "success", "模型回复完成", nil)
 	if modelUsageReceived {
-		emitStats(tracker.snapshot(tokensPerSecond(tracker.completionTokens, streamStarted), peakTokensPerSecond))
+		stats := tracker.snapshot(tokensPerSecond(tracker.completionTokens, streamStarted), peakTokensPerSecond)
+		finalStats = &stats
+		emitStats(stats)
 	} else {
-		emitStats(tracker.setModelEstimate(modelPromptTokens, completionTokens).snapshot(tokensPerSecond(completionTokens, streamStarted), peakTokensPerSecond))
+		stats := tracker.setModelEstimate(modelPromptTokens, completionTokens).snapshot(tokensPerSecond(completionTokens, streamStarted), peakTokensPerSecond)
+		finalStats = &stats
+		emitStats(stats)
+	}
+	if err := persistAIChatAssistantMessage(conversation, assistantContent.String(), reasoningContent.String(), traceEvents, finalStats); err != nil {
+		sendSSE(ctx, flusher, sseEvent{Type: "trace", Tool: "chat", Stage: "persist", Status: "error", Message: "助手回复保存失败", Data: map[string]interface{}{"error": err.Error()}})
 	}
 	sendSSEDone(ctx, flusher)
 	flusher.Flush()

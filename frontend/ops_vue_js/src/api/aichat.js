@@ -17,6 +17,22 @@ export async function refreshAIChatAdminConfig() {
   return api.post('/aichat/admin/refresh', {})
 }
 
+export async function fetchAIChatConversations(params = {}) {
+  return api.post('/aichat/conversations/list', params)
+}
+
+export async function fetchAIChatConversation(id) {
+  return api.post('/aichat/conversations/get', { id })
+}
+
+export async function updateAIChatConversation(id, title) {
+  return api.post('/aichat/conversations/update', { id, title })
+}
+
+export async function deleteAIChatConversation(id) {
+  return api.post('/aichat/conversations/delete', { id })
+}
+
 function parseSSEBlock(block) {
   const lines = block.split('\n')
   const dataLines = []
@@ -43,7 +59,13 @@ export async function streamChat(messages, options = {}, handlers = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       userCookieValue: userStore.cookieValue || '',
-      data: { messages, openaiName: options.openaiName || '' },
+      data: {
+        messages,
+        openaiName: options.openaiName || '',
+        conversationId: options.conversationId || 0,
+        clientLocalId: options.clientLocalId || '',
+        saveToServer: options.saveToServer === true,
+      },
     }),
   })
 
@@ -91,6 +113,9 @@ export async function streamChat(messages, options = {}, handlers = {}) {
             break
           case 'stats':
             handlers.onStats?.(frame.stats || null)
+            break
+          case 'conversation':
+            handlers.onConversation?.(frame.data || {})
             break
           case 'error':
             handlers.onError?.(frame.error || frame.message || 'AI request failed')
