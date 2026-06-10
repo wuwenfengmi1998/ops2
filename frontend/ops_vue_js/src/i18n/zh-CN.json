@@ -113,6 +113,8 @@
     "model": "模型",
     "timeout": "超时（秒）",
     "max_tokens": "最大 Token",
+    "context_window_tokens": "上下文窗口 Token",
+    "context_window_tokens_hint": "0 表示不限制；超过后会保留系统提示词和最新消息，删除最早的问答记录。",
     "system_prompt": "系统提示词",
     "tool_router": "工具路由",
     "router_profile": "路由接口",
@@ -132,6 +134,7 @@
     "error_api_key_required": "启用 AI 时默认接口必须配置 API Key",
     "error_timeout": "超时必须是正整数",
     "error_max_tokens": "最大 Token 必须是正整数",
+    "error_context_window_tokens": "上下文窗口 Token 必须是非负整数",
     "error_router_profile": "工具路由接口必须来自现有接口列表",
     "error_tool_name_required": "工具名称不能为空",
     "error_tool_name_duplicate": "工具名称不能重复"

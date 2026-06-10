@@ -18,18 +18,19 @@ type TabAIChatSetting struct {
 }
 
 type TabAIChatOpenAIProfile struct {
-	ID           uint       `gorm:"primaryKey;autoIncrement"`
-	Name         string     `gorm:"size:100;not null;uniqueIndex"`
-	Active       bool       `gorm:"default:false;index"`
-	ApiKey       string     `gorm:"type:text"`
-	BaseUrl      string     `gorm:"size:500"`
-	Model        string     `gorm:"size:200"`
-	Timeout      int        `gorm:"default:120"`
-	MaxTokens    int        `gorm:"default:4096"`
-	SystemPrompt string     `gorm:"type:text"`
-	SortOrder    int        `gorm:"default:0;index"`
-	CreatedAt    *time.Time `gorm:"type:datetime;autoCreateTime"`
-	UpdatedAt    *time.Time `gorm:"type:datetime;autoUpdateTime"`
+	ID                  uint       `gorm:"primaryKey;autoIncrement"`
+	Name                string     `gorm:"size:100;not null;uniqueIndex"`
+	Active              bool       `gorm:"default:false;index"`
+	ApiKey              string     `gorm:"type:text"`
+	BaseUrl             string     `gorm:"size:500"`
+	Model               string     `gorm:"size:200"`
+	Timeout             int        `gorm:"default:120"`
+	MaxTokens           int        `gorm:"default:4096"`
+	ContextWindowTokens int        `gorm:"default:0"`
+	SystemPrompt        string     `gorm:"type:text"`
+	SortOrder           int        `gorm:"default:0;index"`
+	CreatedAt           *time.Time `gorm:"type:datetime;autoCreateTime"`
+	UpdatedAt           *time.Time `gorm:"type:datetime;autoUpdateTime"`
 }
 
 type TabAIChatToolRouter struct {
@@ -120,12 +121,13 @@ func seedAIChatConfigFromYAMLIfEmpty() error {
 		profiles := cfg.OpenAI
 		if len(profiles) == 0 {
 			profiles = []models.ConfigsAIChatOpenAI_{{
-				Name:         "default",
-				Active:       true,
-				BaseUrl:      "https://ark.cn-beijing.volces.com/api/v3",
-				Timeout:      120,
-				MaxTokens:    4096,
-				SystemPrompt: "你是一个有帮助的 AI 助手。",
+				Name:                "default",
+				Active:              true,
+				BaseUrl:             "https://ark.cn-beijing.volces.com/api/v3",
+				Timeout:             120,
+				MaxTokens:           4096,
+				ContextWindowTokens: 0,
+				SystemPrompt:        "你是一个有帮助的 AI 助手。",
 			}}
 		}
 		for i, profile := range profiles {
@@ -139,15 +141,16 @@ func seedAIChatConfigFromYAMLIfEmpty() error {
 				profile.MaxTokens = 4096
 			}
 			if err := tx.Create(&TabAIChatOpenAIProfile{
-				Name:         profile.Name,
-				Active:       profile.Active,
-				ApiKey:       profile.ApiKey,
-				BaseUrl:      profile.BaseUrl,
-				Model:        profile.Model,
-				Timeout:      profile.Timeout,
-				MaxTokens:    profile.MaxTokens,
-				SystemPrompt: profile.SystemPrompt,
-				SortOrder:    i,
+				Name:                profile.Name,
+				Active:              profile.Active,
+				ApiKey:              profile.ApiKey,
+				BaseUrl:             profile.BaseUrl,
+				Model:               profile.Model,
+				Timeout:             profile.Timeout,
+				MaxTokens:           profile.MaxTokens,
+				ContextWindowTokens: nonNegativeInt(profile.ContextWindowTokens),
+				SystemPrompt:        profile.SystemPrompt,
+				SortOrder:           i,
 			}).Error; err != nil {
 				return err
 			}
@@ -232,14 +235,15 @@ func RefreshAIChatConfigCache() error {
 
 	for _, profile := range profiles {
 		cfg.OpenAI = append(cfg.OpenAI, models.ConfigsAIChatOpenAI_{
-			Name:         profile.Name,
-			Active:       profile.Active,
-			ApiKey:       profile.ApiKey,
-			BaseUrl:      profile.BaseUrl,
-			Model:        profile.Model,
-			Timeout:      defaultInt(profile.Timeout, 120),
-			MaxTokens:    defaultInt(profile.MaxTokens, 4096),
-			SystemPrompt: profile.SystemPrompt,
+			Name:                profile.Name,
+			Active:              profile.Active,
+			ApiKey:              profile.ApiKey,
+			BaseUrl:             profile.BaseUrl,
+			Model:               profile.Model,
+			Timeout:             defaultInt(profile.Timeout, 120),
+			MaxTokens:           defaultInt(profile.MaxTokens, 4096),
+			ContextWindowTokens: nonNegativeInt(profile.ContextWindowTokens),
+			SystemPrompt:        profile.SystemPrompt,
 		})
 	}
 	for _, tool := range tools {
@@ -265,6 +269,13 @@ func getAIChatConfig() models.ConfigsAIChat_ {
 func defaultInt(value int, fallback int) int {
 	if value <= 0 {
 		return fallback
+	}
+	return value
+}
+
+func nonNegativeInt(value int) int {
+	if value < 0 {
+		return 0
 	}
 	return value
 }
@@ -357,6 +368,7 @@ func saveAIChatConfig(req models.ConfigsAIChat_) error {
 			if profile.MaxTokens <= 0 {
 				profile.MaxTokens = 4096
 			}
+			profile.ContextWindowTokens = nonNegativeInt(profile.ContextWindowTokens)
 			if profile.Active {
 				if activeSet {
 					profile.Active = false
@@ -366,15 +378,16 @@ func saveAIChatConfig(req models.ConfigsAIChat_) error {
 			}
 
 			tab := TabAIChatOpenAIProfile{
-				Name:         profile.Name,
-				Active:       profile.Active,
-				ApiKey:       profile.ApiKey,
-				BaseUrl:      profile.BaseUrl,
-				Model:        profile.Model,
-				Timeout:      profile.Timeout,
-				MaxTokens:    profile.MaxTokens,
-				SystemPrompt: profile.SystemPrompt,
-				SortOrder:    i,
+				Name:                profile.Name,
+				Active:              profile.Active,
+				ApiKey:              profile.ApiKey,
+				BaseUrl:             profile.BaseUrl,
+				Model:               profile.Model,
+				Timeout:             profile.Timeout,
+				MaxTokens:           profile.MaxTokens,
+				ContextWindowTokens: profile.ContextWindowTokens,
+				SystemPrompt:        profile.SystemPrompt,
+				SortOrder:           i,
 			}
 			if old, ok := existingByName[profile.Name]; ok {
 				tab.ID = old.ID
@@ -447,14 +460,15 @@ func maskAIChatProfiles(profiles []models.ConfigsAIChatOpenAI_) []gin.H {
 	items := make([]gin.H, 0, len(profiles))
 	for _, profile := range profiles {
 		items = append(items, gin.H{
-			"name":         profile.Name,
-			"active":       profile.Active,
-			"apiKeySet":    profile.ApiKey != "",
-			"baseUrl":      profile.BaseUrl,
-			"model":        profile.Model,
-			"timeout":      profile.Timeout,
-			"maxTokens":    profile.MaxTokens,
-			"systemPrompt": profile.SystemPrompt,
+			"name":                profile.Name,
+			"active":              profile.Active,
+			"apiKeySet":           profile.ApiKey != "",
+			"baseUrl":             profile.BaseUrl,
+			"model":               profile.Model,
+			"timeout":             profile.Timeout,
+			"maxTokens":           profile.MaxTokens,
+			"contextWindowTokens": profile.ContextWindowTokens,
+			"systemPrompt":        profile.SystemPrompt,
 		})
 	}
 	return items

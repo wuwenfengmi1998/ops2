@@ -113,6 +113,8 @@
     "model": "Model",
     "timeout": "Timeout (seconds)",
     "max_tokens": "Max Tokens",
+    "context_window_tokens": "Context Window Tokens",
+    "context_window_tokens_hint": "0 means unlimited. When exceeded, the system prompt and latest messages are kept while oldest Q/A turns are removed.",
     "system_prompt": "System Prompt",
     "tool_router": "Tool Router",
     "router_profile": "Router Profile",
@@ -132,6 +134,7 @@
     "error_api_key_required": "When AI is enabled, the default profile must have an API key",
     "error_timeout": "Timeout must be a positive integer",
     "error_max_tokens": "Max tokens must be a positive integer",
+    "error_context_window_tokens": "Context window tokens must be a non-negative integer",
     "error_router_profile": "Tool router profile must exist in profile list",
     "error_tool_name_required": "Tool name is required",
     "error_tool_name_duplicate": "Tool names must be unique"

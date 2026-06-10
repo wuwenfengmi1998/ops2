@@ -42,6 +42,7 @@ function normalizeProfile(profile = {}) {
     model: profile.model || '',
     timeout: Number(profile.timeout || 120),
     maxTokens: Number(profile.maxTokens || 4096),
+    contextWindowTokens: Number(profile.contextWindowTokens || 0),
     systemPrompt: profile.systemPrompt || '',
   }
 }
@@ -117,6 +118,7 @@ function addProfile() {
     model: '',
     timeout: 120,
     maxTokens: 4096,
+    contextWindowTokens: 0,
     systemPrompt: '',
   })
 }
@@ -178,12 +180,17 @@ function validate() {
 
     profile.timeout = Number(profile.timeout)
     profile.maxTokens = Number(profile.maxTokens)
+    profile.contextWindowTokens = Number(profile.contextWindowTokens)
     if (!Number.isInteger(profile.timeout) || profile.timeout <= 0) {
       toast.error(t('aiconfig.error_timeout'))
       return false
     }
     if (!Number.isInteger(profile.maxTokens) || profile.maxTokens <= 0) {
       toast.error(t('aiconfig.error_max_tokens'))
+      return false
+    }
+    if (!Number.isInteger(profile.contextWindowTokens) || profile.contextWindowTokens < 0) {
+      toast.error(t('aiconfig.error_context_window_tokens'))
       return false
     }
   }
@@ -248,6 +255,7 @@ function buildPayload() {
       model: profile.model.trim(),
       timeout: Number(profile.timeout),
       maxTokens: Number(profile.maxTokens),
+      contextWindowTokens: Number(profile.contextWindowTokens),
       systemPrompt: profile.systemPrompt || '',
     })),
     toolRouter: {
@@ -359,6 +367,11 @@ async function saveConfig() {
             <label class="field">
               <span>{{ t('aiconfig.max_tokens') }}</span>
               <input v-model.number="profile.maxTokens" class="input" type="number" min="1" />
+            </label>
+            <label class="field">
+              <span>{{ t('aiconfig.context_window_tokens') }}</span>
+              <input v-model.number="profile.contextWindowTokens" class="input" type="number" min="0" />
+              <span class="text-xs font-normal text-gray-500 dark:text-dk-subtle">{{ t('aiconfig.context_window_tokens_hint') }}</span>
             </label>
             <label class="field md:col-span-2">
               <span>{{ t('aiconfig.system_prompt') }}</span>

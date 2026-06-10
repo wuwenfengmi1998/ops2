@@ -27,14 +27,15 @@ type ConfigsFile_ struct {
 }
 
 type ConfigsAIChatOpenAI_ struct {
-	Name         string `mapstructure:"name"`
-	Active       bool   `mapstructure:"active"`
-	ApiKey       string `mapstructure:"apiKey"`
-	BaseUrl      string `mapstructure:"baseUrl"`
-	Model        string `mapstructure:"model"`
-	Timeout      int    `mapstructure:"timeout"`
-	MaxTokens    int    `mapstructure:"maxTokens"`
-	SystemPrompt string `mapstructure:"systemPrompt"`
+	Name                string `mapstructure:"name"`
+	Active              bool   `mapstructure:"active"`
+	ApiKey              string `mapstructure:"apiKey"`
+	BaseUrl             string `mapstructure:"baseUrl"`
+	Model               string `mapstructure:"model"`
+	Timeout             int    `mapstructure:"timeout"`
+	MaxTokens           int    `mapstructure:"maxTokens"`
+	ContextWindowTokens int    `mapstructure:"contextWindowTokens"`
+	SystemPrompt        string `mapstructure:"systemPrompt"`
 }
 
 type ConfigsAIChatTool_ struct {

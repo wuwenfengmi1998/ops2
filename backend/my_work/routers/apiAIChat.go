@@ -180,12 +180,13 @@ func handleOpenAIProfiles(ctx *gin.Context) {
 			active = profile.Name
 		}
 		profiles = append(profiles, map[string]interface{}{
-			"name":      profile.Name,
-			"active":    profile.Active,
-			"baseUrl":   profile.BaseUrl,
-			"model":     profile.Model,
-			"timeout":   profile.Timeout,
-			"maxTokens": profile.MaxTokens,
+			"name":                profile.Name,
+			"active":              profile.Active,
+			"baseUrl":             profile.BaseUrl,
+			"model":               profile.Model,
+			"timeout":             profile.Timeout,
+			"maxTokens":           profile.MaxTokens,
+			"contextWindowTokens": profile.ContextWindowTokens,
 		})
 	}
 	ReturnJson(ctx, "apiOK", gin.H{
@@ -315,6 +316,17 @@ func handleChat(ctx *gin.Context) {
 	// Add system prompt if configured
 	if profile.SystemPrompt != "" {
 		apiReq.Messages = append([]openaiMessage{{Role: "system", Content: profile.SystemPrompt}}, apiReq.Messages...)
+	}
+
+	trimmedMessages, trimStats := trimOpenAIMessagesToContextWindow(apiReq.Messages, profile.ContextWindowTokens)
+	apiReq.Messages = trimmedMessages
+	if trimStats.RemovedMessages > 0 {
+		emitTrace("model", "context_window", "success", "上下文窗口已裁剪旧消息", map[string]interface{}{
+			"limit":            trimStats.Limit,
+			"before_tokens":    trimStats.BeforeTokens,
+			"after_tokens":     trimStats.AfterTokens,
+			"removed_messages": trimStats.RemovedMessages,
+		})
 	}
 
 	modelPromptTokens := estimateOpenAIMessagesTokens(apiReq.Messages)
@@ -601,6 +613,74 @@ func normalizeImageDataURI(raw string) (string, error) {
 	}
 
 	return "data:" + mimeType + ";base64," + payload, nil
+}
+
+type contextWindowTrimStats struct {
+	Enabled         bool
+	Limit           int
+	BeforeTokens    int
+	AfterTokens     int
+	RemovedMessages int
+}
+
+func trimOpenAIMessagesToContextWindow(messages []openaiMessage, maxTokens int) ([]openaiMessage, contextWindowTrimStats) {
+	stats := contextWindowTrimStats{Enabled: maxTokens > 0, Limit: maxTokens}
+	if maxTokens <= 0 || len(messages) == 0 {
+		stats.BeforeTokens = estimateOpenAIMessagesTokens(messages)
+		stats.AfterTokens = stats.BeforeTokens
+		return messages, stats
+	}
+
+	result := append([]openaiMessage(nil), messages...)
+	stats.BeforeTokens = estimateOpenAIMessagesTokens(result)
+	stats.AfterTokens = stats.BeforeTokens
+	if stats.BeforeTokens <= maxTokens {
+		return result, stats
+	}
+
+	for stats.AfterTokens > maxTokens {
+		startIndex := 0
+		if len(result) > 0 && result[0].Role == "system" {
+			startIndex = 1
+		}
+		latestUserIndex := latestUserMessageIndex(result)
+		removeIndex := -1
+		for i := startIndex; i < len(result); i++ {
+			if i == latestUserIndex {
+				continue
+			}
+			if result[i].Role == "system" {
+				continue
+			}
+			removeIndex = i
+			break
+		}
+		if removeIndex == -1 {
+			break
+		}
+
+		removeCount := 1
+		if result[removeIndex].Role == "user" {
+			nextIndex := removeIndex + 1
+			if nextIndex < len(result) && nextIndex != latestUserIndex && result[nextIndex].Role == "assistant" {
+				removeCount = 2
+			}
+		}
+		result = append(result[:removeIndex], result[removeIndex+removeCount:]...)
+		stats.RemovedMessages += removeCount
+		stats.AfterTokens = estimateOpenAIMessagesTokens(result)
+	}
+
+	return result, stats
+}
+
+func latestUserMessageIndex(messages []openaiMessage) int {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == "user" {
+			return i
+		}
+	}
+	return -1
 }
 
 type tokenUsageTracker struct {
