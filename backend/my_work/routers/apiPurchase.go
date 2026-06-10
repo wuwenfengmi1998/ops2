@@ -1,8 +1,10 @@
 package routers
 
 import (
+	"context"
 	"encoding/json"
 	parsefmt "fmt"
+	"ops/agents"
 	"ops/models"
 	"slices"
 	"strings"
@@ -119,6 +121,269 @@ type TabPurchaseLog struct {
 	CreatedAt *time.Time `gorm:"type:datetime;autoCreateTime;comment:操作时间"`
 }
 
+type purchaseProvider struct{}
+
+func (purchaseProvider) QueryPurchases(ctx context.Context, query agents.PurchaseQuery) (*agents.PurchaseQueryResult, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	result := &agents.PurchaseQueryResult{
+		Ok:       true,
+		Action:   query.Action,
+		LoggedIn: query.UserID > 0,
+	}
+	if !result.LoggedIn {
+		result.Message = "需要登录才能查询采购模块信息。"
+		return result, nil
+	}
+
+	switch query.Action {
+	case "count":
+		counts, err := queryPurchaseCounts(query)
+		if err != nil {
+			return nil, err
+		}
+		result.Counts = counts
+		return result, nil
+	case "get":
+		order, err := queryPurchaseOrderDetail(query.OrderID, query.UserID)
+		if err != nil {
+			return nil, err
+		}
+		result.Order = order
+		if order != nil {
+			result.Count = 1
+		}
+		return result, nil
+	default:
+		orders, total, err := queryPurchaseOrderList(query)
+		if err != nil {
+			return nil, err
+		}
+		result.Orders = orders
+		result.Count = len(orders)
+		result.Total = total
+		result.Page = query.Page
+		result.Limit = query.Limit
+		result.Filters = map[string]interface{}{
+			"search":     query.Search,
+			"status":     query.Status,
+			"start_date": query.StartDate,
+			"end_date":   query.EndDate,
+		}
+		return result, nil
+	}
+}
+
+func applyPurchaseQueryFilters(db *gorm.DB, query agents.PurchaseQuery) (*gorm.DB, error) {
+	if query.Search != "" {
+		var id uint
+		if _, err := parsefmt.Sscanf(query.Search, "%d", &id); err == nil && id > 0 {
+			db = db.Where("id = ?", id)
+		} else {
+			db = db.Where("title LIKE ? OR remark LIKE ?", "%"+query.Search+"%", "%"+query.Search+"%")
+		}
+	}
+	if query.Status != "" {
+		db = db.Where("order_status = ?", query.Status)
+	}
+	if query.StartDate != "" {
+		startDate, err := time.Parse("2006-01-02", query.StartDate)
+		if err != nil {
+			return nil, err
+		}
+		db = db.Where("created_at >= ?", startDate)
+	}
+	if query.EndDate != "" {
+		endDate, err := time.Parse("2006-01-02", query.EndDate)
+		if err != nil {
+			return nil, err
+		}
+		db = db.Where("created_at < ?", endDate.AddDate(0, 0, 1))
+	}
+	return db, nil
+}
+
+func queryPurchaseOrderList(query agents.PurchaseQuery) ([]agents.PurchaseOrder, int64, error) {
+	db, err := applyPurchaseQueryFilters(models.DB.Model(&TabPurchaseOrder{}), query)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var rows []TabPurchaseOrder
+	if err := db.Order("updated_at DESC, id DESC").Offset(query.Limit * (query.Page - 1)).Limit(query.Limit).Find(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orders := make([]agents.PurchaseOrder, 0, len(rows))
+	for _, row := range rows {
+		order, err := queryPurchaseOrderDetail(row.ID, query.UserID)
+		if err != nil {
+			return nil, 0, err
+		}
+		if order != nil {
+			orders = append(orders, *order)
+		}
+	}
+	return orders, total, nil
+}
+
+func queryPurchaseOrderDetail(orderID uint, userID uint) (*agents.PurchaseOrder, error) {
+	var row TabPurchaseOrder
+	if err := models.DB.Where("id = ?", orderID).First(&row).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	order := buildPurchaseOrder(row, userID)
+
+	var costs []TabPurchaseCosts
+	if err := models.DB.Where("order_id = ?", orderID).Order("id asc").Find(&costs).Error; err != nil {
+		return nil, err
+	}
+	order.Costs = make([]agents.PurchaseCost, 0, len(costs))
+	for _, cost := range costs {
+		order.Costs = append(order.Costs, agents.PurchaseCost{
+			ID:           cost.ID,
+			OrderID:      cost.OrderID,
+			UserID:       cost.UserID,
+			Price:        cost.Price,
+			Quantity:     cost.Quantity,
+			CurrencyType: cost.CurrencyType,
+			CurrencyName: purchaseCurrencyName(cost.CurrencyType),
+			CostType:     cost.CostType,
+			CostTypeName: purchaseCostTypeName(cost.CostType),
+		})
+	}
+
+	var commits []TabPurchaseCommit
+	if err := models.DB.Where("order_id = ?", orderID).Order("created_at DESC").Find(&commits).Error; err != nil {
+		return nil, err
+	}
+	order.Commits = make([]agents.PurchaseCommit, 0, len(commits))
+	for _, commit := range commits {
+		order.Commits = append(order.Commits, agents.PurchaseCommit{
+			ID:        commit.ID,
+			OrderID:   commit.OrderID,
+			UserID:    commit.UserID,
+			Action:    commit.Action,
+			Status:    commit.Status,
+			OldStatus: commit.OldStatus,
+			Comment:   commit.Comment,
+			CreatedAt: formatTimePtr(commit.CreatedAt),
+		})
+	}
+	return &order, nil
+}
+
+func queryPurchaseCounts(query agents.PurchaseQuery) (map[string]int64, error) {
+	counts := map[string]int64{}
+	statuses := []string{"pending", "ordered", "arrived", "received", "lost", "returned"}
+	var total int64
+	base, err := applyPurchaseQueryFilters(models.DB.Model(&TabPurchaseOrder{}), agents.PurchaseQuery{Search: query.Search, StartDate: query.StartDate, EndDate: query.EndDate})
+	if err != nil {
+		return nil, err
+	}
+	if err := base.Count(&total).Error; err != nil {
+		return nil, err
+	}
+	counts["total"] = total
+	for _, status := range statuses {
+		statusQuery := agents.PurchaseQuery{Search: query.Search, Status: status, StartDate: query.StartDate, EndDate: query.EndDate}
+		db, err := applyPurchaseQueryFilters(models.DB.Model(&TabPurchaseOrder{}), statusQuery)
+		if err != nil {
+			return nil, err
+		}
+		var count int64
+		if err := db.Count(&count).Error; err != nil {
+			return nil, err
+		}
+		counts[status] = count
+	}
+	return counts, nil
+}
+
+func buildPurchaseOrder(row TabPurchaseOrder, currentUserID uint) agents.PurchaseOrder {
+	return agents.PurchaseOrder{
+		ID:              row.ID,
+		UserID:          row.UserID,
+		Title:           row.Title,
+		Remark:          row.Remark,
+		Link:            row.Link,
+		DetailURL:       purchaseOrderDetailURL(row.ID),
+		Styles:          row.Styles,
+		OrderStatus:     row.OrderStatus,
+		OrderStatusName: purchaseStatusName(row.OrderStatus),
+		CreatedAt:       formatTimePtr(row.CreatedAt),
+		UpdatedAt:       formatTimePtr(row.UpdatedAt),
+		CanModify:       canModifyPurchase(currentUserID, row.UserID),
+	}
+}
+
+func purchaseOrderDetailURL(orderID uint) string {
+	return parsefmt.Sprintf("/purchase/showorder/%d", orderID)
+}
+
+func formatTimePtr(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02 15:04:05")
+}
+
+func purchaseStatusName(status string) string {
+	switch status {
+	case "pending":
+		return "待处理"
+	case "ordered":
+		return "已下单"
+	case "arrived":
+		return "已到达"
+	case "received":
+		return "已收件"
+	case "lost":
+		return "丢件"
+	case "returned":
+		return "退件"
+	default:
+		return status
+	}
+}
+
+func purchaseCurrencyName(currencyType int) string {
+	switch currencyType {
+	case 1:
+		return "CNY"
+	case 2:
+		return "MOP"
+	case 3:
+		return "HKD"
+	case 4:
+		return "USD"
+	default:
+		return "未知"
+	}
+}
+
+func purchaseCostTypeName(costType int) string {
+	switch costType {
+	case 1:
+		return "单价"
+	case 2:
+		return "运费"
+	default:
+		return "未知"
+	}
+}
+
 func ApiPurchaseInit() {
 
 	models.DB.AutoMigrate(&TabPurchaseOrder{})
@@ -136,6 +401,7 @@ func ApiPurchaseInit() {
 		models.DB.Create(&purchaseUserGroup)
 	}
 
+	agents.RegisterPurchaseProvider(purchaseProvider{})
 }
 
 func ApiPurchase(r *gin.RouterGroup) {

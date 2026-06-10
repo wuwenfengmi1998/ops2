@@ -319,7 +319,7 @@ func handleChat(ctx *gin.Context) {
 			toolNames = append(toolNames, tool.Function.Name)
 		}
 		emitTrace("function_tools", "prepare", "success", "已启用 Function Calling 工具", map[string]interface{}{"tools": toolNames})
-		openaiMsgs = append([]openaiMessage{{Role: "system", Content: "可用工具使用规则：当用户询问“我是谁”“当前登录用户是谁”“我的用户信息”等当前身份问题时，调用 ops_ai_assistant_current_user；工具返回 loggedIn=true 时按工具结果回答当前用户信息，返回 loggedIn=false 时说明不知道并提示需要登录才能获取信息。当用户询问本月、今天、本周、下周等相对日期的日程时，先调用 time 获取明确 start_date/end_date，再调用 ops_ai_assistant_schedule_query 查询日程。不要臆造工具结果中不存在的信息。"}}, openaiMsgs...)
+		openaiMsgs = append([]openaiMessage{{Role: "system", Content: "可用工具使用规则：当用户询问“我是谁”“当前登录用户是谁”“我的用户信息”等当前身份问题时，调用 ops_ai_assistant_current_user；工具返回 loggedIn=true 时按工具结果回答当前用户信息，返回 loggedIn=false 时说明不知道并提示需要登录才能获取信息。当用户询问采购订单列表、采购订单详情、采购状态或数量统计时，调用 ops_ai_assistant_purchase_query；该工具只允许查询，禁止新增、修改、删除采购数据。当用户询问本月、今天、本周、下周等相对日期的日程时，先调用 time 获取明确 start_date/end_date，再调用 ops_ai_assistant_schedule_query 查询日程。不要臆造工具结果中不存在的信息。"}}, openaiMsgs...)
 		var toolExecuted bool
 		openaiMsgs, toolExecuted, err = runOpenAIToolLoop(ctx.Request.Context(), profile, openaiMsgs, functionTools, currentUser, tracker, emitTrace)
 		if err != nil {

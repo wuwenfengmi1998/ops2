@@ -35,6 +35,8 @@ func FunctionToolSchemas(configs []ToolConfig) []FunctionToolSchema {
 			tools = append(tools, opsAIAssistantScheduleQuerySchema())
 		case "ops_ai_assistant_current_user":
 			tools = append(tools, opsAIAssistantCurrentUserSchema())
+		case "ops_ai_assistant_purchase_query":
+			tools = append(tools, opsAIAssistantPurchaseQuerySchema())
 		}
 	}
 	return tools
@@ -64,6 +66,8 @@ func ExecuteFunctionTool(ctx context.Context, runtime FunctionToolRuntime, name 
 		return executeOpsAIAssistantScheduleQuery(ctx, runtime, rawArgs)
 	case "ops_ai_assistant_current_user":
 		return executeOpsAIAssistantCurrentUser(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_purchase_query":
+		return executeOpsAIAssistantPurchaseQuery(ctx, runtime, rawArgs)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}

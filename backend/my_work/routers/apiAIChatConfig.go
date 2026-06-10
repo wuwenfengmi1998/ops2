@@ -110,6 +110,7 @@ func ensureBuiltinAIChatTools() error {
 	builtins := []TabAIChatTool{
 		{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。", SortOrder: 0},
 		{Name: "ops_ai_assistant_current_user", Enabled: true, Description: "返回当前登录用户信息；未登录时提示需要登录才能获取信息。", SortOrder: 5},
+		{Name: "ops_ai_assistant_purchase_query", Enabled: true, Description: "查询采购订单列表、详情和状态数量统计。", SortOrder: 8},
 		{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。", SortOrder: 10},
 	}
 	for _, builtin := range builtins {
@@ -206,6 +207,7 @@ func seedAIChatConfigFromYAMLIfEmpty() error {
 			tools = []models.ConfigsAIChatTool_{
 				{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。"},
 				{Name: "ops_ai_assistant_current_user", Enabled: true, Description: "返回当前登录用户信息；未登录时提示需要登录才能获取信息。"},
+				{Name: "ops_ai_assistant_purchase_query", Enabled: true, Description: "查询采购订单列表、详情和状态数量统计。"},
 				{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。"},
 			}
 		}

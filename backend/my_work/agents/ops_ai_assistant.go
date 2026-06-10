@@ -31,6 +31,84 @@ type CurrentUserInfo struct {
 	Language   string `json:"language,omitempty"`
 }
 
+type PurchaseQueryArgs struct {
+	Action    string `json:"action"`
+	OrderID   uint   `json:"order_id,omitempty"`
+	Search    string `json:"search,omitempty"`
+	Status    string `json:"status,omitempty"`
+	StartDate string `json:"start_date,omitempty"`
+	EndDate   string `json:"end_date,omitempty"`
+	Page      int    `json:"page,omitempty"`
+	Limit     int    `json:"limit,omitempty"`
+}
+
+type PurchaseQuery struct {
+	Action    string
+	OrderID   uint
+	Search    string
+	Status    string
+	StartDate string
+	EndDate   string
+	Page      int
+	Limit     int
+	UserID    uint
+}
+
+type PurchaseCost struct {
+	ID           uint   `json:"id"`
+	OrderID      uint   `json:"order_id"`
+	UserID       uint   `json:"user_id"`
+	Price        int    `json:"price"`
+	Quantity     int    `json:"quantity"`
+	CurrencyType int    `json:"currency_type"`
+	CurrencyName string `json:"currency_name"`
+	CostType     int    `json:"cost_type"`
+	CostTypeName string `json:"cost_type_name"`
+}
+
+type PurchaseCommit struct {
+	ID        uint   `json:"id"`
+	OrderID   uint   `json:"order_id"`
+	UserID    uint   `json:"user_id"`
+	Action    string `json:"action"`
+	Status    string `json:"status,omitempty"`
+	OldStatus string `json:"old_status,omitempty"`
+	Comment   string `json:"comment,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
+type PurchaseOrder struct {
+	ID              uint             `json:"id"`
+	UserID          uint             `json:"user_id"`
+	Title           string           `json:"title"`
+	Remark          string           `json:"remark,omitempty"`
+	Link            string           `json:"link,omitempty"`
+	DetailURL       string           `json:"detail_url"`
+	Styles          string           `json:"styles,omitempty"`
+	OrderStatus     string           `json:"order_status"`
+	OrderStatusName string           `json:"order_status_name"`
+	CreatedAt       string           `json:"created_at,omitempty"`
+	UpdatedAt       string           `json:"updated_at,omitempty"`
+	CanModify       bool             `json:"can_modify,omitempty"`
+	Costs           []PurchaseCost   `json:"costs,omitempty"`
+	Commits         []PurchaseCommit `json:"commits,omitempty"`
+}
+
+type PurchaseQueryResult struct {
+	Ok       bool                   `json:"ok"`
+	Action   string                 `json:"action"`
+	LoggedIn bool                   `json:"loggedIn"`
+	Count    int                    `json:"count,omitempty"`
+	Total    int64                  `json:"total,omitempty"`
+	Page     int                    `json:"page,omitempty"`
+	Limit    int                    `json:"limit,omitempty"`
+	Orders   []PurchaseOrder        `json:"orders,omitempty"`
+	Order    *PurchaseOrder         `json:"order,omitempty"`
+	Counts   map[string]int64       `json:"counts,omitempty"`
+	Filters  map[string]interface{} `json:"filters,omitempty"`
+	Message  string                 `json:"message,omitempty"`
+}
+
 type ScheduleCalendar struct {
 	ID   uint   `json:"id"`
 	Name string `json:"name"`
@@ -62,10 +140,19 @@ type ScheduleProvider interface {
 	QuerySchedules(ctx context.Context, query ScheduleQuery) ([]ScheduleEvent, error)
 }
 
+type PurchaseProvider interface {
+	QueryPurchases(ctx context.Context, query PurchaseQuery) (*PurchaseQueryResult, error)
+}
+
 var registeredScheduleProvider ScheduleProvider = nil
+var registeredPurchaseProvider PurchaseProvider = nil
 
 func RegisterScheduleProvider(provider ScheduleProvider) {
 	registeredScheduleProvider = provider
+}
+
+func RegisterPurchaseProvider(provider PurchaseProvider) {
+	registeredPurchaseProvider = provider
 }
 
 func opsAIAssistantScheduleQuerySchema() FunctionToolSchema {
@@ -109,6 +196,31 @@ func opsAIAssistantCurrentUserSchema() FunctionToolSchema {
 	}
 }
 
+func opsAIAssistantPurchaseQuerySchema() FunctionToolSchema {
+	return FunctionToolSchema{
+		Name:        "ops_ai_assistant_purchase_query",
+		Description: "只读工具：查询采购模块订单。用户询问采购订单、采购状态、待处理/已下单/已到达/已收件/丢件/退件数量或列表、指定采购订单详情时调用。禁止新增、修改、删除订单或状态。",
+		Parameters: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"list", "get", "count"},
+					"description": "list 查询订单列表；get 查询单个订单详情；count 统计各状态数量。",
+				},
+				"order_id":   map[string]interface{}{"type": "integer", "description": "action=get 时的采购订单 ID。"},
+				"search":     map[string]interface{}{"type": "string", "description": "按订单 ID、标题或备注搜索。"},
+				"status":     map[string]interface{}{"type": "string", "enum": []string{"", "pending", "ordered", "arrived", "received", "lost", "returned"}, "description": "订单状态过滤：pending 待处理，ordered 已下单，arrived 已到达，received 已收件，lost 丢件，returned 退件。"},
+				"start_date": map[string]interface{}{"type": "string", "description": "可选创建日期开始，格式 YYYY-MM-DD。"},
+				"end_date":   map[string]interface{}{"type": "string", "description": "可选创建日期结束，格式 YYYY-MM-DD。"},
+				"page":       map[string]interface{}{"type": "integer", "description": "分页页码，默认 1。"},
+				"limit":      map[string]interface{}{"type": "integer", "description": "返回上限，默认 20，最大 100。"},
+			},
+			"required": []string{"action"},
+		},
+	}
+}
+
 func executeOpsAIAssistantCurrentUser(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
 	var args CurrentUserArgs
 	if len(rawArgs) > 0 {
@@ -142,6 +254,78 @@ func executeOpsAIAssistantCurrentUser(ctx context.Context, runtime FunctionToolR
 			"info":  runtime.UserInfo,
 		},
 	})
+}
+
+func executeOpsAIAssistantPurchaseQuery(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
+	var args PurchaseQueryArgs
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return nil, err
+	}
+	if args.Action != "list" && args.Action != "get" && args.Action != "count" {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "ops_ai_assistant_purchase_query 是只读工具，仅允许 list/get/count 查询操作",
+		})
+	}
+	if runtime.UserID <= 0 {
+		return json.Marshal(map[string]interface{}{
+			"ok":       true,
+			"action":   args.Action,
+			"loggedIn": false,
+			"message":  "需要登录才能查询采购模块信息。",
+		})
+	}
+	if args.Action == "get" && args.OrderID <= 0 {
+		return nil, fmt.Errorf("order_id is required when action=get")
+	}
+	if args.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", args.StartDate); err != nil {
+			return nil, fmt.Errorf("invalid start_date: %w", err)
+		}
+	}
+	if args.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", args.EndDate); err != nil {
+			return nil, fmt.Errorf("invalid end_date: %w", err)
+		}
+	}
+	if args.StartDate != "" && args.EndDate != "" {
+		startDate, _ := time.Parse("2006-01-02", args.StartDate)
+		endDate, _ := time.Parse("2006-01-02", args.EndDate)
+		if endDate.Before(startDate) {
+			return nil, fmt.Errorf("end_date must be after start_date")
+		}
+	}
+	if args.Page <= 0 {
+		args.Page = 1
+	}
+	if args.Limit <= 0 {
+		args.Limit = 20
+	}
+	if args.Limit > 100 {
+		args.Limit = 100
+	}
+	if registeredPurchaseProvider == nil {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "采购查询服务未注册",
+		})
+	}
+
+	result, err := registeredPurchaseProvider.QueryPurchases(ctx, PurchaseQuery{
+		Action:    args.Action,
+		OrderID:   args.OrderID,
+		Search:    args.Search,
+		Status:    args.Status,
+		StartDate: args.StartDate,
+		EndDate:   args.EndDate,
+		Page:      args.Page,
+		Limit:     args.Limit,
+		UserID:    runtime.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(result)
 }
 
 func executeOpsAIAssistantScheduleQuery(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
