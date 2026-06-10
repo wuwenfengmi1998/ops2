@@ -1,7 +1,7 @@
 <script setup>
 import { nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconRobot, IconSend, IconTrash, IconUser, IconLoader2 } from '@tabler/icons-vue'
+import { IconLoader2, IconPhoto, IconRobot, IconSend, IconTrash, IconUser, IconX } from '@tabler/icons-vue'
 import { fetchOpenAIProfiles, streamChat } from '@/api/aichat'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { useToastStore } from '@/stores/toast'
@@ -13,13 +13,19 @@ usePageTitle('appname.aichat')
 
 const messages = ref([])
 const inputText = ref('')
+const selectedImage = ref(null)
 const pending = ref(false)
 const traces = ref([])
+const reasoning = ref('')
 const stats = ref(null)
 const profiles = ref([])
 const activeProfile = ref('')
 const toolRouter = ref(null)
 const messageListRef = ref(null)
+const fileInputRef = ref(null)
+
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
 onMounted(loadProfiles)
 
@@ -57,18 +63,114 @@ function clearChat() {
   if (pending.value) return
   messages.value = []
   traces.value = []
+  reasoning.value = ''
   stats.value = null
+  clearSelectedImage()
+}
+
+function triggerImagePicker() {
+  if (pending.value) return
+  fileInputRef.value?.click()
+}
+
+function onImageSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    toast.error(t('aichat.image_type_error'))
+    return
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    toast.error(t('aichat.image_size_error'))
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (loadEvent) => {
+    selectedImage.value = {
+      dataUrl: loadEvent.target?.result || '',
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    }
+  }
+  reader.onerror = () => {
+    toast.error(t('aichat.image_read_error'))
+  }
+  reader.readAsDataURL(file)
+}
+
+function clearSelectedImage() {
+  selectedImage.value = null
+}
+
+function formatFileSize(size) {
+  if (size >= 1024 * 1024) {
+    return `${(size / 1024 / 1024).toFixed(1)} MB`
+  }
+  return `${Math.max(1, Math.round(size / 1024))} KB`
+}
+
+function messageImage(message) {
+  return message.image_url || message.imageURL || ''
+}
+
+function formatTraceData(data) {
+  if (!data) return []
+  const parts = []
+  if (data.database) parts.push(`${t('aichat.trace_database')}: ${data.database}`)
+  if (data.sql) parts.push(data.sql)
+  if (typeof data.rows === 'number') parts.push(`${t('aichat.trace_rows')}: ${data.rows}`)
+  if (typeof data.columns === 'number') parts.push(`${t('aichat.trace_columns')}: ${data.columns}`)
+  if (typeof data.count === 'number') parts.push(`${t('aichat.trace_count')}: ${data.count}`)
+  if (Array.isArray(data.tools)) parts.push(`${t('aichat.trace_tools')}: ${data.tools.join(', ') || '-'}`)
+  if (Array.isArray(data.selections) && data.selections.length) {
+    parts.push(data.selections.map((item) => `${item.name}: ${item.reason || '-'}`).join('\n'))
+  }
+  if (data.reason) parts.push(`${t('aichat.trace_reason')}: ${data.reason}`)
+  if (data.error) parts.push(`${t('aichat.trace_error')}: ${data.error}`)
+  if (data.truncated) parts.push(t('aichat.trace_truncated'))
+  if (data.max_rows) parts.push(`max_rows: ${data.max_rows}`)
+  return parts
+}
+
+function formatFixed(value) {
+  return typeof value === 'number' ? value.toFixed(1) : '0.0'
+}
+
+function formatTokenStats(value) {
+  if (!value) return ''
+  const toolTokens = (value.tool_prompt_tokens || 0) + (value.tool_completion_tokens || 0)
+  const parts = [
+    `${t('aichat.tokens_avg_speed')}: ${formatFixed(value.completion_tokens_per_sec)} tokens/sec`,
+    `${t('aichat.tokens_peak_speed')}: ${formatFixed(value.peak_completion_tokens_per_sec)} tokens/sec`,
+    `${t('aichat.tokens_total')}: ${value.total_tokens || 0}`,
+    `${t('aichat.tokens_prompt')}: ${value.prompt_tokens || 0}`,
+    `${t('aichat.tokens_completion')}: ${value.completion_tokens || 0}`,
+  ]
+  if (toolTokens) parts.push(`${t('aichat.tokens_tool')}: ${toolTokens}`)
+  if (value.estimated) parts.push(t('aichat.tokens_estimated'))
+  return parts.join(' ｜ ')
 }
 
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || pending.value) return
+  const image = selectedImage.value
+  if ((!text && !image) || pending.value) return
 
   inputText.value = ''
+  clearSelectedImage()
   traces.value = []
+  reasoning.value = ''
   stats.value = null
 
-  messages.value.push({ role: 'user', content: text })
+  const userMessage = { role: 'user', content: text }
+  if (image) {
+    userMessage.image_url = image.dataUrl
+  }
+  messages.value.push(userMessage)
   const assistantMessage = { role: 'assistant', content: '' }
   messages.value.push(assistantMessage)
   pending.value = true
@@ -76,7 +178,11 @@ async function sendMessage() {
 
   const history = messages.value
     .filter((message) => message.role === 'user' || message.role === 'assistant')
-    .map((message) => ({ role: message.role, content: message.content }))
+    .map((message) => {
+      const item = { role: message.role, content: message.content || '' }
+      if (message.image_url) item.image_url = message.image_url
+      return item
+    })
     .slice(0, -1)
 
   try {
@@ -87,6 +193,10 @@ async function sendMessage() {
       },
       onTrace(frame) {
         traces.value.push(frame)
+        scrollToBottom()
+      },
+      onReasoning(delta) {
+        reasoning.value += delta
         scrollToBottom()
       },
       onStats(value) {
@@ -174,10 +284,31 @@ async function sendMessage() {
                   <div v-if="trace.message" class="mt-1 opacity-90">
                     {{ trace.message }}
                   </div>
+                  <div v-if="formatTraceData(trace.data).length" class="mt-2 space-y-1 rounded-md border border-blue-100 bg-white/70 px-2 py-1 font-mono text-[11px] leading-5 text-blue-800 dark:border-blue-900/40 dark:bg-dk-card/70 dark:text-blue-100">
+                    <div v-for="(line, dataIndex) in formatTraceData(trace.data)" :key="dataIndex" class="whitespace-pre-wrap break-words">
+                      {{ line }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <p class="whitespace-pre-wrap break-words">
+              <div v-if="message.role !== 'user' && index === messages.length - 1 && reasoning" class="mb-3 rounded-lg border border-purple-100 bg-purple-50 px-3 py-2 text-xs text-purple-800 dark:border-purple-900/40 dark:bg-purple-900/20 dark:text-purple-100">
+                <div class="font-medium">
+                  {{ t('aichat.reasoning') }}
+                </div>
+                <div class="mt-1 whitespace-pre-wrap break-words">
+                  {{ reasoning }}
+                </div>
+              </div>
+
+              <img
+                v-if="messageImage(message)"
+                :src="messageImage(message)"
+                :alt="message.content || t('aichat.attach_image')"
+                class="mb-2 max-h-64 max-w-full rounded-lg object-contain"
+              />
+
+              <p v-if="message.content || (message.role === 'assistant' && pending)" class="whitespace-pre-wrap break-words">
                 {{ message.content || (message.role === 'assistant' && pending ? t('aichat.thinking') : '') }}
               </p>
 
@@ -187,7 +318,7 @@ async function sendMessage() {
               </div>
 
               <div v-if="message.role !== 'user' && index === messages.length - 1 && stats" class="mt-3 text-xs text-gray-500 dark:text-dk-subtle">
-                {{ t('aichat.tokens') }}: {{ stats.total_tokens || 0 }}
+                {{ formatTokenStats(stats) }}
               </div>
             </div>
 
@@ -199,7 +330,46 @@ async function sendMessage() {
       </div>
 
       <div class="border-t border-gray-200 bg-gray-50 p-4 dark:border-dk-muted dark:bg-dk-base">
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          class="hidden"
+          :disabled="pending"
+          @change="onImageSelected"
+        />
+
+        <div v-if="selectedImage" class="mb-3 flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2 dark:border-dk-muted dark:bg-dk-card">
+          <img :src="selectedImage.dataUrl" :alt="selectedImage.name" class="h-14 w-14 rounded object-cover" />
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-medium text-gray-800 dark:text-dk-text">
+              {{ selectedImage.name }}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-dk-subtle">
+              {{ formatFileSize(selectedImage.size) }}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-dk-subtle dark:hover:bg-dk-muted"
+            :title="t('aichat.remove_image')"
+            :disabled="pending"
+            @click="clearSelectedImage"
+          >
+            <IconX :size="16" />
+          </button>
+        </div>
+
         <div class="flex items-end gap-3">
+          <button
+            type="button"
+            class="inline-flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-dk-muted dark:bg-dk-card dark:text-dk-subtle dark:hover:bg-dk-muted"
+            :title="t('aichat.attach_image')"
+            :disabled="pending"
+            @click="triggerImagePicker"
+          >
+            <IconPhoto :size="20" />
+          </button>
           <textarea
             v-model="inputText"
             rows="2"
@@ -211,7 +381,7 @@ async function sendMessage() {
           <button
             type="button"
             class="inline-flex h-[52px] items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="pending || !inputText.trim()"
+            :disabled="pending || (!inputText.trim() && !selectedImage)"
             @click="sendMessage"
           >
             <IconLoader2 v-if="pending" :size="18" class="animate-spin" />

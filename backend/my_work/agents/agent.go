@@ -22,8 +22,9 @@ type Tool interface {
 }
 
 type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role     string `json:"role"`
+	Content  string `json:"content"`
+	ImageURL string `json:"image_url,omitempty"`
 }
 
 var registry []Tool

@@ -81,6 +81,10 @@ export async function streamChat(messages, options = {}, handlers = {}) {
         switch (frame.type) {
           case 'delta':
             handlers.onDelta?.(frame.text || '')
+            if (frame.stats) handlers.onStats?.(frame.stats)
+            break
+          case 'reasoning':
+            handlers.onReasoning?.(frame.text || '', frame)
             break
           case 'trace':
             handlers.onTrace?.(frame)

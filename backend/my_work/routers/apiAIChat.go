@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"ops/agents"
 	"ops/models"
 	"strings"
@@ -30,9 +33,23 @@ type sseEvent struct {
 }
 
 type tokenUsageStats struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
+	PromptTokens               int     `json:"prompt_tokens"`
+	CompletionTokens           int     `json:"completion_tokens"`
+	ToolPromptTokens           int     `json:"tool_prompt_tokens"`
+	ToolCompletionTokens       int     `json:"tool_completion_tokens"`
+	TotalTokens                int     `json:"total_tokens"`
+	CompletionTokensPerSec     float64 `json:"completion_tokens_per_sec"`
+	PeakCompletionTokensPerSec float64 `json:"peak_completion_tokens_per_sec"`
+	Estimated                  bool    `json:"estimated"`
+}
+
+const maxImageDataSize = 4 * 1024 * 1024
+
+var allowedImageTypes = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
+	"image/webp": true,
+	"image/gif":  true,
 }
 
 // chatRequestFromFrontend is the expected POST body
@@ -42,8 +59,10 @@ type chatRequest struct {
 }
 
 type chatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role          string `json:"role"`
+	Content       string `json:"content"`
+	ImageURL      string `json:"image_url,omitempty"`
+	ImageURLAlias string `json:"imageURL,omitempty"`
 }
 
 // openaiChatRequest is the request sent to the upstream OpenAI-compatible API
@@ -56,6 +75,22 @@ type openaiChatRequest struct {
 }
 
 type openaiMessage struct {
+	Role    string `json:"role"`
+	Content any    `json:"content"`
+}
+
+type openaiContentPart struct {
+	Type     string          `json:"type"`
+	Text     string          `json:"text,omitempty"`
+	ImageURL *openaiImageURL `json:"image_url,omitempty"`
+}
+
+type openaiImageURL struct {
+	URL    string `json:"url"`
+	Detail string `json:"detail,omitempty"`
+}
+
+type openaiResponseMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
@@ -76,15 +111,25 @@ type openaiChatResponse struct {
 }
 
 type openaiResponseChoice struct {
-	Message openaiMessage `json:"message"`
+	Message openaiResponseMessage `json:"message"`
 }
 
-type toolRouteResponse struct {
-	Tools []struct {
-		Name   string `json:"name"`
-		Reason string `json:"reason"`
-	} `json:"tools"`
+type toolSelection struct {
+	Name   string `json:"name"`
 	Reason string `json:"reason"`
+}
+
+type toolRoutingDecision struct {
+	Tools  []toolSelection `json:"tools"`
+	Reason string          `json:"reason"`
+}
+
+type toolRoutingResult struct {
+	Decision toolRoutingDecision
+	Selected []string
+	Messages []openaiMessage
+	Response string
+	Usage    *openaiUsage
 }
 
 type openaiChoice struct {
@@ -94,8 +139,11 @@ type openaiChoice struct {
 }
 
 type openaiDelta struct {
-	Role    string `json:"role,omitempty"`
-	Content string `json:"content,omitempty"`
+	Role             string `json:"role,omitempty"`
+	Content          string `json:"content,omitempty"`
+	ReasoningContent string `json:"reasoning_content,omitempty"`
+	Reasoning        string `json:"reasoning,omitempty"`
+	Thinking         string `json:"thinking,omitempty"`
 }
 
 type openaiUsage struct {
@@ -171,41 +219,60 @@ func handleChat(ctx *gin.Context) {
 		return
 	}
 	toolRouterProfile, hasToolRouterProfile := selectOpenAIProfile(cfg, cfg.ToolRouter.OpenAIName)
-
-	// Convert to agent messages and enrich with tools
 	chatMsgs := convertToChatMessages(req.Messages)
+
+	// Set up SSE headers before routing/tools so progress can stream immediately.
+	ctx.Writer.Header().Set("Content-Type", "text/event-stream")
+	ctx.Writer.Header().Set("Cache-Control", "no-cache")
+	ctx.Writer.Header().Set("Connection", "keep-alive")
+	ctx.Writer.Header().Set("X-Accel-Buffering", "no")
+	ctx.Writer.WriteHeader(http.StatusOK)
+	flusher, _ := ctx.Writer.(http.Flusher)
+	tracker := newTokenUsageTracker()
+
+	emitTrace := func(tool, stage, status, message string, data map[string]interface{}) {
+		sendSSE(ctx, flusher, sseEvent{Type: "trace", Tool: tool, Stage: stage, Status: status, Message: message, Data: data})
+	}
+	emitStats := func(stats tokenUsageStats) {
+		sendSSE(ctx, flusher, sseEvent{Type: "stats", Stats: &stats})
+	}
+
 	toolConfigs := []agents.ToolConfig{}
 	if cfg.ToolRouter.Enabled {
 		toolConfigs = buildToolConfigs(cfg.ToolRouter.Tools)
 		if hasToolRouterProfile && toolRouterProfile.Model != "" && toolRouterProfile.ApiKey != "" {
-			selected, err := routeTools(ctx.Request.Context(), toolRouterProfile, cfg.ToolRouter, chatMsgs)
-			if err == nil && selected != nil {
-				toolConfigs = filterToolConfigs(toolConfigs, selected)
+			emitTrace("tool_router", "route", "running", "正在进行工具路由", nil)
+			routeResult, routeErr := routeTools(ctx.Request.Context(), toolRouterProfile, cfg.ToolRouter, chatMsgs)
+			if routeErr != nil {
+				emitTrace("tool_router", "route", "error", "工具路由失败，将继续普通回答", map[string]interface{}{"error": routeErr.Error()})
+				toolConfigs = []agents.ToolConfig{}
+			} else if routeResult != nil {
+				tracker.addToolUsage(routeResult.Usage, estimateOpenAIMessagesTokens(routeResult.Messages), estimateTokenCount(routeResult.Response))
+				data := map[string]interface{}{
+					"tools":      routeResult.Selected,
+					"selections": routeResult.Decision.Tools,
+					"reason":     routeResult.Decision.Reason,
+				}
+				message := "工具路由结果：无需调用工具"
+				if len(routeResult.Selected) > 0 {
+					message = "工具路由结果：将调用 " + strings.Join(routeResult.Selected, ", ")
+				}
+				emitTrace("tool_router", "route", "success", message, data)
+				toolConfigs = filterToolConfigs(toolConfigs, routeResult.Selected)
 			}
 		}
 	}
 
-	// Set up SSE headers
-	ctx.Writer.Header().Set("Content-Type", "text/event-stream")
-	ctx.Writer.Header().Set("Cache-Control", "no-cache")
-	ctx.Writer.Header().Set("Connection", "keep-alive")
-	ctx.Writer.WriteHeader(http.StatusOK)
-	flusher, _ := ctx.Writer.(http.Flusher)
-
 	// Enrich messages with tools (pre-process)
-	chatMsgs = agents.EnrichMessages(ctx.Request.Context(), chatMsgs, toolConfigs, func(tool, stage, status, message string, data map[string]interface{}) {
-		sendSSE(ctx, flusher, sseEvent{
-			Type:    "trace",
-			Tool:    tool,
-			Stage:   stage,
-			Status:  status,
-			Message: message,
-			Data:    data,
-		})
-	})
+	chatMsgs = agents.EnrichMessages(ctx.Request.Context(), chatMsgs, toolConfigs, emitTrace)
 
 	// Build OpenAI-compatible request
-	openaiMsgs := convertToOpenAIMessages(chatMsgs)
+	openaiMsgs, err := convertToOpenAIMessages(chatMsgs)
+	if err != nil {
+		sendSSE(ctx, flusher, sseEvent{Type: "error", Error: err.Error()})
+		sendSSEDone(ctx, flusher)
+		return
+	}
 	apiReq := openaiChatRequest{
 		Model:       profile.Model,
 		Messages:    openaiMsgs,
@@ -219,24 +286,48 @@ func handleChat(ctx *gin.Context) {
 		apiReq.Messages = append([]openaiMessage{{Role: "system", Content: profile.SystemPrompt}}, apiReq.Messages...)
 	}
 
-	err := streamOpenAI(ctx.Request.Context(), profile, apiReq, func(chunk openaiStreamChunk) {
+	modelPromptTokens := estimateOpenAIMessagesTokens(apiReq.Messages)
+	completionTokens := 0
+	modelUsageReceived := false
+	streamStarted := time.Now()
+	windowStarted := streamStarted
+	windowTokens := 0
+	peakTokensPerSecond := 0.0
+	emitTrace("model", "stream", "running", "正在请求模型回复", nil)
+
+	err = streamOpenAI(ctx.Request.Context(), profile, apiReq, func(chunk openaiStreamChunk) {
 		for _, choice := range chunk.Choices {
+			reasoningText := choice.Delta.ReasoningContent
+			if reasoningText == "" {
+				reasoningText = choice.Delta.Reasoning
+			}
+			if reasoningText == "" {
+				reasoningText = choice.Delta.Thinking
+			}
+			if reasoningText != "" {
+				sendSSE(ctx, flusher, sseEvent{Type: "reasoning", Text: reasoningText})
+			}
+
 			if choice.Delta.Content != "" {
-				sendSSE(ctx, flusher, sseEvent{
-					Type: "delta",
-					Text: choice.Delta.Content,
-				})
+				deltaTokens := estimateTokenCount(choice.Delta.Content)
+				completionTokens += deltaTokens
+				windowTokens += deltaTokens
+				elapsedWindow := time.Since(windowStarted).Seconds()
+				if elapsedWindow >= 1 {
+					peakTokensPerSecond = maxFloat(peakTokensPerSecond, float64(windowTokens)/elapsedWindow)
+					windowStarted = time.Now()
+					windowTokens = 0
+				} else if peakTokensPerSecond == 0 && elapsedWindow > 0.25 {
+					peakTokensPerSecond = maxFloat(peakTokensPerSecond, float64(windowTokens)/elapsedWindow)
+				}
+				stats := tracker.setModelEstimate(modelPromptTokens, completionTokens).snapshot(tokensPerSecond(completionTokens, streamStarted), peakTokensPerSecond)
+				sendSSE(ctx, flusher, sseEvent{Type: "delta", Text: choice.Delta.Content, Stats: &stats})
 			}
 		}
 		if chunk.Usage != nil {
-			sendSSE(ctx, flusher, sseEvent{
-				Type: "stats",
-				Stats: &tokenUsageStats{
-					PromptTokens:     chunk.Usage.PromptTokens,
-					CompletionTokens: chunk.Usage.CompletionTokens,
-					TotalTokens:      chunk.Usage.TotalTokens,
-				},
-			})
+			modelUsageReceived = true
+			stats := tracker.setModelUsage(chunk.Usage).snapshot(tokensPerSecond(tracker.completionTokens, streamStarted), peakTokensPerSecond)
+			emitStats(stats)
 		}
 	})
 	if err != nil {
@@ -245,6 +336,18 @@ func handleChat(ctx *gin.Context) {
 		return
 	}
 
+	if windowTokens > 0 {
+		elapsedWindow := time.Since(windowStarted).Seconds()
+		if elapsedWindow > 0 {
+			peakTokensPerSecond = maxFloat(peakTokensPerSecond, float64(windowTokens)/elapsedWindow)
+		}
+	}
+	emitTrace("model", "stream", "success", "模型回复完成", nil)
+	if modelUsageReceived {
+		emitStats(tracker.snapshot(tokensPerSecond(tracker.completionTokens, streamStarted), peakTokensPerSecond))
+	} else {
+		emitStats(tracker.setModelEstimate(modelPromptTokens, completionTokens).snapshot(tokensPerSecond(completionTokens, streamStarted), peakTokensPerSecond))
+	}
 	sendSSEDone(ctx, flusher)
 	flusher.Flush()
 }
@@ -345,17 +448,251 @@ func sendSSEError(ctx *gin.Context, message string) {
 func convertToChatMessages(msgs []chatMessage) []agents.ChatMessage {
 	result := make([]agents.ChatMessage, 0, len(msgs))
 	for _, m := range msgs {
-		result = append(result, agents.ChatMessage{Role: m.Role, Content: m.Content})
+		imageURL := m.ImageURL
+		if imageURL == "" {
+			imageURL = m.ImageURLAlias
+		}
+		result = append(result, agents.ChatMessage{Role: m.Role, Content: m.Content, ImageURL: imageURL})
 	}
 	return result
 }
 
-func convertToOpenAIMessages(msgs []agents.ChatMessage) []openaiMessage {
+func convertToOpenAIMessages(msgs []agents.ChatMessage) ([]openaiMessage, error) {
 	result := make([]openaiMessage, 0, len(msgs))
 	for _, m := range msgs {
-		result = append(result, openaiMessage{Role: m.Role, Content: m.Content})
+		content, err := buildOpenAIContent(m)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, openaiMessage{Role: m.Role, Content: content})
 	}
-	return result
+	return result, nil
+}
+
+func buildOpenAIContent(m agents.ChatMessage) (any, error) {
+	if strings.TrimSpace(m.ImageURL) == "" {
+		return m.Content, nil
+	}
+
+	imageURL, err := normalizeImageURL(m.ImageURL)
+	if err != nil {
+		return nil, err
+	}
+
+	parts := []openaiContentPart{
+		{
+			Type: "image_url",
+			ImageURL: &openaiImageURL{
+				URL:    imageURL,
+				Detail: "auto",
+			},
+		},
+	}
+	if m.Content != "" {
+		parts = append(parts, openaiContentPart{Type: "text", Text: m.Content})
+	}
+	return parts, nil
+}
+
+func normalizeImageURL(raw string) (string, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", errors.New("图片地址为空")
+	}
+
+	if strings.HasPrefix(strings.ToLower(value), "data:") {
+		return normalizeImageDataURI(value)
+	}
+
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return "", errors.New("图片地址无效，仅支持 http/https URL 或 base64 data URI")
+	}
+	return value, nil
+}
+
+func normalizeImageDataURI(raw string) (string, error) {
+	commaIndex := strings.Index(raw, ",")
+	if commaIndex == -1 {
+		return "", errors.New("图片 data URI 格式无效")
+	}
+
+	metadata := strings.TrimSpace(raw[len("data:"):commaIndex])
+	payload := strings.TrimSpace(raw[commaIndex+1:])
+	if metadata == "" || payload == "" {
+		return "", errors.New("图片 data URI 格式无效")
+	}
+
+	metadataParts := strings.Split(metadata, ";")
+	mimeType := strings.ToLower(strings.TrimSpace(metadataParts[0]))
+	if !allowedImageTypes[mimeType] {
+		return "", errors.New("图片格式不支持，仅支持 jpeg/png/webp/gif")
+	}
+
+	hasBase64 := false
+	for _, part := range metadataParts[1:] {
+		if strings.EqualFold(strings.TrimSpace(part), "base64") {
+			hasBase64 = true
+			break
+		}
+	}
+	if !hasBase64 {
+		return "", errors.New("图片 data URI 必须使用 base64 编码")
+	}
+
+	if len(payload) > maxImageDataSize*4/3+16 {
+		return "", errors.New("图片过大，请选择小于 4MB 的图片")
+	}
+	decoded, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		return "", errors.New("图片 base64 数据无效")
+	}
+	if len(decoded) > maxImageDataSize {
+		return "", errors.New("图片过大，请选择小于 4MB 的图片")
+	}
+
+	return "data:" + mimeType + ";base64," + payload, nil
+}
+
+type tokenUsageTracker struct {
+	promptTokens         int
+	completionTokens     int
+	toolPromptTokens     int
+	toolCompletionTokens int
+	estimated            bool
+}
+
+func newTokenUsageTracker() *tokenUsageTracker {
+	return &tokenUsageTracker{estimated: true}
+}
+
+func (t *tokenUsageTracker) addToolUsage(usage *openaiUsage, estimatedPromptTokens, estimatedCompletionTokens int) {
+	if usage != nil {
+		t.toolPromptTokens += usage.PromptTokens
+		t.toolCompletionTokens += usage.CompletionTokens
+		return
+	}
+	t.toolPromptTokens += estimatedPromptTokens
+	t.toolCompletionTokens += estimatedCompletionTokens
+	t.estimated = true
+}
+
+func (t *tokenUsageTracker) setModelEstimate(promptTokens, completionTokens int) *tokenUsageTracker {
+	t.promptTokens = promptTokens
+	t.completionTokens = completionTokens
+	t.estimated = true
+	return t
+}
+
+func (t *tokenUsageTracker) setModelUsage(usage *openaiUsage) *tokenUsageTracker {
+	if usage == nil {
+		return t
+	}
+	t.promptTokens = usage.PromptTokens
+	t.completionTokens = usage.CompletionTokens
+	return t
+}
+
+func (t *tokenUsageTracker) snapshot(completionTokensPerSec, peakCompletionTokensPerSec float64) tokenUsageStats {
+	totalTokens := t.promptTokens + t.completionTokens + t.toolPromptTokens + t.toolCompletionTokens
+	return tokenUsageStats{
+		PromptTokens:               t.promptTokens,
+		CompletionTokens:           t.completionTokens,
+		ToolPromptTokens:           t.toolPromptTokens,
+		ToolCompletionTokens:       t.toolCompletionTokens,
+		TotalTokens:                totalTokens,
+		CompletionTokensPerSec:     completionTokensPerSec,
+		PeakCompletionTokensPerSec: peakCompletionTokensPerSec,
+		Estimated:                  t.estimated,
+	}
+}
+
+func estimateOpenAIMessagesTokens(messages []openaiMessage) int {
+	total := 0
+	for _, message := range messages {
+		total += estimateTokenCount(message.Role) + 4
+		total += estimateOpenAIContentTokens(message.Content)
+	}
+	return total
+}
+
+func estimateOpenAIContentTokens(content any) int {
+	switch value := content.(type) {
+	case string:
+		return estimateTokenCount(value)
+	case []openaiContentPart:
+		total := 0
+		for _, part := range value {
+			switch part.Type {
+			case "text":
+				total += estimateTokenCount(part.Text)
+			case "image_url":
+				total += 85
+			}
+		}
+		return total
+	case []interface{}:
+		data, err := json.Marshal(value)
+		if err != nil {
+			return 0
+		}
+		return estimateTokenCount(string(data))
+	default:
+		data, err := json.Marshal(value)
+		if err != nil {
+			return 0
+		}
+		return estimateTokenCount(string(data))
+	}
+}
+
+func estimateTokenCount(text string) int {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return 0
+	}
+
+	tokens := 0
+	asciiRunes := 0
+	flushASCII := func() {
+		if asciiRunes > 0 {
+			tokens += (asciiRunes + 3) / 4
+			asciiRunes = 0
+		}
+	}
+
+	for _, r := range text {
+		if r <= 127 {
+			if r == ' ' || r == '\n' || r == '\t' || r == '\r' {
+				flushASCII()
+				continue
+			}
+			asciiRunes++
+			continue
+		}
+		flushASCII()
+		tokens++
+	}
+	flushASCII()
+	if tokens == 0 {
+		return 1
+	}
+	return tokens
+}
+
+func tokensPerSecond(tokens int, start time.Time) float64 {
+	elapsed := time.Since(start).Seconds()
+	if tokens <= 0 || elapsed <= 0 {
+		return 0
+	}
+	return float64(tokens) / elapsed
+}
+
+func maxFloat(a, b float64) float64 {
+	if b > a {
+		return b
+	}
+	return a
 }
 
 func buildToolConfigs(configs []models.ConfigsAIChatTool_) []agents.ToolConfig {
@@ -390,12 +727,13 @@ func selectOpenAIProfile(cfg models.ConfigsAIChat_, name string) (models.Configs
 	return models.ConfigsAIChatOpenAI_{}, false
 }
 
-func routeTools(ctx context.Context, profile models.ConfigsAIChatOpenAI_, router models.ConfigsAIChatToolRouter_, messages []agents.ChatMessage) ([]string, error) {
-	openaiMsgs := []openaiMessage{}
-	lastUserContent := agents.LastUserContent(messages)
-	if lastUserContent != "" {
-		openaiMsgs = append(openaiMsgs, openaiMessage{Role: "user", Content: lastUserContent})
+func routeTools(ctx context.Context, profile models.ConfigsAIChatOpenAI_, router models.ConfigsAIChatToolRouter_, messages []agents.ChatMessage) (*toolRoutingResult, error) {
+	lastUserContent := strings.TrimSpace(agents.LastUserContent(messages))
+	if lastUserContent == "" {
+		return nil, nil
 	}
+
+	openaiMsgs := []openaiMessage{{Role: "user", Content: lastUserContent}}
 
 	toolNames := make([]string, 0, len(router.Tools))
 	for _, t := range router.Tools {
@@ -418,7 +756,10 @@ func routeTools(ctx context.Context, profile models.ConfigsAIChatOpenAI_, router
 		Temperature: 0.1,
 	}
 
-	bodyBytes, _ := json.Marshal(req)
+	bodyBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
 	url := strings.TrimRight(profile.BaseUrl, "/") + "/chat/completions"
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
@@ -433,34 +774,42 @@ func routeTools(ctx context.Context, profile models.ConfigsAIChatOpenAI_, router
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("工具路由返回 %d: %s", resp.StatusCode, string(body))
+	}
+
 	var result openaiChatResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
 	if len(result.Choices) == 0 {
-		return nil, nil
+		return &toolRoutingResult{Messages: openaiMsgs, Usage: result.Usage}, nil
 	}
 
 	response := result.Choices[0].Message.Content
-	toolRouteResponse := extractToolsFromResponse(response)
-	return toolRouteResponse, nil
+	decision := extractToolRoutingDecision(response)
+	selected := make([]string, 0, len(decision.Tools))
+	for _, t := range decision.Tools {
+		name := strings.TrimSpace(t.Name)
+		if name != "" {
+			selected = append(selected, name)
+		}
+	}
+	return &toolRoutingResult{Decision: decision, Selected: selected, Messages: openaiMsgs, Response: response, Usage: result.Usage}, nil
 }
 
-func extractToolsFromResponse(response string) []string {
+func extractToolRoutingDecision(response string) toolRoutingDecision {
 	start := strings.Index(response, "{")
 	end := strings.LastIndex(response, "}")
 	if start == -1 || end == -1 || end <= start {
-		return nil
+		return toolRoutingDecision{}
 	}
-	var parsed toolRouteResponse
+	var parsed toolRoutingDecision
 	if err := json.Unmarshal([]byte(response[start:end+1]), &parsed); err != nil {
-		return nil
+		return toolRoutingDecision{}
 	}
-	tools := make([]string, 0, len(parsed.Tools))
-	for _, t := range parsed.Tools {
-		tools = append(tools, t.Name)
-	}
-	return tools
+	return parsed
 }
 
 func filterToolConfigs(configs []agents.ToolConfig, selected []string) []agents.ToolConfig {
