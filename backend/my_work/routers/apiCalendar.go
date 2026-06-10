@@ -120,6 +120,113 @@ var (
 	calendarAdmins    []uint
 )
 
+type CalendarScheduleQuery struct {
+	CalendarID uint
+	StartDate  time.Time
+	EndDate    time.Time
+	User       *TabUser
+	Limit      int
+}
+
+type CalendarScheduleEvent struct {
+	ID           uint   `json:"id"`
+	CalendarID   uint   `json:"calendar_id"`
+	UserID       uint   `json:"user_id"`
+	Title        string `json:"title"`
+	StartDate    string `json:"start_date"`
+	EndDate      string `json:"end_date"`
+	ScheduleType string `json:"schedule_type"`
+	IsPublic     bool   `json:"is_public"`
+	Remark       string `json:"remark,omitempty"`
+	CanEdit      bool   `json:"canEdit"`
+}
+
+func QueryCalendarSchedulesForAI(query CalendarScheduleQuery) ([]CalendarScheduleEvent, error) {
+	startDate := dateOnly(query.StartDate)
+	endDate := dateOnly(query.EndDate)
+	if endDate.Before(startDate) {
+		return nil, nil
+	}
+
+	currentUserID := uint(0)
+	if query.User != nil {
+		currentUserID = query.User.ID
+	}
+
+	db := models.DB.Where("start_date <= ? AND end_date >= ? AND deleted_at IS NULL", &endDate, &startDate)
+	if query.CalendarID > 0 {
+		db = db.Where("calendar_id = ? OR is_public = ?", query.CalendarID, true)
+	} else if currentUserID > 0 {
+		db = db.Where("is_public = ? OR calendar_id IN (?)", true, models.DB.Model(&TabCalendar{}).Select("id").Where("deleted_at IS NULL AND (is_public = ? OR user_id = ?)", true, currentUserID))
+	} else {
+		db = db.Where("is_public = ? OR calendar_id IN (?)", true, models.DB.Model(&TabCalendar{}).Select("id").Where("deleted_at IS NULL AND is_public = ?", true))
+	}
+
+	if query.Limit > 0 {
+		db = db.Limit(query.Limit)
+	}
+
+	var events []TabCalendarEvent
+	if err := db.Order("start_date asc, end_date asc, id asc").Find(&events).Error; err != nil {
+		return nil, err
+	}
+
+	calendarIDs := make([]uint, 0)
+	calendarIDSet := map[uint]bool{}
+	if query.CalendarID > 0 {
+		calendarIDs = append(calendarIDs, query.CalendarID)
+		calendarIDSet[query.CalendarID] = true
+	}
+	for _, event := range events {
+		if !calendarIDSet[event.CalendarID] {
+			calendarIDs = append(calendarIDs, event.CalendarID)
+			calendarIDSet[event.CalendarID] = true
+		}
+	}
+
+	calendarCreators := map[uint]uint{}
+	if len(calendarIDs) > 0 {
+		var calendars []TabCalendar
+		models.DB.Where("id IN ?", calendarIDs).Find(&calendars)
+		for _, calendar := range calendars {
+			calendarCreators[calendar.ID] = calendar.UserID
+		}
+	}
+
+	result := make([]CalendarScheduleEvent, 0, len(events))
+	for _, event := range events {
+		canEdit := false
+		if currentUserID > 0 {
+			calendarCreatorID := calendarCreators[event.CalendarID]
+			canEdit = event.UserID == currentUserID || calendarCreatorID == currentUserID || slices.Contains(calendarAdmins, currentUserID)
+		}
+		result = append(result, CalendarScheduleEvent{
+			ID:           event.ID,
+			CalendarID:   event.CalendarID,
+			UserID:       event.UserID,
+			Title:        event.Title,
+			StartDate:    formatDatePtr(event.StartDate),
+			EndDate:      formatDatePtr(event.EndDate),
+			ScheduleType: event.ScheduleType,
+			IsPublic:     event.IsPublic,
+			Remark:       event.Remark,
+			CanEdit:      canEdit,
+		})
+	}
+	return result, nil
+}
+
+func dateOnly(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+func formatDatePtr(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02")
+}
+
 // CalendarUpdateAdminsCash
 func CalendarUpdateAdminsCash() {
 	calendarAdmins = nil
@@ -440,52 +547,50 @@ func ApiCalendar(r *gin.RouterGroup) {
 
 		startStr, _ := data["start"].(string)
 		endStr, _ := data["end"].(string)
-		startDate, _ := time.Parse("2006-01-02", startStr)
-		endDate, _ := time.Parse("2006-01-02", endStr)
+		startDate, err := time.Parse("2006-01-02", startStr)
+		if err != nil {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+		endDate, err := time.Parse("2006-01-02", endStr)
+		if err != nil {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
 
-		// 查询：当前日历的事件 + 所有公共日程
-		var events []TabCalendarEvent
-		models.DB.Where(
-			"(calendar_id = ? OR is_public = ?) AND start_date <= ? AND end_date >= ? AND deleted_at IS NULL",
-			calendarID, true, &endDate, &startDate,
-		).Find(&events)
-
-		// 判断是否已登录
-		var currentUserID uint
-		isLogin := false
+		var currentUser *TabUser
 		if cookieval != "" {
-			user, err := AuthenticationAuthorityFromCookie(cookieval)
-			if err == nil {
-				isLogin = true
-				currentUserID = user.ID
+			if user, err := AuthenticationAuthorityFromCookie(cookieval); err == nil {
+				currentUser = user
 			}
 		}
 
-		// 查询日历创建者（用于判断权限）
-		var calendarCreatorID uint
-		var calendar TabCalendar
-		if models.DB.Where("id = ?", calendarID).First(&calendar).Error == nil {
-			calendarCreatorID = calendar.UserID
+		events, err := QueryCalendarSchedulesForAI(CalendarScheduleQuery{
+			CalendarID: calendarID,
+			StartDate:  startDate,
+			EndDate:    endDate,
+			User:       currentUser,
+		})
+		if err != nil {
+			ReturnJson(ctx, "apiErr", nil)
+			return
 		}
 
-		var relist []map[string]interface{}
+		relist := make([]map[string]interface{}, 0, len(events))
 		for _, event := range events {
-			eventMap, _ := json.Marshal(event)
-			var item map[string]interface{}
-			json.Unmarshal(eventMap, &item)
-
-			// 可编辑条件：事件创建者 或 日历创建者 或 日历管理员
-			canEdit := false
-			if isLogin {
-				if event.UserID == currentUserID || calendarCreatorID == currentUserID || slices.Contains(calendarAdmins, currentUserID) {
-					canEdit = true
-				}
-			}
-			item["canEdit"] = canEdit
-			relist = append(relist, item)
+			relist = append(relist, map[string]interface{}{
+				"ID":           event.ID,
+				"CalendarID":   event.CalendarID,
+				"UserID":       event.UserID,
+				"Title":        event.Title,
+				"StartDate":    event.StartDate,
+				"EndDate":      event.EndDate,
+				"ScheduleType": event.ScheduleType,
+				"IsPublic":     event.IsPublic,
+				"Remark":       event.Remark,
+				"canEdit":      event.CanEdit,
+			})
 		}
-		//fmt.Println(calendarAdmins)
-		//fmt.Println(calendarUserGroup)
 
 		ReturnJson(ctx, "apiOK", gin.H{"list": relist})
 	})

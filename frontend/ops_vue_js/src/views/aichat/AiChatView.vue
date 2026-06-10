@@ -414,8 +414,18 @@ function messageStats(message, index) {
 function formatTraceData(data) {
   if (!data) return []
   const parts = []
+  const stringify = (value) => {
+    if (typeof value === 'string') return value
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch (e) {
+      return String(value)
+    }
+  }
   if (data.database) parts.push(`${t('aichat.trace_database')}: ${data.database}`)
   if (data.sql) parts.push(data.sql)
+  if (data.tool) parts.push(`tool: ${data.tool}`)
+  if (typeof data.round === 'number') parts.push(`round: ${data.round}`)
   if (typeof data.rows === 'number') parts.push(`${t('aichat.trace_rows')}: ${data.rows}`)
   if (typeof data.columns === 'number') parts.push(`${t('aichat.trace_columns')}: ${data.columns}`)
   if (typeof data.count === 'number') parts.push(`${t('aichat.trace_count')}: ${data.count}`)
@@ -423,6 +433,11 @@ function formatTraceData(data) {
   if (Array.isArray(data.selections) && data.selections.length) {
     parts.push(data.selections.map((item) => `${item.name}: ${item.reason || '-'}`).join('\n'))
   }
+  if (data.arguments !== undefined) parts.push(`arguments:\n${stringify(data.arguments)}`)
+  if (data.result !== undefined) parts.push(`result:\n${stringify(data.result)}`)
+  if (data.start_date) parts.push(`start_date: ${data.start_date}`)
+  if (data.end_date) parts.push(`end_date: ${data.end_date}`)
+  if (data.limit) parts.push(`limit: ${data.limit}`)
   if (data.reason) parts.push(`${t('aichat.trace_reason')}: ${data.reason}`)
   if (data.error) parts.push(`${t('aichat.trace_error')}: ${data.error}`)
   if (data.truncated) parts.push(t('aichat.trace_truncated'))

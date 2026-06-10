@@ -105,7 +105,8 @@ func ConfigAllInit() error {
 			Timeout:    30,
 			MaxTokens:  512,
 			Tools: []ConfigsAIChatTool_{
-				{Name: "time", Enabled: true, Description: "提供当前日期、时间和相对日期换算。"},
+				{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。"},
+				{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。"},
 			},
 		},
 	}

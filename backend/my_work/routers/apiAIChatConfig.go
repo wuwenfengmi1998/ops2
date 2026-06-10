@@ -98,9 +98,33 @@ func ApiAIChatInit() {
 	if err := seedAIChatConfigFromYAMLIfEmpty(); err != nil {
 		panic(err)
 	}
+	if err := ensureBuiltinAIChatTools(); err != nil {
+		panic(err)
+	}
 	if err := RefreshAIChatConfigCache(); err != nil {
 		panic(err)
 	}
+}
+
+func ensureBuiltinAIChatTools() error {
+	builtins := []TabAIChatTool{
+		{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。", SortOrder: 0},
+		{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。", SortOrder: 10},
+	}
+	for _, builtin := range builtins {
+		var existing TabAIChatTool
+		err := models.DB.Where("name = ?", builtin.Name).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := models.DB.Create(&builtin).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func seedAIChatConfigFromYAMLIfEmpty() error {
@@ -178,7 +202,10 @@ func seedAIChatConfigFromYAMLIfEmpty() error {
 
 		tools := toolRouter.Tools
 		if len(tools) == 0 {
-			tools = []models.ConfigsAIChatTool_{{Name: "time", Enabled: true, Description: "提供当前日期、时间和相对日期换算。"}}
+			tools = []models.ConfigsAIChatTool_{
+				{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。"},
+				{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。"},
+			}
 		}
 		for i, tool := range tools {
 			if tool.Name == "" {
