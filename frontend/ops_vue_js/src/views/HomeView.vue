@@ -200,7 +200,8 @@ onMounted(() => {
       </RouterLink>
     </div>
 
-    <section class="mt-6">
+    <!-- AI 助手卡片 -->
+    <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-dk-muted dark:bg-dk-card">
       <AiChatView embedded />
     </section>
   </div>

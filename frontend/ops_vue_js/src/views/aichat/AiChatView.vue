@@ -708,7 +708,7 @@ async function sendMessage() {
 </script>
 
 <template>
-  <div :class="embedded ? 'flex h-[70vh] min-h-[38rem] flex-col' : 'mx-auto flex h-[calc(100vh-7rem)] max-w-7xl flex-col px-4 py-6'">
+  <div :class="embedded ? 'flex h-[70vh] min-h-[38rem] flex-col p-4' : 'mx-auto flex h-[calc(100vh-7rem)] max-w-7xl flex-col px-4 py-6'">
     <div :class="['mb-4 flex flex-wrap items-center justify-between gap-3', { 'px-1': embedded }]">
       <div>
         <h1 class="text-2xl font-bold text-gray-900 dark:text-dk-text">
@@ -741,7 +741,7 @@ async function sendMessage() {
     </div>
 
     <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-      <aside class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card">
+      <aside :class="['flex min-h-0 flex-col overflow-hidden rounded-xl border', embedded ? 'border-gray-200/70 bg-gray-50 shadow-none dark:border-dk-muted/70 dark:bg-dk-base' : 'border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card']">
         <div class="border-b border-gray-200 p-4 dark:border-dk-muted">
           <button
             type="button"
@@ -841,7 +841,7 @@ async function sendMessage() {
         </div>
       </aside>
 
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card">
+      <div :class="['flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border', embedded ? 'border-gray-200/70 bg-gray-50 shadow-none dark:border-dk-muted/70 dark:bg-dk-base' : 'border-gray-200 bg-white shadow-lg dark:border-dk-muted dark:bg-dk-card']">
         <div ref="messageListRef" class="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           <div v-if="messages.length === 0" class="flex h-full items-center justify-center text-center">
             <div class="max-w-md">
