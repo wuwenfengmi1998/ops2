@@ -5,7 +5,7 @@ import { useUsersStore } from '@/stores/users'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { scheduleApi } from '@/api/schedule'
 import { purchaseApi } from '@/api/purchase'
-import AiChatView from '@/views/aichat/AiChatView.vue'
+//import AiChatView from '@/views/aichat/AiChatView.vue'
 import { ref, computed, onMounted } from 'vue'
 
 usePageTitle('appname.home')
@@ -201,8 +201,10 @@ onMounted(() => {
     </div>
 
     <!-- AI 助手卡片 -->
+    <!--
     <section class="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-dk-muted dark:bg-dk-card">
       <AiChatView embedded />
     </section>
+    -->
   </div>
 </template>
