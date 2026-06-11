@@ -179,21 +179,206 @@ func (calendarScheduleProvider) QuerySchedules(ctx context.Context, query agents
 
 	result := make([]agents.ScheduleEvent, 0, len(events))
 	for _, event := range events {
-		result = append(result, agents.ScheduleEvent{
-			ID:           event.ID,
-			CalendarID:   event.CalendarID,
-			UserID:       event.UserID,
-			Title:        event.Title,
-			StartDate:    event.StartDate,
-			EndDate:      event.EndDate,
-			ScheduleType: event.ScheduleType,
-			IsPublic:     event.IsPublic,
-			Remark:       event.Remark,
-			AccessNote:   event.AccessNote,
-			CanEdit:      event.CanEdit,
+		result = append(result, calendarScheduleEventToAgent(event))
+	}
+	return result, nil
+}
+
+func (calendarScheduleProvider) ListCalendars(ctx context.Context, userID uint) ([]agents.CalendarListOutput, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	var calendars []TabCalendar
+	if err := models.DB.Where("deleted_at IS NULL AND (is_public = ? OR user_id = ?)", true, userID).Order("created_at DESC").Find(&calendars).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]agents.CalendarListOutput, 0, len(calendars))
+	for _, cal := range calendars {
+		result = append(result, agents.CalendarListOutput{
+			ID:          cal.ID,
+			Name:        cal.Name,
+			Description: cal.Description,
+			Color:       cal.Color,
+			IsPublic:    cal.IsPublic,
+			CanEdit:     canModifyCalendar(userID, cal.UserID),
 		})
 	}
 	return result, nil
+}
+
+func (calendarScheduleProvider) CreateScheduleEvent(ctx context.Context, userID uint, input agents.CreateScheduleInput) (*agents.ScheduleEvent, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	calendar := TabCalendar{}
+	if err := models.DB.Where("id = ? AND deleted_at IS NULL", input.CalendarID).First(&calendar).Error; err != nil {
+		return nil, err
+	}
+	if !calendar.IsPublic && !canModifyCalendar(userID, calendar.UserID) {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	startDate, err := time.Parse("2006-01-02", input.StartDate)
+	if err != nil {
+		return nil, err
+	}
+	endDate, err := time.Parse("2006-01-02", input.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	if input.ScheduleType == "" {
+		input.ScheduleType = "work"
+	}
+
+	event := TabCalendarEvent{
+		CalendarID:   input.CalendarID,
+		UserID:       userID,
+		Title:        input.Title,
+		StartDate:    &startDate,
+		EndDate:      &endDate,
+		ScheduleType: input.ScheduleType,
+		IsPublic:     input.IsPublic,
+		Remark:       input.Remark,
+	}
+	if err := models.DB.Create(&event).Error; err != nil {
+		return nil, err
+	}
+	newContent, _ := json.Marshal(event)
+	models.DB.Create(&TabCalendarLog{CalendarID: event.CalendarID, EventID: event.ID, UserID: userID, ActionType: "create_event", NewContent: string(newContent), Remark: "AI 助手创建日程"})
+
+	return calendarEventToAgent(event, userID), nil
+}
+
+func (calendarScheduleProvider) UpdateScheduleEvent(ctx context.Context, userID uint, input agents.UpdateScheduleInput) (*agents.ScheduleEvent, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	oldEvent := TabCalendarEvent{}
+	if err := models.DB.Where("id = ?", input.EventID).First(&oldEvent).Error; err != nil {
+		return nil, err
+	}
+	if !canModifyCalendarEvent(userID, oldEvent) {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	startDate, err := time.Parse("2006-01-02", input.StartDate)
+	if err != nil {
+		return nil, err
+	}
+	endDate, err := time.Parse("2006-01-02", input.EndDate)
+	if err != nil {
+		return nil, err
+	}
+	if input.ScheduleType == "" {
+		input.ScheduleType = "work"
+	}
+
+	updates := map[string]interface{}{
+		"title":         input.Title,
+		"start_date":    &startDate,
+		"end_date":      &endDate,
+		"schedule_type": input.ScheduleType,
+		"is_public":     input.IsPublic,
+		"remark":        input.Remark,
+	}
+	if err := models.DB.Model(&oldEvent).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	oldContent, _ := json.Marshal(oldEvent)
+	newContent, _ := json.Marshal(updates)
+	models.DB.Create(&TabCalendarLog{CalendarID: oldEvent.CalendarID, EventID: oldEvent.ID, UserID: userID, ActionType: "update_event", OldContent: string(oldContent), NewContent: string(newContent), Remark: "AI 助手更新日程"})
+
+	var event TabCalendarEvent
+	if err := models.DB.Where("id = ?", input.EventID).First(&event).Error; err != nil {
+		return nil, err
+	}
+	return calendarEventToAgent(event, userID), nil
+}
+
+func (calendarScheduleProvider) DeleteScheduleEvent(ctx context.Context, userID uint, eventID uint) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	event := TabCalendarEvent{}
+	if err := models.DB.Where("id = ?", eventID).First(&event).Error; err != nil {
+		return err
+	}
+	if !canModifyCalendarEvent(userID, event) {
+		return gorm.ErrRecordNotFound
+	}
+	if err := models.DB.Delete(&event).Error; err != nil {
+		return err
+	}
+	oldContent, _ := json.Marshal(event)
+	models.DB.Create(&TabCalendarLog{CalendarID: event.CalendarID, EventID: event.ID, UserID: userID, ActionType: "delete_event", OldContent: string(oldContent), Remark: "AI 助手删除日程"})
+	return nil
+}
+
+func calendarScheduleEventToAgent(event CalendarScheduleEvent) agents.ScheduleEvent {
+	return agents.ScheduleEvent{
+		ID:           event.ID,
+		CalendarID:   event.CalendarID,
+		UserID:       event.UserID,
+		Title:        event.Title,
+		StartDate:    event.StartDate,
+		EndDate:      event.EndDate,
+		ScheduleType: event.ScheduleType,
+		IsPublic:     event.IsPublic,
+		Remark:       event.Remark,
+		AccessNote:   event.AccessNote,
+		CanEdit:      event.CanEdit,
+	}
+}
+
+func calendarEventToAgent(event TabCalendarEvent, userID uint) *agents.ScheduleEvent {
+	accessNote := ""
+	canEdit := false
+	if userID > 0 {
+		var calendar TabCalendar
+		if models.DB.Where("id = ?", event.CalendarID).First(&calendar).Error == nil {
+			canEdit = canModifyCalendar(userID, event.UserID) || calendar.UserID == userID
+		}
+		if !event.IsPublic {
+			accessNote = "非公开日程，仅因当前用户具备相关权限可见"
+		}
+	}
+	return &agents.ScheduleEvent{
+		ID:           event.ID,
+		CalendarID:   event.CalendarID,
+		UserID:       event.UserID,
+		Title:        event.Title,
+		StartDate:    formatDatePtr(event.StartDate),
+		EndDate:      formatDatePtr(event.EndDate),
+		ScheduleType: event.ScheduleType,
+		IsPublic:     event.IsPublic,
+		Remark:       event.Remark,
+		AccessNote:   accessNote,
+		CanEdit:      canEdit,
+	}
+}
+
+func canModifyCalendarEvent(userID uint, event TabCalendarEvent) bool {
+	if userID == event.UserID {
+		return true
+	}
+	var calendar TabCalendar
+	if models.DB.Where("id = ?", event.CalendarID).First(&calendar).Error == nil {
+		return canModifyCalendar(userID, calendar.UserID)
+	}
+	return false
 }
 
 func QueryCalendarSchedulesForAI(query CalendarScheduleQuery) ([]CalendarScheduleEvent, error) {

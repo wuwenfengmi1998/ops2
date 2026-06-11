@@ -114,6 +114,35 @@ type ScheduleCalendar struct {
 	Name string `json:"name"`
 }
 
+type CalendarListOutput struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Color       string `json:"color,omitempty"`
+	IsPublic    bool   `json:"is_public"`
+	CanEdit     bool   `json:"canEdit"`
+}
+
+type CreateScheduleInput struct {
+	CalendarID   uint
+	Title        string
+	StartDate    string
+	EndDate      string
+	ScheduleType string
+	IsPublic     bool
+	Remark       string
+}
+
+type UpdateScheduleInput struct {
+	EventID      uint
+	Title        string
+	StartDate    string
+	EndDate      string
+	ScheduleType string
+	IsPublic     bool
+	Remark       string
+}
+
 type ScheduleEvent struct {
 	ID           uint   `json:"id"`
 	CalendarID   uint   `json:"calendar_id"`
@@ -138,6 +167,10 @@ type ScheduleQuery struct {
 
 type ScheduleProvider interface {
 	QuerySchedules(ctx context.Context, query ScheduleQuery) ([]ScheduleEvent, error)
+	ListCalendars(ctx context.Context, userID uint) ([]CalendarListOutput, error)
+	CreateScheduleEvent(ctx context.Context, userID uint, input CreateScheduleInput) (*ScheduleEvent, error)
+	UpdateScheduleEvent(ctx context.Context, userID uint, input UpdateScheduleInput) (*ScheduleEvent, error)
+	DeleteScheduleEvent(ctx context.Context, userID uint, eventID uint) error
 }
 
 type PurchaseProvider interface {
@@ -387,4 +420,307 @@ func executeOpsAIAssistantScheduleQuery(ctx context.Context, runtime FunctionToo
 		"limit":      limit,
 		"events":     events,
 	})
+}
+
+type CalendarListArgs struct {
+	Action string `json:"action,omitempty"`
+}
+
+type ScheduleEventCreateArgs struct {
+	Action       string `json:"action,omitempty"`
+	CalendarID   uint   `json:"calendar_id"`
+	Title        string `json:"title"`
+	StartDate    string `json:"start_date"`
+	EndDate      string `json:"end_date"`
+	ScheduleType string `json:"schedule_type,omitempty"`
+	IsPublic     bool   `json:"is_public,omitempty"`
+	Remark       string `json:"remark,omitempty"`
+}
+
+type ScheduleEventUpdateArgs struct {
+	Action       string `json:"action,omitempty"`
+	EventID      uint   `json:"event_id"`
+	Title        string `json:"title"`
+	StartDate    string `json:"start_date"`
+	EndDate      string `json:"end_date"`
+	ScheduleType string `json:"schedule_type,omitempty"`
+	IsPublic     bool   `json:"is_public,omitempty"`
+	Remark       string `json:"remark,omitempty"`
+}
+
+type ScheduleEventDeleteArgs struct {
+	Action  string `json:"action,omitempty"`
+	EventID uint   `json:"event_id"`
+}
+
+func opsAIAssistantCalendarListSchema() FunctionToolSchema {
+	return FunctionToolSchema{
+		Name:        "ops_ai_assistant_calendar_list",
+		Description: "只读工具：查询当前用户可见的 OPS 日历列表。创建/修改日程前如用户未提供 calendar_id，应先调用本工具让用户选择日历。",
+		Parameters: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"list"},
+					"description": "固定为 list。",
+				},
+			},
+			"required": []string{"action"},
+		},
+	}
+}
+
+func opsAIAssistantScheduleCreateSchema() FunctionToolSchema {
+	return FunctionToolSchema{
+		Name:        "ops_ai_assistant_schedule_create",
+		Description: "写入工具：在指定 OPS 日历中创建日程。仅当用户明确要求新增/创建/添加日程且已提供日历 ID、标题和明确日期范围时调用；相对日期需先调用 time 获取 start_date/end_date。",
+		Parameters: map[string]interface{}{
+			"type":       "object",
+			"properties": scheduleEventWriteProperties(),
+			"required":   []string{"action", "calendar_id", "title", "start_date", "end_date"},
+		},
+	}
+}
+
+func opsAIAssistantScheduleUpdateSchema() FunctionToolSchema {
+	props := scheduleEventWriteProperties()
+	props["event_id"] = map[string]interface{}{"type": "integer", "description": "要修改的日程事件 ID。"}
+	delete(props, "calendar_id")
+	props["action"] = map[string]interface{}{
+		"type":        "string",
+		"enum":        []string{"update"},
+		"description": "固定为 update。",
+	}
+	return FunctionToolSchema{
+		Name:        "ops_ai_assistant_schedule_update",
+		Description: "写入工具：修改指定 OPS 日程事件。仅当用户明确要求修改/更新已有日程且已提供事件 ID、标题和明确日期范围时调用；相对日期需先调用 time 获取 start_date/end_date。",
+		Parameters: map[string]interface{}{
+			"type":       "object",
+			"properties": props,
+			"required":   []string{"action", "event_id", "title", "start_date", "end_date"},
+		},
+	}
+}
+
+func opsAIAssistantScheduleDeleteSchema() FunctionToolSchema {
+	return FunctionToolSchema{
+		Name:        "ops_ai_assistant_schedule_delete",
+		Description: "写入工具：删除指定 OPS 日程事件。仅当用户明确要求删除/移除日程且已提供事件 ID 时调用。",
+		Parameters: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"delete"},
+					"description": "固定为 delete。",
+				},
+				"event_id": map[string]interface{}{"type": "integer", "description": "要删除的日程事件 ID。"},
+			},
+			"required": []string{"action", "event_id"},
+		},
+	}
+}
+
+func scheduleEventWriteProperties() map[string]interface{} {
+	return map[string]interface{}{
+		"action": map[string]interface{}{
+			"type":        "string",
+			"enum":        []string{"create"},
+			"description": "固定为 create。",
+		},
+		"calendar_id":   map[string]interface{}{"type": "integer", "description": "目标日历 ID。"},
+		"title":         map[string]interface{}{"type": "string", "description": "日程标题。"},
+		"start_date":    map[string]interface{}{"type": "string", "description": "开始日期，格式 YYYY-MM-DD。"},
+		"end_date":      map[string]interface{}{"type": "string", "description": "结束日期，格式 YYYY-MM-DD。"},
+		"schedule_type": map[string]interface{}{"type": "string", "enum": []string{"", "work", "duty", "exam", "standby", "personal_holiday", "public_holiday"}, "description": "日程类型，默认 work。"},
+		"is_public":     map[string]interface{}{"type": "boolean", "description": "是否公开，默认 false。"},
+		"remark":        map[string]interface{}{"type": "string", "description": "备注。"},
+	}
+}
+
+func executeOpsAIAssistantCalendarList(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
+	var args CalendarListArgs
+	if len(rawArgs) > 0 {
+		if err := json.Unmarshal(rawArgs, &args); err != nil {
+			return nil, err
+		}
+	}
+	if args.Action != "" && args.Action != "list" {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "ops_ai_assistant_calendar_list 仅允许 list 查询操作",
+		})
+	}
+	if runtime.UserID <= 0 {
+		return json.Marshal(map[string]interface{}{
+			"ok":       true,
+			"loggedIn": false,
+			"message":  "需要登录才能查询日历列表。",
+		})
+	}
+	if registeredScheduleProvider == nil {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "日历服务未注册",
+		})
+	}
+	calendars, err := registeredScheduleProvider.ListCalendars(ctx, runtime.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if calendars == nil {
+		calendars = []CalendarListOutput{}
+	}
+	return json.Marshal(map[string]interface{}{
+		"ok":        true,
+		"loggedIn":  true,
+		"count":     len(calendars),
+		"calendars": calendars,
+	})
+}
+
+func executeOpsAIAssistantScheduleCreate(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
+	var args ScheduleEventCreateArgs
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return nil, err
+	}
+	if args.Action != "" && args.Action != "create" {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "ops_ai_assistant_schedule_create 仅允许 create 操作",
+		})
+	}
+	if err := validateScheduleWrite(runtime.UserID, args.Title, args.StartDate, args.EndDate); err != nil {
+		return nil, err
+	}
+	if args.CalendarID <= 0 {
+		return nil, fmt.Errorf("calendar_id is required")
+	}
+	if registeredScheduleProvider == nil {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "日历服务未注册",
+		})
+	}
+	event, err := registeredScheduleProvider.CreateScheduleEvent(ctx, runtime.UserID, CreateScheduleInput{
+		CalendarID:   args.CalendarID,
+		Title:        args.Title,
+		StartDate:    args.StartDate,
+		EndDate:      args.EndDate,
+		ScheduleType: args.ScheduleType,
+		IsPublic:     args.IsPublic,
+		Remark:       args.Remark,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(map[string]interface{}{
+		"ok":       true,
+		"loggedIn": true,
+		"event":    event,
+		"message":  "日程已创建。",
+	})
+}
+
+func executeOpsAIAssistantScheduleUpdate(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
+	var args ScheduleEventUpdateArgs
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return nil, err
+	}
+	if args.Action != "" && args.Action != "update" {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "ops_ai_assistant_schedule_update 仅允许 update 操作",
+		})
+	}
+	if args.EventID <= 0 {
+		return nil, fmt.Errorf("event_id is required")
+	}
+	if err := validateScheduleWrite(runtime.UserID, args.Title, args.StartDate, args.EndDate); err != nil {
+		return nil, err
+	}
+	if registeredScheduleProvider == nil {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "日历服务未注册",
+		})
+	}
+	event, err := registeredScheduleProvider.UpdateScheduleEvent(ctx, runtime.UserID, UpdateScheduleInput{
+		EventID:      args.EventID,
+		Title:        args.Title,
+		StartDate:    args.StartDate,
+		EndDate:      args.EndDate,
+		ScheduleType: args.ScheduleType,
+		IsPublic:     args.IsPublic,
+		Remark:       args.Remark,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(map[string]interface{}{
+		"ok":       true,
+		"loggedIn": true,
+		"event":    event,
+		"message":  "日程已更新。",
+	})
+}
+
+func executeOpsAIAssistantScheduleDelete(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
+	var args ScheduleEventDeleteArgs
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return nil, err
+	}
+	if args.Action != "" && args.Action != "delete" {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "ops_ai_assistant_schedule_delete 仅允许 delete 操作",
+		})
+	}
+	if runtime.UserID <= 0 {
+		return json.Marshal(map[string]interface{}{
+			"ok":       true,
+			"loggedIn": false,
+			"message":  "需要登录才能删除日程。",
+		})
+	}
+	if args.EventID <= 0 {
+		return nil, fmt.Errorf("event_id is required")
+	}
+	if registeredScheduleProvider == nil {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "日历服务未注册",
+		})
+	}
+	if err := registeredScheduleProvider.DeleteScheduleEvent(ctx, runtime.UserID, args.EventID); err != nil {
+		return nil, err
+	}
+	return json.Marshal(map[string]interface{}{
+		"ok":       true,
+		"loggedIn": true,
+		"event_id": args.EventID,
+		"message":  "日程已删除。",
+	})
+}
+
+func validateScheduleWrite(userID uint, title string, startDate string, endDate string) error {
+	if userID <= 0 {
+		return fmt.Errorf("需要登录才能操作日程")
+	}
+	if title == "" {
+		return fmt.Errorf("title is required")
+	}
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return fmt.Errorf("invalid start_date: %w", err)
+	}
+	end, err := time.Parse("2006-01-02", endDate)
+	if err != nil {
+		return fmt.Errorf("invalid end_date: %w", err)
+	}
+	if end.Before(start) {
+		return fmt.Errorf("end_date must be after start_date")
+	}
+	return nil
 }

@@ -33,6 +33,14 @@ func FunctionToolSchemas(configs []ToolConfig) []FunctionToolSchema {
 			tools = append(tools, timeFunctionToolSchema())
 		case "ops_ai_assistant_schedule_query", "ops_ai_assistant":
 			tools = append(tools, opsAIAssistantScheduleQuerySchema())
+		case "ops_ai_assistant_calendar_list":
+			tools = append(tools, opsAIAssistantCalendarListSchema())
+		case "ops_ai_assistant_schedule_create":
+			tools = append(tools, opsAIAssistantScheduleCreateSchema())
+		case "ops_ai_assistant_schedule_update":
+			tools = append(tools, opsAIAssistantScheduleUpdateSchema())
+		case "ops_ai_assistant_schedule_delete":
+			tools = append(tools, opsAIAssistantScheduleDeleteSchema())
 		case "ops_ai_assistant_current_user":
 			tools = append(tools, opsAIAssistantCurrentUserSchema())
 		case "ops_ai_assistant_purchase_query":
@@ -64,6 +72,14 @@ func ExecuteFunctionTool(ctx context.Context, runtime FunctionToolRuntime, name 
 		return json.Marshal(result)
 	case "ops_ai_assistant_schedule_query", "ops_ai_assistant":
 		return executeOpsAIAssistantScheduleQuery(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_calendar_list":
+		return executeOpsAIAssistantCalendarList(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_schedule_create":
+		return executeOpsAIAssistantScheduleCreate(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_schedule_update":
+		return executeOpsAIAssistantScheduleUpdate(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_schedule_delete":
+		return executeOpsAIAssistantScheduleDelete(ctx, runtime, rawArgs)
 	case "ops_ai_assistant_current_user":
 		return executeOpsAIAssistantCurrentUser(ctx, runtime, rawArgs)
 	case "ops_ai_assistant_purchase_query":

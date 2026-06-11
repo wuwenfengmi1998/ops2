@@ -111,7 +111,11 @@ func ensureBuiltinAIChatTools() error {
 		{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。", SortOrder: 0},
 		{Name: "ops_ai_assistant_current_user", Enabled: true, Description: "返回当前登录用户信息；未登录时提示需要登录才能获取信息。", SortOrder: 5},
 		{Name: "ops_ai_assistant_purchase_query", Enabled: true, Description: "查询采购订单列表、详情和状态数量统计。", SortOrder: 8},
-		{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。", SortOrder: 10},
+		{Name: "ops_ai_assistant_calendar_list", Enabled: true, Description: "查询当前用户可见的 OPS 日历列表。", SortOrder: 10},
+		{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。", SortOrder: 12},
+		{Name: "ops_ai_assistant_schedule_create", Enabled: true, Description: "创建 OPS 日历日程。", SortOrder: 14},
+		{Name: "ops_ai_assistant_schedule_update", Enabled: true, Description: "修改 OPS 日历日程。", SortOrder: 16},
+		{Name: "ops_ai_assistant_schedule_delete", Enabled: true, Description: "删除 OPS 日历日程。", SortOrder: 18},
 	}
 	for _, builtin := range builtins {
 		var existing TabAIChatTool
@@ -208,7 +212,11 @@ func seedAIChatConfigFromYAMLIfEmpty() error {
 				{Name: "time", Enabled: true, Description: "解析当前时间、相对日期和日期范围。"},
 				{Name: "ops_ai_assistant_current_user", Enabled: true, Description: "返回当前登录用户信息；未登录时提示需要登录才能获取信息。"},
 				{Name: "ops_ai_assistant_purchase_query", Enabled: true, Description: "查询采购订单列表、详情和状态数量统计。"},
+				{Name: "ops_ai_assistant_calendar_list", Enabled: true, Description: "查询当前用户可见的 OPS 日历列表。"},
 				{Name: "ops_ai_assistant_schedule_query", Enabled: true, Description: "按日期范围查询当前用户可见的 OPS 日历/日程。"},
+				{Name: "ops_ai_assistant_schedule_create", Enabled: true, Description: "创建 OPS 日历日程。"},
+				{Name: "ops_ai_assistant_schedule_update", Enabled: true, Description: "修改 OPS 日历日程。"},
+				{Name: "ops_ai_assistant_schedule_delete", Enabled: true, Description: "删除 OPS 日历日程。"},
 			}
 		}
 		for i, tool := range tools {
