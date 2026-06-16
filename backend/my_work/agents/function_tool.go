@@ -26,9 +26,10 @@ type FunctionToolRuntime struct {
 // 这类工具的返回结果已经包含了用户问题所需的全部数据，调用之后无需再让模型
 // 决定是否继续调用其他工具，直接进入最终回答生成阶段，可以省掉一轮模型请求。
 var terminalFunctionTools = map[string]bool{
-	"ops_ai_assistant":                true,
-	"ops_ai_assistant_schedule_query": true,
-	"ops_ai_assistant_purchase_query": true,
+	"ops_ai_assistant":                  true,
+	"ops_ai_assistant_schedule_query":   true,
+	"ops_ai_assistant_purchase_query":   true,
+	"ops_ai_assistant_work_order_query": true,
 }
 
 // IsTerminalFunctionTool 判断给定工具名是否为终止工具。命名匹配采用与
@@ -60,6 +61,8 @@ func FunctionToolSchemas(configs []ToolConfig) []FunctionToolSchema {
 			tools = append(tools, opsAIAssistantCurrentUserSchema())
 		case "ops_ai_assistant_purchase_query":
 			tools = append(tools, opsAIAssistantPurchaseQuerySchema())
+		case "ops_ai_assistant_work_order_query":
+			tools = append(tools, opsAIAssistantWorkOrderQuerySchema())
 		}
 	}
 	return tools
@@ -99,6 +102,8 @@ func ExecuteFunctionTool(ctx context.Context, runtime FunctionToolRuntime, name 
 		return executeOpsAIAssistantCurrentUser(ctx, runtime, rawArgs)
 	case "ops_ai_assistant_purchase_query":
 		return executeOpsAIAssistantPurchaseQuery(ctx, runtime, rawArgs)
+	case "ops_ai_assistant_work_order_query":
+		return executeOpsAIAssistantWorkOrderQuery(ctx, runtime, rawArgs)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}

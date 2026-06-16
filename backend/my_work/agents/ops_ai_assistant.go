@@ -42,6 +42,85 @@ type PurchaseQueryArgs struct {
 	Limit     int    `json:"limit,omitempty"`
 }
 
+type WorkOrderQueryArgs struct {
+	Action    string `json:"action"`
+	OrderID   uint   `json:"order_id,omitempty"`
+	Search    string `json:"search,omitempty"`
+	Status    string `json:"status,omitempty"`
+	StartDate string `json:"start_date,omitempty"`
+	EndDate   string `json:"end_date,omitempty"`
+	Page      int    `json:"page,omitempty"`
+	Limit     int    `json:"limit,omitempty"`
+}
+
+type WorkOrderQuery struct {
+	Action    string
+	OrderID   uint
+	Search    string
+	Status    string
+	StartDate string
+	EndDate   string
+	Page      int
+	Limit     int
+	UserID    uint
+}
+
+type WorkOrderCommit struct {
+	ID          uint   `json:"id"`
+	WorkOrderID uint   `json:"work_order_id"`
+	UserID      uint   `json:"user_id"`
+	Action      string `json:"action"`
+	Status      string `json:"status,omitempty"`
+	StatusName  string `json:"status_name,omitempty"`
+	OldStatus   string `json:"old_status,omitempty"`
+	Comment     string `json:"comment,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
+}
+
+type WorkOrderCustomer struct {
+	ID           uint   `json:"id"`
+	FirstName    string `json:"first_name,omitempty"`
+	LastName     string `json:"last_name,omitempty"`
+	PrimaryPhone string `json:"primary_phone,omitempty"`
+}
+
+type WorkOrderItem struct {
+	ID           uint   `json:"id"`
+	Name         string `json:"name,omitempty"`
+	SerialNumber string `json:"serial_number,omitempty"`
+}
+
+type WorkOrder struct {
+	ID                uint                `json:"id"`
+	UserID            uint                `json:"user_id"`
+	Title             string              `json:"title"`
+	Description       string              `json:"description,omitempty"`
+	DetailURL         string              `json:"detail_url"`
+	CurrentStatus     string              `json:"current_status"`
+	CurrentStatusName string              `json:"current_status_name"`
+	CreatedAt         string              `json:"created_at,omitempty"`
+	UpdatedAt         string              `json:"updated_at,omitempty"`
+	CanModify         bool                `json:"can_modify,omitempty"`
+	Customers         []WorkOrderCustomer `json:"customers,omitempty"`
+	Items             []WorkOrderItem     `json:"items,omitempty"`
+	Commits           []WorkOrderCommit   `json:"commits,omitempty"`
+}
+
+type WorkOrderQueryResult struct {
+	Ok       bool                   `json:"ok"`
+	Action   string                 `json:"action"`
+	LoggedIn bool                   `json:"loggedIn"`
+	Count    int                    `json:"count,omitempty"`
+	Total    int64                  `json:"total,omitempty"`
+	Page     int                    `json:"page,omitempty"`
+	Limit    int                    `json:"limit,omitempty"`
+	Orders   []WorkOrder            `json:"orders,omitempty"`
+	Order    *WorkOrder             `json:"order,omitempty"`
+	Counts   map[string]int64       `json:"counts,omitempty"`
+	Filters  map[string]interface{} `json:"filters,omitempty"`
+	Message  string                 `json:"message,omitempty"`
+}
+
 type PurchaseQuery struct {
 	Action    string
 	OrderID   uint
@@ -177,8 +256,13 @@ type PurchaseProvider interface {
 	QueryPurchases(ctx context.Context, query PurchaseQuery) (*PurchaseQueryResult, error)
 }
 
+type WorkOrderProvider interface {
+	QueryWorkOrders(ctx context.Context, query WorkOrderQuery) (*WorkOrderQueryResult, error)
+}
+
 var registeredScheduleProvider ScheduleProvider = nil
 var registeredPurchaseProvider PurchaseProvider = nil
+var registeredWorkOrderProvider WorkOrderProvider = nil
 
 func RegisterScheduleProvider(provider ScheduleProvider) {
 	registeredScheduleProvider = provider
@@ -186,6 +270,10 @@ func RegisterScheduleProvider(provider ScheduleProvider) {
 
 func RegisterPurchaseProvider(provider PurchaseProvider) {
 	registeredPurchaseProvider = provider
+}
+
+func RegisterWorkOrderProvider(provider WorkOrderProvider) {
+	registeredWorkOrderProvider = provider
 }
 
 func opsAIAssistantScheduleQuerySchema() FunctionToolSchema {
@@ -244,6 +332,31 @@ func opsAIAssistantPurchaseQuerySchema() FunctionToolSchema {
 				"order_id":   map[string]interface{}{"type": "integer", "description": "action=get 时的采购订单 ID。"},
 				"search":     map[string]interface{}{"type": "string", "description": "按订单 ID、标题或备注搜索。"},
 				"status":     map[string]interface{}{"type": "string", "enum": []string{"", "pending", "ordered", "arrived", "received", "lost", "returned"}, "description": "订单状态过滤：pending 待处理，ordered 已下单，arrived 已到达，received 已收件，lost 丢件，returned 退件。"},
+				"start_date": map[string]interface{}{"type": "string", "description": "可选创建日期开始，格式 YYYY-MM-DD。"},
+				"end_date":   map[string]interface{}{"type": "string", "description": "可选创建日期结束，格式 YYYY-MM-DD。"},
+				"page":       map[string]interface{}{"type": "integer", "description": "分页页码，默认 1。"},
+				"limit":      map[string]interface{}{"type": "integer", "description": "返回上限，默认 20，最大 100。"},
+			},
+			"required": []string{"action"},
+		},
+	}
+}
+
+func opsAIAssistantWorkOrderQuerySchema() FunctionToolSchema {
+	return FunctionToolSchema{
+		Name:        "ops_ai_assistant_work_order_query",
+		Description: "只读工具：查询工单（维修/服务）模块。用户询问工单、维修单、待处理/已检查/已下单零件/已维修/已送还/无法维修数量或列表、指定工单详情时调用。禁止新增、修改、删除工单或状态。",
+		Parameters: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"list", "get", "count"},
+					"description": "list 查询工单列表；get 查询单个工单详情；count 统计各状态数量。",
+				},
+				"order_id":   map[string]interface{}{"type": "integer", "description": "action=get 时的工单 ID。"},
+				"search":     map[string]interface{}{"type": "string", "description": "按工单 ID、标题或问题描述搜索。"},
+				"status":     map[string]interface{}{"type": "string", "enum": []string{"", "pending", "checked", "parts_ordered", "repaired", "returned", "unrepairable"}, "description": "工单状态过滤：pending 待处理，checked 已检查，parts_ordered 已下单零件，repaired 已维修，returned 已送还，unrepairable 无法维修。"},
 				"start_date": map[string]interface{}{"type": "string", "description": "可选创建日期开始，格式 YYYY-MM-DD。"},
 				"end_date":   map[string]interface{}{"type": "string", "description": "可选创建日期结束，格式 YYYY-MM-DD。"},
 				"page":       map[string]interface{}{"type": "integer", "description": "分页页码，默认 1。"},
@@ -345,6 +458,78 @@ func executeOpsAIAssistantPurchaseQuery(ctx context.Context, runtime FunctionToo
 	}
 
 	result, err := registeredPurchaseProvider.QueryPurchases(ctx, PurchaseQuery{
+		Action:    args.Action,
+		OrderID:   args.OrderID,
+		Search:    args.Search,
+		Status:    args.Status,
+		StartDate: args.StartDate,
+		EndDate:   args.EndDate,
+		Page:      args.Page,
+		Limit:     args.Limit,
+		UserID:    runtime.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(result)
+}
+
+func executeOpsAIAssistantWorkOrderQuery(ctx context.Context, runtime FunctionToolRuntime, rawArgs []byte) ([]byte, error) {
+	var args WorkOrderQueryArgs
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		return nil, err
+	}
+	if args.Action != "list" && args.Action != "get" && args.Action != "count" {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "ops_ai_assistant_work_order_query 是只读工具，仅允许 list/get/count 查询操作",
+		})
+	}
+	if runtime.UserID <= 0 {
+		return json.Marshal(map[string]interface{}{
+			"ok":       true,
+			"action":   args.Action,
+			"loggedIn": false,
+			"message":  "需要登录才能查询工单模块信息。",
+		})
+	}
+	if args.Action == "get" && args.OrderID <= 0 {
+		return nil, fmt.Errorf("order_id is required when action=get")
+	}
+	if args.StartDate != "" {
+		if _, err := time.Parse("2006-01-02", args.StartDate); err != nil {
+			return nil, fmt.Errorf("invalid start_date: %w", err)
+		}
+	}
+	if args.EndDate != "" {
+		if _, err := time.Parse("2006-01-02", args.EndDate); err != nil {
+			return nil, fmt.Errorf("invalid end_date: %w", err)
+		}
+	}
+	if args.StartDate != "" && args.EndDate != "" {
+		startDate, _ := time.Parse("2006-01-02", args.StartDate)
+		endDate, _ := time.Parse("2006-01-02", args.EndDate)
+		if endDate.Before(startDate) {
+			return nil, fmt.Errorf("end_date must be after start_date")
+		}
+	}
+	if args.Page <= 0 {
+		args.Page = 1
+	}
+	if args.Limit <= 0 {
+		args.Limit = 20
+	}
+	if args.Limit > 100 {
+		args.Limit = 100
+	}
+	if registeredWorkOrderProvider == nil {
+		return json.Marshal(map[string]interface{}{
+			"ok":    false,
+			"error": "工单查询服务未注册",
+		})
+	}
+
+	result, err := registeredWorkOrderProvider.QueryWorkOrders(ctx, WorkOrderQuery{
 		Action:    args.Action,
 		OrderID:   args.OrderID,
 		Search:    args.Search,

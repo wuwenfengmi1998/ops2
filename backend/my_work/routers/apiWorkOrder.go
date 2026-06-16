@@ -1,8 +1,10 @@
 package routers
 
 import (
+	"context"
 	"encoding/json"
 	parsefmt "fmt"
+	"ops/agents"
 	"ops/models"
 	"slices"
 	"time"
@@ -81,6 +83,274 @@ type PurchaseOrderInfo struct {
 	Status string `json:"status"`
 }
 
+// ---------- AI 工单查询 Provider ----------
+
+type workOrderProvider struct{}
+
+func (workOrderProvider) QueryWorkOrders(ctx context.Context, query agents.WorkOrderQuery) (*agents.WorkOrderQueryResult, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	result := &agents.WorkOrderQueryResult{
+		Ok:       true,
+		Action:   query.Action,
+		LoggedIn: query.UserID > 0,
+	}
+	if !result.LoggedIn {
+		result.Message = "需要登录才能查询工单模块信息。"
+		return result, nil
+	}
+
+	switch query.Action {
+	case "count":
+		counts, err := queryWorkOrderCounts(query)
+		if err != nil {
+			return nil, err
+		}
+		result.Counts = counts
+		return result, nil
+	case "get":
+		order, err := queryWorkOrderDetail(query.OrderID, query.UserID)
+		if err != nil {
+			return nil, err
+		}
+		result.Order = order
+		if order != nil {
+			result.Count = 1
+		}
+		return result, nil
+	default:
+		orders, total, err := queryWorkOrderList(query)
+		if err != nil {
+			return nil, err
+		}
+		result.Orders = orders
+		result.Count = len(orders)
+		result.Total = total
+		result.Page = query.Page
+		result.Limit = query.Limit
+		result.Filters = map[string]interface{}{
+			"search":     query.Search,
+			"status":     query.Status,
+			"start_date": query.StartDate,
+			"end_date":   query.EndDate,
+		}
+		return result, nil
+	}
+}
+
+func applyWorkOrderQueryFilters(db *gorm.DB, query agents.WorkOrderQuery) (*gorm.DB, error) {
+	if query.Search != "" {
+		var id uint
+		if _, err := parsefmt.Sscanf(query.Search, "%d", &id); err == nil && id > 0 {
+			db = db.Where("id = ?", id)
+		} else {
+			db = db.Where("title LIKE ? OR description LIKE ?", "%"+query.Search+"%", "%"+query.Search+"%")
+		}
+	}
+	if query.Status != "" {
+		db = db.Where("current_status = ?", query.Status)
+	}
+	if query.StartDate != "" {
+		startDate, err := time.Parse("2006-01-02", query.StartDate)
+		if err != nil {
+			return nil, err
+		}
+		db = db.Where("created_at >= ?", startDate)
+	}
+	if query.EndDate != "" {
+		endDate, err := time.Parse("2006-01-02", query.EndDate)
+		if err != nil {
+			return nil, err
+		}
+		db = db.Where("created_at < ?", endDate.AddDate(0, 0, 1))
+	}
+	return db, nil
+}
+
+func queryWorkOrderList(query agents.WorkOrderQuery) ([]agents.WorkOrder, int64, error) {
+	db, err := applyWorkOrderQueryFilters(models.DB.Model(&TabWorkOrder{}), query)
+	if err != nil {
+		return nil, 0, err
+	}
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var rows []TabWorkOrder
+	if err := db.Order("id DESC").Offset(query.Limit * (query.Page - 1)).Limit(query.Limit).Find(&rows).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orders := make([]agents.WorkOrder, 0, len(rows))
+	for _, row := range rows {
+		order := buildWorkOrder(row, query.UserID)
+		order.Customers = loadWorkOrderCustomers(row.ID)
+		order.Items = loadWorkOrderItems(row.ID)
+		orders = append(orders, order)
+	}
+	return orders, total, nil
+}
+
+func queryWorkOrderDetail(orderID uint, userID uint) (*agents.WorkOrder, error) {
+	var row TabWorkOrder
+	if err := models.DB.Where("id = ?", orderID).First(&row).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	order := buildWorkOrder(row, userID)
+	order.Customers = loadWorkOrderCustomers(orderID)
+	order.Items = loadWorkOrderItems(orderID)
+
+	var commits []TabWorkOrderCommit
+	if err := models.DB.Where("work_order_id = ?", orderID).Order("created_at DESC").Find(&commits).Error; err != nil {
+		return nil, err
+	}
+	order.Commits = make([]agents.WorkOrderCommit, 0, len(commits))
+	for _, commit := range commits {
+		order.Commits = append(order.Commits, agents.WorkOrderCommit{
+			ID:          commit.ID,
+			WorkOrderID: commit.WorkOrderID,
+			UserID:      commit.UserID,
+			Action:      commit.Action,
+			Status:      commit.Status,
+			StatusName:  workOrderStatusName(commit.Status),
+			OldStatus:   commit.OldStatus,
+			Comment:     commit.Comment,
+			CreatedAt:   formatTimePtr(commit.CreatedAt),
+		})
+	}
+	return &order, nil
+}
+
+func queryWorkOrderCounts(query agents.WorkOrderQuery) (map[string]int64, error) {
+	counts := map[string]int64{}
+	statuses := []string{"pending", "checked", "parts_ordered", "repaired", "returned", "unrepairable"}
+	var total int64
+	base, err := applyWorkOrderQueryFilters(models.DB.Model(&TabWorkOrder{}), agents.WorkOrderQuery{Search: query.Search, StartDate: query.StartDate, EndDate: query.EndDate})
+	if err != nil {
+		return nil, err
+	}
+	if err := base.Count(&total).Error; err != nil {
+		return nil, err
+	}
+	counts["total"] = total
+	for _, status := range statuses {
+		statusQuery := agents.WorkOrderQuery{Search: query.Search, Status: status, StartDate: query.StartDate, EndDate: query.EndDate}
+		db, err := applyWorkOrderQueryFilters(models.DB.Model(&TabWorkOrder{}), statusQuery)
+		if err != nil {
+			return nil, err
+		}
+		var count int64
+		if err := db.Count(&count).Error; err != nil {
+			return nil, err
+		}
+		counts[status] = count
+	}
+	return counts, nil
+}
+
+func buildWorkOrder(row TabWorkOrder, currentUserID uint) agents.WorkOrder {
+	return agents.WorkOrder{
+		ID:                row.ID,
+		UserID:            row.UserID,
+		Title:             row.Title,
+		Description:       row.Description,
+		DetailURL:         workOrderDetailURL(row.ID),
+		CurrentStatus:     row.CurrentStatus,
+		CurrentStatusName: workOrderStatusName(row.CurrentStatus),
+		CreatedAt:         formatTimePtr(row.CreatedAt),
+		UpdatedAt:         formatTimePtr(row.UpdatedAt),
+		CanModify:         canModifyWorkOrder(currentUserID, row.UserID),
+	}
+}
+
+func loadWorkOrderCustomers(workOrderID uint) []agents.WorkOrderCustomer {
+	var customerBinds []TabWorkOrderCustomerBind
+	models.DB.Where("work_order_id = ?", workOrderID).Find(&customerBinds)
+	if len(customerBinds) == 0 {
+		return nil
+	}
+	customerIDs := make([]uint, 0, len(customerBinds))
+	for _, b := range customerBinds {
+		customerIDs = append(customerIDs, b.CustomerID)
+	}
+	var customers []TabCustomer
+	if err := models.DB.Where("id IN ?", customerIDs).Find(&customers).Error; err != nil {
+		return nil
+	}
+	result := make([]agents.WorkOrderCustomer, 0, len(customers))
+	for _, c := range customers {
+		item := agents.WorkOrderCustomer{
+			ID:        c.ID,
+			FirstName: c.FirstName,
+			LastName:  c.LastName,
+		}
+		var phone TabCustomerPhone
+		if err := models.DB.Where("customer_id = ? AND is_primary = ?", c.ID, true).First(&phone).Error; err == nil {
+			item.PrimaryPhone = phone.Phone
+		} else if err := models.DB.Where("customer_id = ?", c.ID).First(&phone).Error; err == nil {
+			item.PrimaryPhone = phone.Phone
+		}
+		result = append(result, item)
+	}
+	return result
+}
+
+func loadWorkOrderItems(workOrderID uint) []agents.WorkOrderItem {
+	var itemBinds []TabWarehouseItemWorkOrderBind
+	models.DB.Where("work_order_id = ?", workOrderID).Find(&itemBinds)
+	if len(itemBinds) == 0 {
+		return nil
+	}
+	itemIDs := make([]uint, 0, len(itemBinds))
+	for _, b := range itemBinds {
+		itemIDs = append(itemIDs, b.ItemID)
+	}
+	var items []TabWarehouseItem
+	if err := models.DB.Where("id IN ?", itemIDs).Find(&items).Error; err != nil {
+		return nil
+	}
+	result := make([]agents.WorkOrderItem, 0, len(items))
+	for _, it := range items {
+		result = append(result, agents.WorkOrderItem{
+			ID:           it.ID,
+			Name:         it.Name,
+			SerialNumber: it.SerialNumber,
+		})
+	}
+	return result
+}
+
+func workOrderDetailURL(orderID uint) string {
+	return parsefmt.Sprintf("/workorder/showorder/%d", orderID)
+}
+
+func workOrderStatusName(status string) string {
+	switch status {
+	case "pending":
+		return "待处理"
+	case "checked":
+		return "已检查"
+	case "parts_ordered":
+		return "已下单零件"
+	case "repaired":
+		return "已维修"
+	case "returned":
+		return "已送还"
+	case "unrepairable":
+		return "无法维修"
+	default:
+		return status
+	}
+}
+
 // ---------- 初始化 ----------
 
 func ApiWorkOrderInit() {
@@ -96,6 +366,8 @@ func ApiWorkOrderInit() {
 		workOrderUserGroup.Type = "usergroup"
 		models.DB.Create(&workOrderUserGroup)
 	}
+
+	agents.RegisterWorkOrderProvider(workOrderProvider{})
 }
 
 // ---------- 路由注册 ----------
