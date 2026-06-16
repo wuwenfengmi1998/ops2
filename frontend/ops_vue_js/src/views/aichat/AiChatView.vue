@@ -609,6 +609,12 @@ function renderMarkdown(value) {
   return rendered
 }
 
+function sendQuickPrompt(prompt) {
+  if (pending.value) return
+  inputText.value = prompt
+  sendMessage()
+}
+
 async function sendMessage() {
   const text = inputText.value.trim()
   const image = selectedImage.value
@@ -854,6 +860,24 @@ async function sendMessage() {
               <p class="mt-2 text-sm text-gray-500 dark:text-dk-subtle">
                 {{ t('aichat.empty_hint') }}
               </p>
+              <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                  :disabled="pending"
+                  @click="sendQuickPrompt(t('aichat.quick_calendar_prompt'))"
+                >
+                  {{ t('aichat.quick_calendar_label') }}
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-900/50 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                  :disabled="pending"
+                  @click="sendQuickPrompt(t('aichat.quick_purchase_prompt'))"
+                >
+                  {{ t('aichat.quick_purchase_label') }}
+                </button>
+              </div>
             </div>
           </div>
 

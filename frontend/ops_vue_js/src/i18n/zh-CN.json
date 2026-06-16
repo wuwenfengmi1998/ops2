@@ -93,7 +93,12 @@
     "delete_chat_failed": "删除聊天失败",
     "storage_full": "浏览器存储空间不足，聊天可能无法保存",
     "login_to_sync": "登录后可保存聊天到服务端",
-    "untitled_chat": "新对话"
+    "untitled_chat": "新对话",
+    "quick_actions": "快捷操作",
+    "quick_calendar_label": "统计本月日程安排",
+    "quick_calendar_prompt": "请帮我统计本月的日程安排，并按时间顺序汇总。",
+    "quick_purchase_label": "统计本月采购花费",
+    "quick_purchase_prompt": "请帮我统计本月的采购花费总额，并按类别或供应商分类汇总。"
   },
   "aiconfig": {
     "title": "AI 配置",

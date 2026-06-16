@@ -93,7 +93,12 @@
     "delete_chat_failed": "Failed to delete chat",
     "storage_full": "Browser storage is full; the chat may not be saved",
     "login_to_sync": "Log in to save chats on the server",
-    "untitled_chat": "New chat"
+    "untitled_chat": "New chat",
+    "quick_actions": "Quick actions",
+    "quick_calendar_label": "Summarize this month's schedule",
+    "quick_calendar_prompt": "Please summarize this month's schedule entries in chronological order.",
+    "quick_purchase_label": "Summarize this month's purchase spending",
+    "quick_purchase_prompt": "Please summarize this month's total purchase spending, broken down by category or supplier."
   },
   "aiconfig": {
     "title": "AI Config",
