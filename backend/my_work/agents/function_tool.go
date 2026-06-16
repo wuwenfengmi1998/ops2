@@ -22,6 +22,21 @@ type FunctionToolRuntime struct {
 	UserInfo  *CurrentUserInfo
 }
 
+// terminalFunctionTools 标记一些"调用即结束"的工具：
+// 这类工具的返回结果已经包含了用户问题所需的全部数据，调用之后无需再让模型
+// 决定是否继续调用其他工具，直接进入最终回答生成阶段，可以省掉一轮模型请求。
+var terminalFunctionTools = map[string]bool{
+	"ops_ai_assistant":                true,
+	"ops_ai_assistant_schedule_query": true,
+	"ops_ai_assistant_purchase_query": true,
+}
+
+// IsTerminalFunctionTool 判断给定工具名是否为终止工具。命名匹配采用与
+// FunctionToolSchemas / ExecuteFunctionTool 一致的"小写并裁剪空格"规则。
+func IsTerminalFunctionTool(name string) bool {
+	return terminalFunctionTools[strings.ToLower(strings.TrimSpace(name))]
+}
+
 func FunctionToolSchemas(configs []ToolConfig) []FunctionToolSchema {
 	tools := make([]FunctionToolSchema, 0)
 	for _, config := range configs {

@@ -947,6 +947,7 @@ func runOpenAIToolLoop(ctx context.Context, profile models.ConfigsAIChatOpenAI_,
 
 		toolExecuted = true
 		messages = append(messages, openaiMessage{Role: "assistant", Content: message.Content, ToolCalls: message.ToolCalls})
+		terminalToolName := ""
 		for _, toolCall := range message.ToolCalls {
 			toolName := strings.TrimSpace(toolCall.Function.Name)
 			parsedArgs := parseJSONTraceValue(toolCall.Function.Arguments)
@@ -974,6 +975,19 @@ func runOpenAIToolLoop(ctx context.Context, profile models.ConfigsAIChatOpenAI_,
 				trace(toolName, "execute", status, "工具执行完成："+toolName, data)
 			}
 			messages = append(messages, openaiMessage{Role: "tool", ToolCallID: toolCall.ID, Name: toolName, Content: string(resultJSON)})
+			// 终止工具：仅在工具自身执行成功时短路。失败时仍交给模型重试或换工具。
+			if status == "success" && terminalToolName == "" && agents.IsTerminalFunctionTool(toolName) {
+				terminalToolName = toolName
+			}
+		}
+		if terminalToolName != "" {
+			if trace != nil {
+				trace(terminalToolName, "tool_call", "success", "命中终止工具，跳过下一轮工具决策，直接生成最终回答", map[string]interface{}{
+					"tool":  terminalToolName,
+					"round": round + 1,
+				})
+			}
+			return messages, toolExecuted, nil
 		}
 	}
 	return messages, toolExecuted, fmt.Errorf("工具调用超过最大轮数")
