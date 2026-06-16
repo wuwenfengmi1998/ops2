@@ -11,6 +11,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconFolder,
+  IconFolders,
   IconPackage,
   IconPlus,
   IconEdit,
@@ -31,11 +32,9 @@ const containerId = computed(() => parseInt(route.params.id))
 
 // ── 路由参数变化时重新加载 ──
 watch(containerId, async () => {
-  subPage.value = 1
-  itemPage.value = 1
+  page.value = 1
   await fetchContainer()
-  fetchSubContainers()
-  fetchItems()
+  fetchAll()
 })
 
 // ── 容器详情 ──
@@ -47,38 +46,39 @@ const canModifyContainer = ref(false)
 const loadingDetail = ref(true)
 const notFound = ref(false)
 
-// ── 子容器列表 ──
+// ═══════════════════════════════════════════════════════
+//  合并列表（子容器 + 物品，类似文件管理器）
+// ═══════════════════════════════════════════════════════
+const FETCH_LIMIT = 500
+
 const subContainers = ref([])
-const subTotal = ref(0)
-const subPage = ref(1)
-const subPageSize = ref(10)
-const subSearch = ref('')
-const loadingSub = ref(false)
-
-const subTotalPages = computed(() => Math.ceil(subTotal.value / subPageSize.value) || 1)
-
-function subPageRange() {
-  const total = subTotalPages.value
-  const cur = subPage.value
-  let start = Math.max(1, cur - 2)
-  let end = Math.min(cur + 4, total)
-  if (end - start < 4) start = Math.max(1, end - 4)
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
-}
-
-// ── 物品列表 ──
 const items = ref([])
+const subTotal = ref(0)
 const itemTotal = ref(0)
-const itemPage = ref(1)
-const itemPageSize = ref(10)
-const itemSearch = ref('')
-const loadingItems = ref(false)
 
-const itemTotalPages = computed(() => Math.ceil(itemTotal.value / itemPageSize.value) || 1)
+const search = ref('')
+const loading = ref(false)
 
-function itemPageRange() {
-  const total = itemTotalPages.value
-  const cur = itemPage.value
+const page = ref(1)
+const pageSize = ref(20)
+
+const entries = computed(() => {
+  const cs = subContainers.value.map(c => ({ kind: 'container', id: `c-${c.ID}`, data: c }))
+  const is = items.value.map(i => ({ kind: 'item', id: `i-${i.ID}`, data: i }))
+  return [...cs, ...is]
+})
+
+const totalEntries = computed(() => entries.value.length)
+const totalPages = computed(() => Math.ceil(totalEntries.value / pageSize.value) || 1)
+
+const pagedEntries = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return entries.value.slice(start, start + pageSize.value)
+})
+
+function pageRange() {
+  const total = totalPages.value
+  const cur = page.value
   let start = Math.max(1, cur - 2)
   let end = Math.min(cur + 4, total)
   if (end - start < 4) start = Math.max(1, end - 4)
@@ -105,14 +105,11 @@ function fmtTs(ts) {
   if (!ts) return '—'
   let d
   if (typeof ts === 'number') {
-    // Unix timestamp in seconds (number)
     d = new Date(ts * 1000)
   } else if (typeof ts === 'string') {
-    // Check if it's a Unix timestamp string like "1712345678"
     if (/^\d+$/.test(ts)) {
       d = new Date(parseInt(ts, 10) * 1000)
     } else {
-      // ISO 8601 or other string format
       d = new Date(ts)
     }
   } else {
@@ -148,48 +145,63 @@ async function fetchContainer() {
   }
 }
 
-// ── 拉取子容器 ──
-async function fetchSubContainers() {
-  subContainers.value = []
-  loadingSub.value = true
+// ── 同时拉取子容器和物品 ──
+async function fetchAll() {
+  loading.value = true
   try {
-    const { errCode, data } = await warehouseApi.getContainers({
-      search: subSearch.value,
-      parent_id: containerId.value,
-      entries: subPageSize.value,
-      page: subPage.value,
-    })
-    if (errCode === 0) {
-      subContainers.value = data.containers ?? []
-      subTotal.value = data.all_count ?? 0
+    const [cRes, iRes] = await Promise.all([
+      warehouseApi.getContainers({
+        search: search.value.trim(),
+        parent_id: containerId.value,
+        entries: FETCH_LIMIT,
+        page: 1,
+      }),
+      warehouseApi.getItems({
+        search: search.value.trim(),
+        container_id: containerId.value,
+        entries: FETCH_LIMIT,
+        page: 1,
+      }),
+    ])
+    if (cRes.errCode === 0) {
+      subContainers.value = cRes.data.containers ?? []
+      subTotal.value = cRes.data.all_count ?? 0
+    } else {
+      subContainers.value = []
+      subTotal.value = 0
     }
+    if (iRes.errCode === 0) {
+      items.value = iRes.data.items ?? []
+      itemTotal.value = iRes.data.all_count ?? 0
+    } else {
+      items.value = []
+      itemTotal.value = 0
+    }
+    page.value = 1
   } catch {
-    // 拦截器已处理
+    /* interceptor handled */
   } finally {
-    loadingSub.value = false
+    loading.value = false
   }
 }
 
-// ── 拉取物品 ──
-async function fetchItems() {
-  items.value = []
-  loadingItems.value = true
-  try {
-    const { errCode, data } = await warehouseApi.getItems({
-      search: itemSearch.value,
-      container_id: containerId.value,
-      entries: itemPageSize.value,
-      page: itemPage.value,
-    })
-    if (errCode === 0) {
-      items.value = data.items ?? []
-      itemTotal.value = data.all_count ?? 0
-    }
-  } catch {
-    // 拦截器已处理
-  } finally {
-    loadingItems.value = false
-  }
+let searchTimer = null
+function onSearchInput() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => fetchAll(), 400)
+}
+
+function goPage(p) {
+  if (p < 1 || p > totalPages.value) return
+  page.value = p
+}
+
+function handlePageSize(e) {
+  let val = parseInt(e.target.value) || 20
+  if (val > 300) val = 300
+  if (val < 1) val = 1
+  pageSize.value = val
+  page.value = 1
 }
 
 // ── 新增子容器 ──
@@ -209,7 +221,7 @@ async function submitAddSub() {
       toast.success(t('message.save_success'))
       showAddSub.value = false
       Object.assign(addSubForm, { title: '', remark: '' })
-      fetchSubContainers()
+      fetchAll()
       fetchContainer()
     } else {
       toast.error(t('message.server_error'))
@@ -282,11 +294,18 @@ async function doDelete() {
   }
 }
 
+// ── 跳转 ──
+function jumpToContainer(id) {
+  router.push(`/warehouse/container/${id}`)
+}
+function jumpToItem(id) {
+  router.push(`/warehouse/item/${id}`)
+}
+
 // ── 初始化 ──
 onMounted(async () => {
   await fetchContainer()
-  fetchSubContainers()
-  fetchItems()
+  fetchAll()
 })
 </script>
 
@@ -398,149 +417,32 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- 子容器列表 -->
+      <!-- 主卡片：子容器 + 物品（合并显示） -->
       <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-dk-muted dark:bg-dk-card">
         <!-- 工具栏 -->
         <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 dark:border-dk-muted">
-          <div class="relative flex-1 max-w-xs">
+          <div class="relative flex-1 max-w-md">
             <IconSearch class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" :size="15" />
             <input
-              v-model="subSearch"
+              v-model="search"
               type="text"
-              :placeholder="t('warehouse.search_placeholder')"
+              :placeholder="t('warehouse.search_contents_placeholder')"
               class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pl-9 pr-3 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              @keyup.enter="subPage = 1; fetchSubContainers()"
+              @input="onSearchInput"
+              @keyup.enter="fetchAll"
             />
+          </div>
+          <div class="flex-1 text-xs text-gray-400 dark:text-gray-500">
+            {{ t('warehouse.containers') }}: {{ subTotal }} · {{ t('warehouse.items') }}: {{ itemTotal }}
           </div>
           <button
             v-if="containerDepth < 4"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-base dark:text-white dark:hover:bg-dk-muted"
             @click="showAddSub = true"
           >
             <IconPlus :size="15" />
             {{ t('warehouse.add_container') }}
           </button>
-        </div>
-
-        <!-- 表格 -->
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-gray-900 dark:text-white">
-            <thead>
-              <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400">
-                <th class="px-5 py-3 font-medium">{{ t('warehouse.container_name') }}</th>
-                <th class="px-5 py-3 font-medium w-24 text-center">{{ t('warehouse.child_containers') }}</th>
-                <th class="px-5 py-3 font-medium w-24 text-center">{{ t('warehouse.items') }}</th>
-                <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.created_at') }}</th>
-                <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.updated_at') }}</th>
-                <th class="px-5 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
-                <th class="px-5 py-3 font-medium w-24 text-right">{{ t('warehouse.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loadingSub">
-                <td colspan="7" class="px-5 py-8 text-center">
-                  <svg class="mx-auto h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                </td>
-              </tr>
-              <tr v-else-if="subContainers.length === 0">
-                <td colspan="7" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
-                  {{ t('warehouse.no_containers') }}
-                </td>
-              </tr>
-              <tr
-                v-else
-                v-for="c in subContainers"
-                :key="c.ID"
-                class="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
-                @click="router.push(`/warehouse/container/${c.ID}`)"
-              >
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-2">
-                    <IconFolder class="text-blue-500 flex-shrink-0" :size="16" />
-                    <span class="font-medium max-w-xs truncate">{{ c.Title }}</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3 text-center">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">
-                    {{ c.ChildCount }}
-                  </span>
-                </td>
-                <td class="px-5 py-3 text-center">
-                  <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                    {{ c.ItemCount }}
-                  </span>
-                </td>
-                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(c.CreatedAt) }}</td>
-                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(c.UpdatedAt) }}</td>
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-1.5">
-                    <img
-                      :src="usersStore.getAvatarUrlFromUserID(c.CreatorID)"
-                      class="w-5 h-5 rounded-full object-cover flex-shrink-0"
-                    />
-                    <span class="truncate text-gray-600 dark:text-gray-400">{{ usersStore.getUsernameFromUserID(c.CreatorID) }}</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3 text-right">
-                  <button
-                    class="text-xs text-blue-500 hover:underline"
-                    @click.stop="router.push(`/warehouse/container/${c.ID}`)"
-                  >
-                    {{ t('warehouse.view_items') }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 分页 -->
-        <div v-if="subTotalPages > 1" class="flex items-center justify-center gap-1 px-5 py-3 border-t border-gray-100 dark:border-dk-muted">
-          <button
-            class="flex items-center justify-center w-7 h-7 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-dk-muted"
-            :disabled="subPage <= 1"
-            @click="subPage--; fetchSubContainers()"
-          >
-            <IconChevronLeft :size="15" />
-          </button>
-          <button
-            v-for="p in subPageRange()"
-            :key="p"
-            class="flex items-center justify-center w-7 h-7 rounded text-sm"
-            :class="p === subPage
-              ? 'bg-blue-600 text-white font-medium'
-              : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-muted'"
-            @click="subPage = p; fetchSubContainers()"
-          >
-            {{ p }}
-          </button>
-          <button
-            class="flex items-center justify-center w-7 h-7 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-dk-muted"
-            :disabled="subPage >= subTotalPages"
-            @click="subPage++; fetchSubContainers()"
-          >
-            <IconChevronRight :size="15" />
-          </button>
-        </div>
-      </div>
-
-      <!-- 物品列表 -->
-      <div class="rounded-xl border border-gray-200 bg-white shadow dark:border-dk-muted dark:bg-dk-card">
-        <!-- 工具栏 -->
-        <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 dark:border-dk-muted">
-          <div class="relative flex-1 max-w-xs">
-            <IconSearch class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" :size="15" />
-            <input
-              v-model="itemSearch"
-              type="text"
-              :placeholder="t('warehouse.search_placeholder')"
-              class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pl-9 pr-3 text-sm dark:border-dk-muted dark:bg-dk-base dark:text-white"
-              @keyup.enter="itemPage = 1; fetchItems()"
-            />
-          </div>
           <button
             class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             @click="router.push(`/warehouse/container/${containerId}/add-item`)"
@@ -555,120 +457,174 @@ onMounted(async () => {
           <table class="w-full text-left text-sm text-gray-900 dark:text-white">
             <thead>
               <tr class="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-dk-muted dark:bg-dk-base dark:text-gray-400">
-                <th class="px-5 py-3 font-medium w-80">{{ t('warehouse.item_name') }}</th>
-                <th class="px-5 py-3 font-medium w-20">{{ t('warehouse.serial_number') }}</th>
-                <th class="px-5 py-3 font-medium w-50">{{ t('warehouse.remark') }}</th>
-                <th class="px-5 py-3 font-medium text-center">{{ t('warehouse.quantity') }}</th>
-                <th class="px-5 py-3 font-medium text-center">{{ t('work_order.work_order_count') }}</th>
-                <th class="px-5 py-3 font-medium ">{{ t('customer.related_customers') }}</th>
-                <th class="px-5 py-3 font-medium whitespace-nowrap">{{ t('warehouse.updated_at') }}</th>
+                <th class="px-5 py-3 font-medium w-80">{{ t('warehouse.container_name') }} / {{ t('warehouse.item_name') }}</th>
+                <th class="px-5 py-3 font-medium">{{ t('warehouse.remark') }}</th>
+                <th class="px-5 py-3 font-medium w-32 text-center">{{ t('warehouse.child_containers') }} / {{ t('warehouse.quantity') }}</th>
+                <th class="px-5 py-3 font-medium w-28 text-center">{{ t('work_order.work_order_count') }}</th>
+                <th class="px-5 py-3 font-medium">{{ t('customer.related_customers') }}</th>
+                <th class="px-5 py-3 font-medium whitespace-nowrap w-44">{{ t('warehouse.updated_at') }}</th>
                 <th class="px-5 py-3 font-medium">{{ t('warehouse.created_by') }}</th>
-                <th class="px-5 py-3 font-medium w-20 text-right">{{ t('warehouse.actions') }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="loadingItems">
-                <td colspan="9" class="px-5 py-8 text-center">
+              <tr v-if="loading">
+                <td colspan="7" class="px-5 py-8 text-center">
                   <svg class="mx-auto h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
                 </td>
               </tr>
-              <tr v-else-if="items.length === 0">
-                <td colspan="9" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
-                  {{ t('warehouse.no_items') }}
+              <tr v-else-if="totalEntries === 0">
+                <td colspan="7" class="px-5 py-8 text-center text-gray-400 dark:text-gray-500">
+                  {{ t('warehouse.no_contents') }}
                 </td>
               </tr>
-              <tr
-                v-else
-                v-for="item in items"
-                :key="item.ID"
-                class="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
-                @click="router.push(`/warehouse/item/${item.ID}`)"
-              >
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-2">
-                    <IconPackage class="text-green-500 flex-shrink-0" :size="16" />
-                    <span class="font-medium max-w-[13rem] truncate">{{ item.Name }}</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[140px] truncate">{{ item.SerialNumber || '—' }}</td>
-                <td class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">{{ item.Remark || '—' }}</td>
-                <td class="px-5 py-3 text-center text-sm">{{ item.Quantity }}</td>
-                <td class="px-5 py-3 text-center">
-                  <span v-if="item.WorkOrderCount > 0" class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
-                    <IconTool :size="12" />
-                    {{ item.WorkOrderCount }}
-                  </span>
-                  <span v-else class="text-gray-400">—</span>
-                </td>
-                <td class="px-5 py-3">
-                  <div v-if="item.Customers && item.Customers.length > 0" class="flex flex-wrap gap-1">
-                    <RouterLink
-                      v-for="customer in item.Customers.slice(0, 3)"
-                      :key="customer.id"
-                      :to="`/customer/detail/${customer.id}`"
-                      class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60 whitespace-nowrap"
-                      @click.stop
-                    >
-                      <IconUser :size="10" />
-                      {{ customer.first_name }} {{ customer.last_name }}
-                    </RouterLink>
-                    <span v-if="item.Customers.length > 3" class="text-xs text-gray-400">+{{ item.Customers.length - 3 }}</span>
-                  </div>
-                  <span v-else class="text-gray-400">—</span>
-                </td>
-                <td class="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ fmtTs(item.UpdatedAt) }}</td>
-                <td class="px-5 py-3">
-                  <div class="flex items-center gap-1.5">
-                    <img
-                      :src="usersStore.getAvatarUrlFromUserID(item.CreatorID)"
-                      class="w-5 h-5 rounded-full object-cover flex-shrink-0"
-                    />
-                    <span class="truncate text-gray-600 dark:text-gray-400">{{ usersStore.getUsernameFromUserID(item.CreatorID) }}</span>
-                  </div>
-                </td>
-                <td class="px-5 py-3 text-right">
-                  <button
-                    class="text-xs text-blue-500 hover:underline whitespace-nowrap"
-                    @click.stop="router.push(`/warehouse/item/${item.ID}`)"
-                  >
-                    {{ t('warehouse.view_items') }}
-                  </button>
-                </td>
-              </tr>
+              <template v-else>
+                <tr
+                  v-for="entry in pagedEntries"
+                  :key="entry.id"
+                  class="cursor-pointer border-b border-gray-100 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
+                  @click="entry.kind === 'container' ? jumpToContainer(entry.data.ID) : jumpToItem(entry.data.ID)"
+                >
+                  <!-- 名称 -->
+                  <td class="px-5 py-3">
+                    <div class="flex items-center gap-2">
+                      <IconFolder
+                        v-if="entry.kind === 'container'"
+                        class="flex-shrink-0 text-blue-500"
+                        :size="18"
+                      />
+                      <IconPackage
+                        v-else
+                        class="flex-shrink-0 text-green-500"
+                        :size="18"
+                      />
+                      <span class="max-w-xs truncate font-medium text-gray-900 dark:text-white">
+                        {{ entry.kind === 'container' ? entry.data.Title : entry.data.Name }}
+                      </span>
+                      <span
+                        v-if="entry.kind === 'item' && entry.data.SerialNumber"
+                        class="text-xs text-gray-400 dark:text-gray-500 truncate"
+                      >· {{ entry.data.SerialNumber }}</span>
+                    </div>
+                  </td>
+
+                  <!-- 备注 -->
+                  <td class="px-5 py-3 max-w-xs truncate text-gray-500 dark:text-gray-400">
+                    {{ entry.data.Remark || '—' }}
+                  </td>
+
+                  <!-- 容量 / 数量 -->
+                  <td class="px-5 py-3 text-center">
+                    <template v-if="entry.kind === 'container'">
+                      <span class="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">
+                        <IconFolders :size="12" />
+                        {{ entry.data.ChildCount }}
+                      </span>
+                      <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                        <IconPackage :size="12" />
+                        {{ entry.data.ItemCount }}
+                      </span>
+                    </template>
+                    <span v-else class="text-sm text-gray-700 dark:text-gray-300">{{ entry.data.Quantity }}</span>
+                  </td>
+
+                  <!-- 工单数 -->
+                  <td class="px-5 py-3 text-center">
+                    <template v-if="entry.kind === 'item'">
+                      <span
+                        v-if="entry.data.WorkOrderCount > 0"
+                        class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
+                      >
+                        <IconTool :size="12" />
+                        {{ entry.data.WorkOrderCount }}
+                      </span>
+                      <span v-else class="text-gray-400">—</span>
+                    </template>
+                    <span v-else class="text-gray-400">—</span>
+                  </td>
+
+                  <!-- 关联客户 -->
+                  <td class="px-5 py-3">
+                    <template v-if="entry.kind === 'item' && entry.data.Customers && entry.data.Customers.length > 0">
+                      <div class="flex flex-wrap gap-1">
+                        <RouterLink
+                          v-for="customer in entry.data.Customers.slice(0, 3)"
+                          :key="customer.id"
+                          :to="`/customer/detail/${customer.id}`"
+                          class="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/60 whitespace-nowrap"
+                          @click.stop
+                        >
+                          <IconUser :size="10" />
+                          {{ customer.first_name }} {{ customer.last_name }}
+                        </RouterLink>
+                        <span v-if="entry.data.Customers.length > 3" class="text-xs text-gray-400">
+                          +{{ entry.data.Customers.length - 3 }}
+                        </span>
+                      </div>
+                    </template>
+                    <span v-else class="text-gray-400">—</span>
+                  </td>
+
+                  <!-- 更新时间 -->
+                  <td class="px-5 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                    {{ fmtTs(entry.data.UpdatedAt) }}
+                  </td>
+
+                  <!-- 创建人 -->
+                  <td class="px-5 py-3">
+                    <div class="flex items-center gap-1.5">
+                      <img
+                        :src="usersStore.getAvatarUrlFromUserID(entry.data.CreatorID)"
+                        class="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                      />
+                      <span class="truncate text-gray-600 dark:text-gray-400">
+                        {{ usersStore.getUsernameFromUserID(entry.data.CreatorID) }}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </template>
             </tbody>
           </table>
         </div>
 
         <!-- 分页 -->
-        <div v-if="itemTotalPages > 1" class="flex items-center justify-center gap-1 px-5 py-3 border-t border-gray-100 dark:border-dk-muted">
-          <button
-            class="flex items-center justify-center w-7 h-7 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-dk-muted"
-            :disabled="itemPage <= 1"
-            @click="itemPage--; fetchItems()"
-          >
-            <IconChevronLeft :size="15" />
-          </button>
-          <button
-            v-for="p in itemPageRange()"
-            :key="p"
-            class="flex items-center justify-center w-7 h-7 rounded text-sm"
-            :class="p === itemPage
-              ? 'bg-blue-600 text-white font-medium'
-              : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-muted'"
-            @click="itemPage = p; fetchItems()"
-          >
-            {{ p }}
-          </button>
-          <button
-            class="flex items-center justify-center w-7 h-7 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-dk-muted"
-            :disabled="itemPage >= itemTotalPages"
-            @click="itemPage++; fetchItems()"
-          >
-            <IconChevronRight :size="15" />
-          </button>
+        <div v-if="totalPages > 1 || pageSize !== 20" class="flex flex-col items-center gap-3 border-t border-gray-100 px-5 py-3 sm:flex-row sm:justify-between dark:border-dk-muted">
+          <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span>{{ t('warehouse.total_items', { count: totalEntries }) }}</span>
+            <span class="ml-2">{{ t('warehouse.containers') }}: {{ subContainers.length }}</span>
+            <span>·</span>
+            <span>{{ t('warehouse.items') }}: {{ items.length }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button
+              class="flex items-center justify-center w-7 h-7 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-dk-muted"
+              :disabled="page <= 1"
+              @click="goPage(page - 1)"
+            >
+              <IconChevronLeft :size="15" />
+            </button>
+            <button
+              v-for="p in pageRange()"
+              :key="p"
+              class="flex items-center justify-center w-7 h-7 rounded text-sm"
+              :class="p === page
+                ? 'bg-blue-600 text-white font-medium'
+                : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dk-muted'"
+              @click="goPage(p)"
+            >
+              {{ p }}
+            </button>
+            <button
+              class="flex items-center justify-center w-7 h-7 rounded text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-dk-muted"
+              :disabled="page >= totalPages"
+              @click="goPage(page + 1)"
+            >
+              <IconChevronRight :size="15" />
+            </button>
+          </div>
         </div>
       </div>
 
