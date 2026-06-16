@@ -945,6 +945,7 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		type FromList struct {
 			Search      string `json:"search"`
 			ContainerID *uint  `json:"container_id"`
+			Unstored    bool   `json:"unstored"` // 仅返回未入库（container_id IS NULL）的物品
 			Entries     int    `json:"entries"`
 			Page        int    `json:"page"`
 		}
@@ -968,6 +969,8 @@ func ApiWarehouse(r *gin.RouterGroup) {
 		}
 		if from.ContainerID != nil {
 			query = query.Where("container_id = ?", *from.ContainerID)
+		} else if from.Unstored {
+			query = query.Where("container_id IS NULL")
 		}
 		query.Count(&count)
 

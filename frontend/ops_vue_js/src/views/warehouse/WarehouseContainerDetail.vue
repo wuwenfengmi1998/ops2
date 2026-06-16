@@ -49,7 +49,7 @@ const notFound = ref(false)
 // ═══════════════════════════════════════════════════════
 //  合并列表（子容器 + 物品，类似文件管理器）
 // ═══════════════════════════════════════════════════════
-const FETCH_LIMIT = 500
+const FETCH_LIMIT = 300
 
 const subContainers = ref([])
 const items = ref([])

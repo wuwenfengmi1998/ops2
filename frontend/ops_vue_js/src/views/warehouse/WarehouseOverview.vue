@@ -42,8 +42,8 @@ const stats = reactive({
 // 在前端合并为统一的 entries 列表（容器在前、物品在后），
 // 共用一个搜索框 + 一个分页器。
 
-// 一次性向后端取的最大条数（足够覆盖大多数前端分页场景）
-const FETCH_LIMIT = 500
+// 一次性向后端取的最大条数（后端上限 300）
+const FETCH_LIMIT = 300
 
 const containers = ref([])           // 原始容器列表
 const items = ref([])                // 原始物品列表
@@ -102,6 +102,7 @@ async function fetchAll() {
       }),
       warehouseApi.getItems({
         search: search.value.trim(),
+        unstored: true,
         entries: FETCH_LIMIT,
         page: 1,
       }),
@@ -114,6 +115,8 @@ async function fetchAll() {
       containerTotal.value = 0
     }
     if (iRes.errCode === 0) {
+      // 根目录类比文件管理器：只显示「未入库」的物品（unstored=true 由后端过滤）；
+      // 已归入容器的物品在对应容器详情页里显示。
       items.value = iRes.data.items ?? []
       itemTotal.value = iRes.data.all_count ?? 0
     } else {
