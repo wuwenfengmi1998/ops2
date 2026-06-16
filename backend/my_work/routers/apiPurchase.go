@@ -218,7 +218,7 @@ func queryPurchaseOrderList(query agents.PurchaseQuery) ([]agents.PurchaseOrder,
 	}
 
 	var rows []TabPurchaseOrder
-	if err := db.Order("updated_at DESC, id DESC").Offset(query.Limit * (query.Page - 1)).Limit(query.Limit).Find(&rows).Error; err != nil {
+	if err := db.Order("id DESC").Offset(query.Limit * (query.Page - 1)).Limit(query.Limit).Find(&rows).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -739,7 +739,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 					//读取条目
 					var getorders []TabPurchaseOrder
-					query.Order("updated_at DESC, id DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
+					query.Order("id DESC").Offset(jsondata.Entries * (jsondata.Page - 1)).Limit(jsondata.Entries).Find(&getorders)
 
 					ReturnJson(ctx, "apiOK", map[string]interface{}{
 						"all_count":  count,
@@ -1125,7 +1125,7 @@ func ApiPurchase(r *gin.RouterGroup) {
 		}
 
 		var orders []TabWorkOrder
-		query.Order("updated_at DESC, id DESC").Limit(from.Limit).Find(&orders)
+		query.Order("id DESC").Limit(from.Limit).Find(&orders)
 
 		type WorkOrderInfo struct {
 			ID     uint   `json:"id"`

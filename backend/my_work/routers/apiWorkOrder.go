@@ -325,7 +325,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		query.Count(&count)
 
 		var orders []TabWorkOrder
-		query.Order("updated_at DESC, id DESC").
+		query.Order("id DESC").
 			Offset(from.Entries * (from.Page - 1)).
 			Limit(from.Entries).
 			Find(&orders)
@@ -955,7 +955,7 @@ func ApiWorkOrder(r *gin.RouterGroup) {
 		}
 
 		var orders []TabPurchaseOrder
-		query.Order("created_at DESC").Limit(from.Limit).Find(&orders)
+		query.Order("id DESC").Limit(from.Limit).Find(&orders)
 
 		type OrderInfo struct {
 			ID     uint   `json:"id"`
