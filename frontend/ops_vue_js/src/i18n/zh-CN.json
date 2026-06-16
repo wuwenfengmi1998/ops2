@@ -87,6 +87,8 @@
     "no_server_chats": "暂无服务端聊天",
     "no_browser_chats": "暂无浏览器聊天",
     "delete_chat": "删除聊天",
+    "delete_chat_confirm": "确定要删除该聊天吗？此操作不可恢复。",
+    "login_required": "请先登录后再使用 AI 聊天",
     "rename_chat": "重命名聊天",
     "load_conversations_failed": "加载聊天列表失败",
     "load_chat_failed": "加载聊天失败",

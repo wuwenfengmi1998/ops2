@@ -12,6 +12,7 @@ import {
 import { usePageTitle } from '@/composables/usePageTitle'
 import { useToastStore } from '@/stores/toast'
 import { useUserStore } from '@/stores/user'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const props = defineProps({
   embedded: {
@@ -49,6 +50,9 @@ const activeSource = ref('local')
 const activeLocalId = ref('')
 const activeServerId = ref(0)
 const loadingConversations = ref(false)
+
+const confirmDeleteVisible = ref(false)
+const pendingDeleteTarget = ref(null) // { type: 'local' | 'server', id }
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -319,6 +323,32 @@ function clearChat() {
 
 async function deleteLocalConversation(localId) {
   if (pending.value) return
+  pendingDeleteTarget.value = { type: 'local', id: localId }
+  confirmDeleteVisible.value = true
+}
+
+async function deleteServerConversation(id) {
+  if (pending.value) return
+  pendingDeleteTarget.value = { type: 'server', id }
+  confirmDeleteVisible.value = true
+}
+
+async function handleConfirmDelete() {
+  const target = pendingDeleteTarget.value
+  pendingDeleteTarget.value = null
+  if (!target) return
+  if (target.type === 'local') {
+    doDeleteLocalConversation(target.id)
+  } else if (target.type === 'server') {
+    await doDeleteServerConversation(target.id)
+  }
+}
+
+function handleCancelDelete() {
+  pendingDeleteTarget.value = null
+}
+
+function doDeleteLocalConversation(localId) {
   localConversations.value = localConversations.value.filter((item) => item.localId !== localId)
   saveLocalConversations()
   if (activeLocalId.value === localId) {
@@ -330,9 +360,7 @@ async function deleteLocalConversation(localId) {
   }
 }
 
-async function deleteServerConversation(id) {
-  if (pending.value) return
-  if (!window.confirm(t('aichat.delete_chat'))) return
+async function doDeleteServerConversation(id) {
   try {
     const res = await deleteAIChatConversation(id)
     if (res.errCode === 0) {
@@ -611,14 +639,24 @@ function renderMarkdown(value) {
 
 function sendQuickPrompt(prompt) {
   if (pending.value) return
+  if (!ensureLoggedIn()) return
   inputText.value = prompt
   sendMessage()
+}
+
+function ensureLoggedIn() {
+  if (!userStore.isLoggedIn) {
+    toast.warning(t('aichat.login_required'))
+    return false
+  }
+  return true
 }
 
 async function sendMessage() {
   const text = inputText.value.trim()
   const image = selectedImage.value
   if ((!text && !image) || pending.value) return
+  if (!ensureLoggedIn()) return
 
   const clientLocalId = activeLocalId.value || createLocalId()
   activeLocalId.value = clientLocalId
@@ -1039,6 +1077,15 @@ async function sendMessage() {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      v-model="confirmDeleteVisible"
+      :title="t('aichat.delete_chat')"
+      :message="t('aichat.delete_chat_confirm')"
+      :danger="true"
+      @confirm="handleConfirmDelete"
+      @cancel="handleCancelDelete"
+    />
   </div>
 </template>
 
