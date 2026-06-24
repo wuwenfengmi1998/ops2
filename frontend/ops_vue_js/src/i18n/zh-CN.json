@@ -356,6 +356,8 @@
     "no_contents": "暂无内容",
     "type_container": "容器",
     "type_item": "物品",
+    "item": "物品",
+    "view_detail": "查看详情",
     "linked_customers": "关联客户",
     "linked_customer_placeholder": "搜索客户姓名或电话...",
     "linked_customer_not_found": "未找到匹配的客户",

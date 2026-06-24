@@ -356,6 +356,8 @@
     "no_contents": "No contents",
     "type_container": "Container",
     "type_item": "Item",
+    "item": "Item",
+    "view_detail": "View Detail",
     "linked_customers": "Linked Customers",
     "linked_customer_placeholder": "Search customer by name or phone...",
     "linked_customer_not_found": "No matching customers found",

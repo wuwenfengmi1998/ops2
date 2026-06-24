@@ -68,16 +68,53 @@ const pageRange = computed(() => {
 async function fetchContainers() {
   loading.value = true
   try {
-    const { errCode, data } = await warehouseApi.getContainers({
-      search: search.value,
-      entries: pageSize.value,
-      page: currentPage.value,
-    })
-    if (errCode === 0) {
-      containers.value = data.containers ?? []
-      totalCount.value = data.all_count ?? 0
+    // 如果有搜索词，同时搜索容器和物品
+    if (search.value.trim()) {
+      const [containersRes, itemsRes] = await Promise.all([
+        warehouseApi.getContainers({
+          search: search.value,
+          entries: pageSize.value,
+          page: currentPage.value,
+        }),
+        warehouseApi.getItems({
+          search: search.value,
+          entries: pageSize.value,
+          page: currentPage.value,
+        })
+      ])
+
+      if (containersRes.errCode === 0 && itemsRes.errCode === 0) {
+        // 合并容器和物品结果，添加类型标识
+        const containerList = (containersRes.data.containers ?? []).map(c => ({
+          ...c,
+          _type: 'container'
+        }))
+        const itemList = (itemsRes.data.items ?? []).map(i => ({
+          ...i,
+          _type: 'item'
+        }))
+
+        containers.value = [...containerList, ...itemList]
+        totalCount.value = (containersRes.data.all_count ?? 0) + (itemsRes.data.all_count ?? 0)
+      } else {
+        toast.error(t('message.server_error'))
+      }
     } else {
-      toast.error(t('message.server_error'))
+      // 没有搜索词时，只显示容器
+      const { errCode, data } = await warehouseApi.getContainers({
+        search: search.value,
+        entries: pageSize.value,
+        page: currentPage.value,
+      })
+      if (errCode === 0) {
+        containers.value = (data.containers ?? []).map(c => ({
+          ...c,
+          _type: 'container'
+        }))
+        totalCount.value = data.all_count ?? 0
+      } else {
+        toast.error(t('message.server_error'))
+      }
     }
   } catch {
     // 拦截器已处理
@@ -121,9 +158,13 @@ function handleSearch() {
   fetchContainers()
 }
 
-// ── 跳转到子容器 ──
-function jumpToContainer(id) {
-  router.push(`/warehouse/container/${id}`)
+// ── 跳转到容器或物品详情 ──
+function jumpToDetail(item) {
+  if (item._type === 'item') {
+    router.push(`/warehouse/item/${item.ID}`)
+  } else {
+    router.push(`/warehouse/container/${item.ID}`)
+  }
 }
 
 // ── 打开新增 ──
@@ -323,41 +364,49 @@ onMounted(() => {
             <tr
               v-else
               v-for="c in containers"
-              :key="c.ID"
+              :key="`${c._type}-${c.ID}`"
               class="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 dark:border-dk-muted dark:hover:bg-dk-base"
-              @click="jumpToContainer(c.ID)"
+              @click="jumpToDetail(c)"
             >
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400">{{ c.ID }}</td>
               <td class="px-6 py-3">
                 <div class="flex items-center gap-2">
-                  <IconFolder class="text-blue-500 flex-shrink-0" :size="18" />
-                  <span class="font-medium text-gray-900 dark:text-white max-w-[10rem] truncate">{{ c.Title }}</span>
+                  <IconFolder v-if="c._type === 'container'" class="text-blue-500 flex-shrink-0" :size="18" />
+                  <IconPackage v-else class="text-green-500 flex-shrink-0" :size="18" />
+                  <div class="flex flex-col">
+                    <span class="font-medium text-gray-900 dark:text-white max-w-[10rem] truncate">{{ c.Title }}</span>
+                    <span v-if="c._type === 'item'" class="text-xs text-gray-500 dark:text-gray-400">{{ t('warehouse.item') }}</span>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ c.Remark || '—' }}</td>
               <td class="px-6 py-3 text-center">
-                <span
+                <span v-if="c._type === 'container'"
                   class="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-400"
                 >
                   <IconFolders :size="12" />
                   {{ c.ChildCount }}
                 </span>
+                <span v-else class="text-gray-400">—</span>
               </td>
               <td class="px-6 py-3 text-center">
-                <span
+                <span v-if="c._type === 'container'"
                   class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400"
                 >
                   <IconPackage :size="12" />
                   {{ c.ItemCount }}
                 </span>
+                <span v-else-if="c.Quantity !== undefined" class="text-gray-500 dark:text-gray-400">x{{ c.Quantity }}</span>
+                <span v-else class="text-gray-400">—</span>
               </td>
               <td class="px-6 py-3 text-center">
-                <span
+                <span v-if="c.WorkOrderCount !== undefined"
                   class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
                 >
                   <IconTool :size="12" />
                   {{ c.WorkOrderCount }}
                 </span>
+                <span v-else class="text-gray-400">—</span>
               </td>
               <td class="px-6 py-3">
                 <div v-if="c.Customers && c.Customers.length > 0" class="flex flex-wrap gap-1">
@@ -376,7 +425,7 @@ onMounted(() => {
                 <span v-else class="text-gray-400">—</span>
               </td>
               <td class="px-6 py-3 text-right" @click.stop>
-                <div class="flex items-center justify-end gap-1">
+                <div v-if="c._type === 'container'" class="flex items-center justify-end gap-1">
                   <button
                     v-if="c.ChildCount === 0 && c.ItemCount === 0"
                     class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-dk-muted"
@@ -395,7 +444,16 @@ onMounted(() => {
                   <button
                     class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-500 dark:hover:bg-dk-muted"
                     :title="t('warehouse.view_items')"
-                    @click="jumpToContainer(c.ID)"
+                    @click="jumpToDetail(c)"
+                  >
+                    <IconChevronRight :size="15" />
+                  </button>
+                </div>
+                <div v-else class="flex items-center justify-end gap-1">
+                  <button
+                    class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-500 dark:hover:bg-dk-muted"
+                    :title="t('warehouse.view_detail')"
+                    @click="jumpToDetail(c)"
                   >
                     <IconChevronRight :size="15" />
                   </button>
