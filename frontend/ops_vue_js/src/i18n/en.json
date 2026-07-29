@@ -37,7 +37,8 @@
     "warehouse_items": "Items Overview",
     "work_order": "Work Order",
     "calendar": "Calendar",
-    "aichat": "AI Assistant"
+    "aichat": "AI Assistant",
+    "ae_proxy": "AE Proxy"
   },
   "aichat": {
     "title": "AI Assistant",

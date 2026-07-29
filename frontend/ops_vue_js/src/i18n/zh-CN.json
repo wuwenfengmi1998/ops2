@@ -37,7 +37,8 @@
     "warehouse_items": "物品总览",
     "work_order": "工单",
     "calendar": "日历",
-    "aichat": "AI 助手"
+    "aichat": "AI 助手",
+    "ae_proxy": "AE代理"
   },
   "aichat": {
     "title": "AI 助手",

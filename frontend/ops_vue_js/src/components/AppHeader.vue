@@ -59,7 +59,7 @@ const navItems = computed(() => [
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
   { label: t("appname.warehouse"), to: "/warehouse" },
-  
+  { label: t("appname.ae_proxy"), href: "http://192.168.3.116:8187/asteamobile/", external: true },
 ]);
 </script>
 
@@ -87,14 +87,24 @@ const navItems = computed(() => [
 
       <!-- Desktop Nav -->
       <nav class="hidden flex-1 items-center gap-1 md:flex">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          :class="[normalClass, isActive(item.to) && activeClass]"
-        >
-          {{ item.label }}
-        </RouterLink>
+        <template v-for="item in navItems" :key="item.to || item.href">
+          <a
+            v-if="item.external"
+            :href="item.href"
+            target="_blank"
+            rel="noopener"
+            :class="normalClass"
+          >
+            {{ item.label }}
+          </a>
+          <RouterLink
+            v-else
+            :to="item.to"
+            :class="[normalClass, isActive(item.to) && activeClass]"
+          >
+            {{ item.label }}
+          </RouterLink>
+        </template>
       </nav>
 
       <!-- Right actions -->
@@ -284,15 +294,26 @@ const navItems = computed(() => [
         class="border-t border-gray-200 bg-white px-4 pb-4 pt-2 dark:border-dk-muted dark:bg-dk-base md:hidden"
       >
         <nav class="flex flex-col gap-1">
-          <RouterLink
-            v-for="item in navItems"
-            :key="item.to"
-            :to="item.to"
-            :class="['rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-card', isActive(item.to) && 'bg-blue-50 text-blue-600 dark:bg-dk-card dark:text-blue-400']"
-            @click="mobileMenuOpen = false"
-          >
-            {{ item.label }}
-          </RouterLink>
+          <template v-for="item in navItems" :key="item.to || item.href">
+            <a
+              v-if="item.external"
+              :href="item.href"
+              target="_blank"
+              rel="noopener"
+              class="rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-card"
+              @click="mobileMenuOpen = false"
+            >
+              {{ item.label }}
+            </a>
+            <RouterLink
+              v-else
+              :to="item.to"
+              :class="['rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-dk-subtle dark:hover:bg-dk-card', isActive(item.to) && 'bg-blue-50 text-blue-600 dark:bg-dk-card dark:text-blue-400']"
+              @click="mobileMenuOpen = false"
+            >
+              {{ item.label }}
+            </RouterLink>
+          </template>
         </nav>
         <hr class="my-3 border-gray-200 dark:border-dk-muted" />
         <div class="flex items-center gap-2">
