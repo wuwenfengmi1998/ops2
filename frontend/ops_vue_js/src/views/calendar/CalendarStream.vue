@@ -844,9 +844,14 @@ function scrollToToday() {
       const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
       if (!todayCell) return
 
+      const idx = weeks.value.findIndex(w => weekKey(w) === dateToStr(getWeekStart(new Date())))
+      const prevWeekHeight = idx > 0
+        ? (weekLayouts.get(weekKey(weeks.value[idx - 1]))?.weekHeight ?? 90)
+        : 0
+
       const contRect = container.getBoundingClientRect()
       const cellRect = todayCell.getBoundingClientRect()
-      const target = container.scrollTop + (cellRect.top - contRect.top) - (container.clientHeight - cellRect.height) / 2
+      const target = container.scrollTop + (cellRect.top - contRect.top) - prevWeekHeight
       container.scrollTo({ top: Math.max(0, target), behavior: 'instant' })
 
       requestAnimationFrame(() => {
@@ -854,7 +859,7 @@ function scrollToToday() {
         const c2 = container.getBoundingClientRect()
         const r2 = cell2?.getBoundingClientRect()
         const delta = r2
-          ? Math.abs((r2.top + r2.height / 2) - (c2.top + c2.height / 2))
+          ? Math.abs((r2.top - c2.top) - prevWeekHeight)
           : Infinity
         if (delta > 30 && todayScrollAttempts < 5) {
           todayScrollAttempts++
