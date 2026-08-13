@@ -750,17 +750,27 @@ function handleKeyDown(e) {
   }
 }
 
-function handleDragStart(event, e) {
+function handleDragStart(seg, e) {
+  const event = seg.event
   if (!event.canEdit) {
     e.preventDefault()
     return
   }
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', String(event.id))
+
+  const barRect = e.currentTarget.getBoundingClientRect()
+  const spanDays = seg.endCol - seg.startCol + 1
+  const grabDay = Math.max(0, Math.min(spanDays - 1,
+    Math.floor(((e.clientX - barRect.left) / barRect.width) * spanDays)))
+  const grabDate = addDays(strToDate(seg.segStart), grabDay)
+  const grabOffset = Math.round((grabDate - strToDate(event.startDate)) / 86400000)
+
   dragState.value = {
     eventId: event.id,
     originalStart: event.startDate,
     originalEnd: event.endDate,
+    grabOffset,
     dragging: true,
   }
 }
@@ -800,9 +810,10 @@ function handleDrop(dateStr) {
   const origStart = strToDate(event.startDate)
   const targetDate = strToDate(dateStr)
   const diff = Math.round((targetDate - origStart) / 86400000)
+  const grabOffset = dragState.value.grabOffset ?? 0
 
-  const newStart = dateToStr(targetDate)
-  const newEnd = dateToStr(addDays(strToDate(event.endDate), diff))
+  const newStart = dateToStr(addDays(targetDate, -grabOffset))
+  const newEnd = dateToStr(addDays(strToDate(event.endDate), diff - grabOffset))
 
   calendarApi.updateEvent({
     id: event.id,
@@ -1324,7 +1335,7 @@ watch(locale, () => {
                 draggable="true"
                 @click.stop="handleEventClick(seg.event)"
                 @contextmenu.prevent.stop="handleEventContextMenu($event, seg.event)"
-                @dragstart="handleDragStart(seg.event, $event)"
+                @dragstart="handleDragStart(seg, $event)"
                 @dragend="handleDragEnd"
               >
                 <span v-if="seg.continuesBefore" class="event-continue-left">«</span>
