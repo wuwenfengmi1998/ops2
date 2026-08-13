@@ -103,8 +103,6 @@ const clipboard = ref(null)
 const dragState = ref({ eventId: 0, originalStart: '', originalEnd: '', dragging: false })
 const dragOverDate = ref('')
 
-const resizeState = ref({ eventId: 0, originalStart: '', originalEnd: '', dragging: false, targetDate: '' })
-
 const weekdayShort = computed(() => {
   if (locale.value === 'zh-CN') return ['一', '二', '三', '四', '五', '六', '日']
   return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -452,10 +450,6 @@ function getEventBarClass(seg) {
     'event-selected': seg.event.id === selectedEventId.value,
     'event-draggable': seg.event.canEdit,
   }
-}
-
-function canResize(seg) {
-  return seg.event.canEdit && seg.event.startDate !== seg.event.endDate && !seg.continuesAfter
 }
 
 function getUserIdFromEventID(eventID) {
@@ -837,58 +831,6 @@ function handleDrop(dateStr) {
 function handleDragEnd() {
   dragState.value.dragging = false
   dragOverDate.value = ''
-}
-
-function handleResizeStart(event, e) {
-  if (!event.canEdit) return
-
-  resizeState.value = {
-    eventId: event.id,
-    originalStart: event.startDate,
-    originalEnd: event.endDate,
-    dragging: true,
-    targetDate: '',
-  }
-
-  const onMouseMove = (ev) => {
-    const el = document.elementFromPoint(ev.clientX, ev.clientY)
-    const dayCell = el?.closest('.day-cell')
-    if (dayCell) {
-      resizeState.value.targetDate = dayCell.dataset.date
-    }
-  }
-
-  const onMouseUp = () => {
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-
-    if (resizeState.value.dragging && resizeState.value.targetDate) {
-      const targetDate = resizeState.value.targetDate
-      const event = allEvents.value.find(ev => ev.id === resizeState.value.eventId)
-      if (event && targetDate >= event.startDate) {
-        calendarApi.updateEvent({
-          id: event.id,
-          title: event.title,
-          start: toDatetime(event.startDate),
-          end: toDatetime(targetDate),
-          schedule_type: event.scheduleType,
-        }).then(r => {
-          if (r.errCode === 0) {
-            toast.success(t('calendar.event_save_success'))
-            refreshVisibleEvents()
-          } else {
-            toast.error(t('message.server_error'))
-          }
-        })
-      }
-    }
-
-    resizeState.value.dragging = false
-    resizeState.value.targetDate = ''
-  }
-
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
 }
 
 function goToToday() {
@@ -1299,7 +1241,7 @@ watch(locale, () => {
                 class="day-cell border-r border-gray-100 p-1 dark:border-dk-muted relative"
                 :class="{
                   'bg-gray-50 dark:bg-dk-base/50': isWeekend(day),
-                  'bg-blue-50 dark:bg-blue-900/30': dragOverDate === dateToStr(day) || resizeState.targetDate === dateToStr(day),
+                  'bg-blue-50 dark:bg-blue-900/30': dragOverDate === dateToStr(day),
                 }"
                 :data-date="dateToStr(day)"
                 @click="handleDateClick(dateToStr(day))"
@@ -1341,11 +1283,6 @@ watch(locale, () => {
                 <span v-if="seg.continuesBefore" class="event-continue-left">«</span>
                 <span class="event-title" :class="{ 'pl-3': seg.continuesBefore, 'pr-3': seg.continuesAfter }">{{ seg.event.title }}</span>
                 <span v-if="seg.continuesAfter" class="event-continue-right">»</span>
-                <span
-                  v-if="canResize(seg)"
-                  class="resize-handle"
-                  @mousedown.stop.prevent="handleResizeStart(seg.event, $event)"
-                ></span>
               </div>
 
               <!-- +N more links -->
@@ -1476,21 +1413,6 @@ watch(locale, () => {
   60% { transform: translateX(var(--scroll-distance, 0px)); }
   80% { transform: translateX(var(--scroll-distance, 0px)); }
   100% { transform: translateX(0); }
-}
-
-.resize-handle {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  cursor: ew-resize;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 0 4px 4px 0;
-}
-
-.resize-handle:hover {
-  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .event-continue-left,
