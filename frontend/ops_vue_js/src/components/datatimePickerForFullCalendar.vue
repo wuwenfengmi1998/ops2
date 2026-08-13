@@ -158,6 +158,8 @@ const calendarOptions = ref({
   weekends: true,
   // 初始视图：月视图
   initialView: "dayGridMonth",
+  // 初始日期：定位到所编辑日程的月份
+  initialDate: props.startDate || undefined,
   // 允许选择日期/时间段
   selectable: true,
   // 允许拖拽调整事件
