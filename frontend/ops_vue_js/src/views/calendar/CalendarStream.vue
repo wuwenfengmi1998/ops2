@@ -1214,8 +1214,7 @@ watch(locale, () => {
       <div
         v-for="(label, i) in weekdayShort"
         :key="i"
-        class="py-1.5 text-center text-xs font-bold"
-        :class="i >= 5 ? 'text-red-400' : 'text-gray-500 dark:text-gray-400'"
+        class="py-1.5 text-center text-xs font-bold text-gray-500 dark:text-gray-400"
       >
         {{ label }}
       </div>
