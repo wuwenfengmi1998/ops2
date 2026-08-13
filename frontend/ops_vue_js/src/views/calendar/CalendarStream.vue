@@ -1265,7 +1265,8 @@ watch(locale, () => {
                 class="day-cell border-r border-gray-100 p-1 dark:border-dk-muted relative"
                 :class="{
                   'bg-gray-50 dark:bg-dk-base/50': isWeekend(day),
-                  'bg-blue-50 dark:bg-blue-900/30': dragOverDate === dateToStr(day),
+                  'day-today': isToday(day),
+                  'drag-over': dragOverDate === dateToStr(day),
                 }"
                 :data-date="dateToStr(day)"
                 @click="handleDateClick(dateToStr(day))"
@@ -1274,8 +1275,7 @@ watch(locale, () => {
                 <!-- Date number -->
                 <div class="flex justify-center mb-0.5">
                   <span
-                    class="inline-flex items-center justify-center text-sm leading-none w-6 h-6 rounded-full"
-                    :class="isToday(day) ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 dark:text-gray-300'"
+                    class="inline-flex items-center justify-center text-sm leading-none w-6 h-6 rounded-full text-gray-600 dark:text-gray-300"
                   >
                     {{ day.getDate() }}
                   </span>
@@ -1444,6 +1444,22 @@ watch(locale, () => {
 
 .day-cell {
   transition: background-color 0.1s;
+}
+
+.day-cell.day-today {
+  background-color: #fefce8;
+}
+
+.dark .day-cell.day-today {
+  background-color: rgba(255, 220, 40, 0.15);
+}
+
+.day-cell.drag-over {
+  background-color: rgb(219 234 254);
+}
+
+.dark .day-cell.drag-over {
+  background-color: rgba(59, 130, 246, 0.3);
 }
 
 .day-cell:hover {
