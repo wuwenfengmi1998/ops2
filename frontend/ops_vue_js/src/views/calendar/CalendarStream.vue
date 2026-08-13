@@ -25,7 +25,7 @@ const calendarId = ref(parseInt(route.params.id))
 const calendarInfo = ref({})
 const loading = ref(false)
 
-const MAX_VISIBLE_EVENTS = 3
+const MAX_LANES = 3
 const MAX_WEEKS = 60
 const INITIAL_WEEKS_BEFORE = 10
 const INITIAL_WEEKS_AFTER = 10
@@ -59,7 +59,6 @@ const bottomSentinelRef = ref(null)
 
 const weeks = ref([])
 const allEvents = ref([])
-const eventsByDate = ref({})
 const eventBindUserID = ref([])
 
 const loadingTop = ref(false)
@@ -201,20 +200,6 @@ function getLoadedRange() {
   }
 }
 
-function rebuildEventsByDate() {
-  const obj = {}
-  for (const event of allEvents.value) {
-    let start = strToDate(event.startDate)
-    const end = strToDate(event.endDate)
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = dateToStr(d)
-      if (!obj[key]) obj[key] = []
-      obj[key].push(event)
-    }
-  }
-  eventsByDate.value = obj
-}
-
 function transformEvent(item) {
   return {
     id: item.ID,
@@ -242,7 +227,6 @@ async function fetchEvents(start, end) {
       )
       allEvents.value.push(...data.list.map(transformEvent))
       eventBindUserID.value = data.list.map(item => ({ eventID: item.ID, userID: item.UserID }))
-      rebuildEventsByDate()
 
       const newSnapshot = JSON.stringify(data.list)
       if (newSnapshot !== lastEventsSnapshot) {
@@ -298,7 +282,6 @@ async function refreshVisibleEvents() {
         const existingMap = new Map(eventBindUserID.value.map(e => [e.eventID, e.userID]))
         data.list.forEach(item => existingMap.set(item.ID, item.UserID))
         eventBindUserID.value = Array.from(existingMap, ([eventID, userID]) => ({ eventID, userID }))
-        rebuildEventsByDate()
         nextTick(() => recalcScrollTitles())
       }
     }
@@ -376,25 +359,82 @@ async function loadMoreWeeksBottom() {
   }
 }
 
-function getSortedEvents(dateStr) {
-  const events = eventsByDate.value[dateStr] || []
-  return [...events].sort((a, b) => {
-    if (a.startDate !== b.startDate) return a.startDate < b.startDate ? -1 : 1
-    return a.title.localeCompare(b.title)
+function weekdayIndex(dateStr) {
+  return ((new Date(dateStr).getDay() + 6) % 7)
+}
+
+function weekIsExpanded(week) {
+  return week.days.some(d => expandedDays.value.has(dateToStr(d)))
+}
+
+function buildWeekLayout(week) {
+  const weekStart = dateToStr(week.days[0])
+  const weekEnd = dateToStr(week.days[6])
+  const segments = []
+
+  for (const event of allEvents.value) {
+    if (event.endDate < weekStart || event.startDate > weekEnd) continue
+    const segStart = event.startDate < weekStart ? weekStart : event.startDate
+    const segEnd = event.endDate > weekEnd ? weekEnd : event.endDate
+    segments.push({
+      event,
+      segStart,
+      segEnd,
+      startCol: weekdayIndex(segStart),
+      endCol: weekdayIndex(segEnd),
+      continuesBefore: event.startDate < weekStart,
+      continuesAfter: event.endDate > weekEnd,
+    })
+  }
+
+  segments.sort((a, b) => {
+    if (a.segStart !== b.segStart) return a.segStart < b.segStart ? -1 : 1
+    if (a.event.startDate !== b.event.startDate) return a.event.startDate < b.event.startDate ? -1 : 1
+    return a.event.title.localeCompare(b.event.title)
   })
+
+  const laneEnds = []
+  for (const seg of segments) {
+    let lane = 0
+    while (laneEnds[lane] !== undefined && laneEnds[lane] >= seg.segStart) lane++
+    seg.lane = lane
+    laneEnds[lane] = seg.segEnd
+  }
+
+  const maxLane = segments.reduce((m, s) => Math.max(m, s.lane), -1)
+  const limit = weekIsExpanded(week) ? Infinity : MAX_LANES
+  const visibleSegments = segments.filter(s => s.lane < limit)
+
+  const hiddenCounts = {}
+  for (const seg of segments) {
+    if (seg.lane < limit) continue
+    for (let col = seg.startCol; col <= seg.endCol; col++) {
+      const d = dateToStr(addDays(week.days[0], col))
+      hiddenCounts[d] = (hiddenCounts[d] || 0) + 1
+    }
+  }
+
+  const hasMore = Object.keys(hiddenCounts).length > 0
+  const shownLanes = (limit === Infinity ? maxLane : Math.min(maxLane, MAX_LANES - 1)) + 1
+  const DATE_ROW_H = 34
+  const LANE_H = 26
+
+  return {
+    segments: visibleSegments,
+    hiddenCounts,
+    hasMore,
+    weekHeight: Math.max(90, DATE_ROW_H + shownLanes * LANE_H + (hasMore ? 24 : 6)),
+    moreTop: DATE_ROW_H + shownLanes * LANE_H + 2,
+  }
 }
 
-function getVisibleEvents(dateStr) {
-  const events = getSortedEvents(dateStr)
-  if (expandedDays.value.has(dateStr)) return events
-  return events.slice(0, MAX_VISIBLE_EVENTS)
-}
-
-function getOverflowCount(dateStr) {
-  const events = getSortedEvents(dateStr)
-  if (expandedDays.value.has(dateStr)) return 0
-  return Math.max(0, events.length - MAX_VISIBLE_EVENTS)
-}
+const weekLayouts = computed(() => {
+  const map = new Map()
+  for (const week of weeks.value) {
+    map.set(weekKey(week), buildWeekLayout(week))
+  }
+  return map
+})
 
 function toggleExpand(dateStr) {
   const s = new Set(expandedDays.value)
@@ -403,27 +443,19 @@ function toggleExpand(dateStr) {
   expandedDays.value = s
 }
 
-function getEventPosition(event, dateStr) {
-  if (event.startDate === event.endDate) return 'single'
-  if (dateStr === event.startDate) return 'start'
-  if (dateStr === event.endDate) return 'end'
-  return 'middle'
-}
-
-function getEventChipClass(event, dateStr) {
-  const pos = getEventPosition(event, dateStr)
+function getEventBarClass(seg) {
   return {
-    'event-single': pos === 'single',
-    'event-start': pos === 'start',
-    'event-middle': pos === 'middle',
-    'event-end': pos === 'end',
-    'event-selected': event.id === selectedEventId.value,
-    'event-draggable': event.canEdit,
+    'event-bar-start': !seg.continuesBefore,
+    'event-bar-end': !seg.continuesAfter,
+    'event-bar-before': seg.continuesBefore,
+    'event-bar-after': seg.continuesAfter,
+    'event-selected': seg.event.id === selectedEventId.value,
+    'event-draggable': seg.event.canEdit,
   }
 }
 
-function canResize(event, dateStr) {
-  return event.canEdit && event.startDate !== event.endDate && dateStr === event.endDate
+function canResize(seg) {
+  return seg.event.canEdit && seg.event.startDate !== seg.event.endDate && !seg.continuesAfter
 }
 
 function getUserIdFromEventID(eventID) {
@@ -733,14 +765,26 @@ function handleDragStart(event, e) {
   }
 }
 
-function handleDragOver(dateStr) {
-  dragOverDate.value = dateStr
+function getDateFromEvent(e, week) {
+  const gridEl = e.currentTarget
+  const rect = gridEl.getBoundingClientRect()
+  const col = Math.max(0, Math.min(6, Math.floor((e.clientX - rect.left) / (rect.width / 7))))
+  return dateToStr(addDays(week.days[0], col))
 }
 
-function handleDragLeave(dateStr) {
-  if (dragOverDate.value === dateStr) {
+function handleWeekDragOver(e, week) {
+  dragOverDate.value = getDateFromEvent(e, week)
+}
+
+function handleWeekDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
     dragOverDate.value = ''
   }
+}
+
+function handleWeekDrop(e, week) {
+  if (!dragState.value.dragging) return
+  handleDrop(getDateFromEvent(e, week))
 }
 
 function handleDrop(dateStr) {
@@ -1229,61 +1273,85 @@ watch(locale, () => {
 
         <!-- Week Row -->
         <div class="week-row border-b border-gray-100 dark:border-dk-muted">
-          <div class="grid grid-cols-7">
-            <div
-              v-for="day in week.days"
-              :key="dateToStr(day)"
-              class="day-cell min-h-[90px] border-r border-gray-100 p-1 dark:border-dk-muted relative"
-              :class="{
-                'bg-gray-50 dark:bg-dk-base/50': isWeekend(day),
-                'ring-2 ring-blue-400 ring-inset': dragOverDate === dateToStr(day) || resizeState.targetDate === dateToStr(day),
-              }"
-              :data-date="dateToStr(day)"
-              @click="handleDateClick(dateToStr(day))"
-              @contextmenu.prevent="handleDayContextMenu($event, dateToStr(day))"
-              @dragover.prevent="handleDragOver(dateToStr(day))"
-              @dragleave="handleDragLeave(dateToStr(day))"
-              @drop.prevent="handleDrop(dateToStr(day))"
-            >
-              <!-- Date number -->
-              <div class="flex justify-center mb-0.5">
+          <div
+            class="relative"
+            :style="{ height: weekLayouts.get(weekKey(week)).weekHeight + 'px' }"
+            @dragover.prevent="handleWeekDragOver($event, week)"
+            @dragleave="handleWeekDragLeave"
+            @drop.prevent="handleWeekDrop($event, week)"
+          >
+            <!-- Day cells (background layer) -->
+            <div class="absolute inset-0 grid grid-cols-7">
+              <div
+                v-for="day in week.days"
+                :key="dateToStr(day)"
+                class="day-cell border-r border-gray-100 p-1 dark:border-dk-muted relative"
+                :class="{
+                  'bg-gray-50 dark:bg-dk-base/50': isWeekend(day),
+                  'bg-blue-50 dark:bg-blue-900/30': dragOverDate === dateToStr(day) || resizeState.targetDate === dateToStr(day),
+                }"
+                :data-date="dateToStr(day)"
+                @click="handleDateClick(dateToStr(day))"
+                @contextmenu.prevent="handleDayContextMenu($event, dateToStr(day))"
+              >
+                <!-- Date number -->
+                <div class="flex justify-center mb-0.5">
+                  <span
+                    class="inline-flex items-center justify-center text-sm leading-none w-6 h-6 rounded-full"
+                    :class="isToday(day) ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 dark:text-gray-300'"
+                  >
+                    {{ day.getDate() }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Event bars (overlay layer) -->
+            <div class="absolute inset-0" style="pointer-events: none">
+              <div
+                v-for="seg in weekLayouts.get(weekKey(week)).segments"
+                :key="seg.event.id + '-' + seg.segStart"
+                class="event-chip absolute text-xs px-1.5 cursor-pointer select-none"
+                :class="getEventBarClass(seg)"
+                :style="{
+                  backgroundColor: seg.event.color,
+                  color: '#fff',
+                  left: seg.startCol * 14.2857 + '%',
+                  width: (seg.endCol - seg.startCol + 1) * 14.2857 + '%',
+                  top: 34 + seg.lane * 26 + 'px',
+                  pointerEvents: 'auto',
+                }"
+                draggable="true"
+                @click.stop="handleEventClick(seg.event)"
+                @contextmenu.prevent.stop="handleEventContextMenu($event, seg.event)"
+                @dragstart="handleDragStart(seg.event, $event)"
+                @dragend="handleDragEnd"
+              >
+                <span v-if="seg.continuesBefore" class="event-continue-left">«</span>
+                <span class="event-title" :class="{ 'pl-3': seg.continuesBefore, 'pr-3': seg.continuesAfter }">{{ seg.event.title }}</span>
+                <span v-if="seg.continuesAfter" class="event-continue-right">»</span>
                 <span
-                  class="inline-flex items-center justify-center text-sm leading-none w-6 h-6 rounded-full"
-                  :class="isToday(day) ? 'bg-blue-600 text-white font-semibold' : 'text-gray-600 dark:text-gray-300'"
-                >
-                  {{ day.getDate() }}
-                </span>
+                  v-if="canResize(seg)"
+                  class="resize-handle"
+                  @mousedown.stop.prevent="handleResizeStart(seg.event, $event)"
+                ></span>
               </div>
 
-              <!-- Events -->
-              <div class="space-y-0.5">
+              <!-- +N more links -->
+              <template v-for="(day, di) in week.days" :key="'more-' + dateToStr(day)">
                 <div
-                  v-for="event in getVisibleEvents(dateToStr(day))"
-                  :key="event.id + '-' + dateToStr(day)"
-                  class="event-chip event-title text-xs px-1.5 py-0.5 cursor-pointer truncate select-none relative"
-                  :class="getEventChipClass(event, dateToStr(day))"
-                  :style="{ backgroundColor: event.color, color: '#fff' }"
-                  draggable="true"
-                  @click.stop="handleEventClick(event)"
-                  @contextmenu.prevent.stop="handleEventContextMenu($event, event)"
-                  @dragstart="handleDragStart(event, $event)"
-                  @dragend="handleDragEnd"
-                >
-                  <span class="event-title-text">{{ event.title }}</span>
-                  <span
-                    v-if="canResize(event, dateToStr(day))"
-                    class="resize-handle"
-                    @mousedown.stop.prevent="handleResizeStart(event, $event)"
-                  ></span>
-                </div>
-                <div
-                  v-if="getOverflowCount(dateToStr(day)) > 0"
+                  v-if="weekLayouts.get(weekKey(week)).hiddenCounts[dateToStr(day)]"
                   class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 px-1"
+                  :style="{
+                    left: di * 14.2857 + '%',
+                    top: weekLayouts.get(weekKey(week)).moreTop + 'px',
+                    pointerEvents: 'auto',
+                  }"
                   @click.stop="toggleExpand(dateToStr(day))"
                 >
-                  +{{ t('calendar.more_events', { count: getOverflowCount(dateToStr(day)) }) }}
+                  +{{ t('calendar.more_events', { count: weekLayouts.get(weekKey(week)).hiddenCounts[dateToStr(day)] }) }}
                 </div>
-              </div>
+              </template>
             </div>
           </div>
         </div>
@@ -1345,29 +1413,26 @@ watch(locale, () => {
   border: 1px solid rgba(0, 0, 0, 0.1);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-  will-change: transform;
+  height: 22px;
+  line-height: 20px;
 }
 
-.event-single {
-  border-radius: 4px;
+.event-bar-start {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
 }
 
-.event-start {
-  border-radius: 4px 0 0 4px;
-  border-right: none;
+.event-bar-end {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
 }
 
-.event-middle {
-  border-radius: 0;
+.event-bar-before {
   border-left: none;
-  border-right: none;
-  opacity: 0.55;
 }
 
-.event-end {
-  border-radius: 0 4px 4px 0;
-  border-left: none;
+.event-bar-after {
+  border-right: none;
 }
 
 .event-selected {
@@ -1384,12 +1449,13 @@ watch(locale, () => {
 }
 
 .event-title {
-  overflow: hidden;
   display: block;
+  white-space: nowrap;
+  overflow: visible;
+  will-change: transform;
 }
 
 .event-title[data-truncated="true"] {
-  text-overflow: clip;
   display: inline-block;
   animation: marquee-bounce 6s ease-in-out infinite;
 }
@@ -1414,6 +1480,25 @@ watch(locale, () => {
 
 .resize-handle:hover {
   background-color: rgba(0, 0, 0, 0.4);
+}
+
+.event-continue-left,
+.event-continue-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.event-continue-left {
+  left: 2px;
+}
+
+.event-continue-right {
+  right: 2px;
 }
 
 .day-cell {
