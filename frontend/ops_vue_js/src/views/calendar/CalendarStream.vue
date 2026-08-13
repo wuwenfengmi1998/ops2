@@ -807,16 +807,18 @@ function goToToday() {
   generateInitialWeeks()
   lastEventsSnapshot = null
   const { start, end } = getLoadedRange()
-  fetchEvents(start, end).then(() => {
-    nextTick(() => {
-      const todayStr = dateToStr(new Date())
-      const container = scrollContainerRef.value
-      if (!container) return
-      const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
-      if (todayCell) {
-        todayCell.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      }
-    })
+  fetchEvents(start, end).then(() => scrollToToday())
+}
+
+function scrollToToday() {
+  nextTick(() => {
+    const todayStr = dateToStr(new Date())
+    const container = scrollContainerRef.value
+    if (!container) return
+    const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
+    if (todayCell) {
+      todayCell.scrollIntoView({ block: 'center' })
+    }
   })
 }
 
@@ -868,18 +870,9 @@ onMounted(() => {
   generateInitialWeeks()
 
   const { start, end } = getLoadedRange()
-  fetchEvents(start, end)
+  fetchEvents(start, end).then(() => scrollToToday())
 
   nextTick(() => {
-    const todayStr = dateToStr(new Date())
-    const container = scrollContainerRef.value
-    if (container) {
-      const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
-      if (todayCell) {
-        todayCell.scrollIntoView({ block: 'center' })
-      }
-    }
-
     if (topSentinelRef.value && bottomSentinelRef.value && scrollContainerRef.value) {
       intersectionObserver = new IntersectionObserver((entries) => {
         for (const entry of entries) {
