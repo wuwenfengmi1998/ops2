@@ -25,7 +25,6 @@ const calendarId = ref(parseInt(route.params.id))
 const calendarInfo = ref({})
 const loading = ref(false)
 
-const MAX_LANES = 3
 const MAX_WEEKS = 60
 const INITIAL_WEEKS_BEFORE = 10
 const INITIAL_WEEKS_AFTER = 10
@@ -64,8 +63,6 @@ const eventBindUserID = ref([])
 const loadingTop = ref(false)
 const loadingBottom = ref(false)
 let isLoadingMore = false
-
-const expandedDays = ref(new Set())
 
 const selectedEventId = ref(0)
 const selectedDate = ref('')
@@ -361,10 +358,6 @@ function weekdayIndex(dateStr) {
   return ((new Date(dateStr).getDay() + 6) % 7)
 }
 
-function weekIsExpanded(week) {
-  return week.days.some(d => expandedDays.value.has(dateToStr(d)))
-}
-
 function buildWeekLayout(week) {
   const weekStart = dateToStr(week.days[0])
   const weekEnd = dateToStr(week.days[6])
@@ -400,29 +393,13 @@ function buildWeekLayout(week) {
   }
 
   const maxLane = segments.reduce((m, s) => Math.max(m, s.lane), -1)
-  const limit = weekIsExpanded(week) ? Infinity : MAX_LANES
-  const visibleSegments = segments.filter(s => s.lane < limit)
-
-  const hiddenCounts = {}
-  for (const seg of segments) {
-    if (seg.lane < limit) continue
-    for (let col = seg.startCol; col <= seg.endCol; col++) {
-      const d = dateToStr(addDays(week.days[0], col))
-      hiddenCounts[d] = (hiddenCounts[d] || 0) + 1
-    }
-  }
-
-  const hasMore = Object.keys(hiddenCounts).length > 0
-  const shownLanes = (limit === Infinity ? maxLane : Math.min(maxLane, MAX_LANES - 1)) + 1
+  const shownLanes = maxLane + 1
   const DATE_ROW_H = 34
   const LANE_H = 26
 
   return {
-    segments: visibleSegments,
-    hiddenCounts,
-    hasMore,
-    weekHeight: Math.max(90, DATE_ROW_H + shownLanes * LANE_H + (hasMore ? 24 : 6)),
-    moreTop: DATE_ROW_H + shownLanes * LANE_H + 2,
+    segments,
+    weekHeight: Math.max(90, DATE_ROW_H + shownLanes * LANE_H + 6),
   }
 }
 
@@ -433,13 +410,6 @@ const weekLayouts = computed(() => {
   }
   return map
 })
-
-function toggleExpand(dateStr) {
-  const s = new Set(expandedDays.value)
-  if (s.has(dateStr)) s.delete(dateStr)
-  else s.add(dateStr)
-  expandedDays.value = s
-}
 
 function getEventBarClass(seg) {
   return {
@@ -1284,22 +1254,6 @@ watch(locale, () => {
                 <span class="event-title" :class="{ 'pl-3': seg.continuesBefore, 'pr-3': seg.continuesAfter }">{{ seg.event.title }}</span>
                 <span v-if="seg.continuesAfter" class="event-continue-right">»</span>
               </div>
-
-              <!-- +N more links -->
-              <template v-for="(day, di) in week.days" :key="'more-' + dateToStr(day)">
-                <div
-                  v-if="weekLayouts.get(weekKey(week)).hiddenCounts[dateToStr(day)]"
-                  class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300 px-1"
-                  :style="{
-                    left: di * 14.2857 + '%',
-                    top: weekLayouts.get(weekKey(week)).moreTop + 'px',
-                    pointerEvents: 'auto',
-                  }"
-                  @click.stop="toggleExpand(dateToStr(day))"
-                >
-                  +{{ t('calendar.more_events', { count: weekLayouts.get(weekKey(week)).hiddenCounts[dateToStr(day)] }) }}
-                </div>
-              </template>
             </div>
           </div>
         </div>
