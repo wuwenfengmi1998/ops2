@@ -70,10 +70,7 @@ function goToPage(page) {
 }
 
 function jumpToOrder(id) {
-  // const resolved = router.resolve({ path: `/purchase/showorder/${id}` })
-  // window.open(resolved.href, '_blank')
-
-  router.replace(`/purchase/showorder/${id}`);
+  router.push(`/purchase/showorder/${id}`);
 }
 
 function formatDate(dateStr) {
