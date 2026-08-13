@@ -1127,8 +1127,8 @@ watch(locale, () => {
     </div>
 
     <!-- Header Bar -->
-    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-2 bg-white dark:bg-dk-card dark:border-dk-muted flex-shrink-0">
-      <div class="flex items-center gap-3">
+    <div class="grid grid-cols-3 items-center border-b border-gray-200 px-4 py-2 bg-white dark:bg-dk-card dark:border-dk-muted flex-shrink-0">
+      <div class="flex items-center gap-2 justify-start">
         <button
           @click="router.push('/calendars')"
           class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-base"
@@ -1136,9 +1136,12 @@ watch(locale, () => {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           {{ t('calendar.calendars') }}
         </button>
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ calendarInfo?.Name || '' }}</h2>
-      </div>
-      <div class="flex items-center gap-2">
+        <button
+          @click="goToToday"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+        >
+          {{ t('schedule.today') }}
+        </button>
         <RouterLink
           :to="`/calendar/${calendarId}`"
           class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-base"
@@ -1146,13 +1149,11 @@ watch(locale, () => {
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           {{ t('calendar.classic_view') }}
         </RouterLink>
-        <button
-          @click="goToToday"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-        >
-          {{ t('schedule.today') }}
-        </button>
       </div>
+      <div class="text-center">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ calendarInfo?.Name || '' }}</h2>
+      </div>
+      <div class="flex items-center justify-end"></div>
     </div>
 
     <!-- Weekday Header -->
