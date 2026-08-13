@@ -107,7 +107,7 @@ const dragState = ref({ eventId: 0, originalStart: '', originalEnd: '', dragging
 const dragOverDate = ref('')
 
 const weekdayShort = computed(() => {
-  if (locale.value === 'zh-CN') return ['一', '二', '三', '四', '五', '六', '日']
+  if (locale.value === 'zh-CN') return ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
   return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 })
 
@@ -1214,7 +1214,7 @@ watch(locale, () => {
       <div
         v-for="(label, i) in weekdayShort"
         :key="i"
-        class="py-1.5 text-center text-xs font-medium"
+        class="py-1.5 text-center text-xs font-bold"
         :class="i >= 5 ? 'text-red-400' : 'text-gray-500 dark:text-gray-400'"
       >
         {{ label }}
