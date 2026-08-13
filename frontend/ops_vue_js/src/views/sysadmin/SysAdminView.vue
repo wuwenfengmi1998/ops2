@@ -9,6 +9,7 @@ import UsersTab from '@/views/sysadmin/UsersTab.vue'
 import GroupsTab from '@/views/sysadmin/GroupsTab.vue'
 import LogsTab from '@/views/sysadmin/LogsTab.vue'
 import OperationLogsTab from '@/views/sysadmin/OperationLogsTab.vue'
+import PurchaseOrdersTab from '@/views/sysadmin/PurchaseOrdersTab.vue'
 
 const { t } = useI18n()
 const userStore = useUserStore()
@@ -24,12 +25,14 @@ const usersTabRef = ref(null)
 const groupsTabRef = ref(null)
 const logsTabRef = ref(null)
 const operationLogsTabRef = ref(null)
+const purchaseOrdersTabRef = ref(null)
 
 const tabs = [
   { id: 'users', label: t('sysadmin.tab_users') },
   { id: 'groups', label: t('sysadmin.tab_groups') },
   { id: 'logs', label: t('sysadmin.tab_logs') },
   { id: 'operation_logs', label: t('sysadmin.tab_operation_logs') },
+  { id: 'purchase_orders', label: t('sysadmin.tab_purchase_orders') },
   { id: 'customer', label: t('customer.title'), to: '/customer' },
   { id: 'calendar', label: t('calendar.admin_title'), to: '/calendars/admin' },
   { id: 'aiconfig', label: t('aiconfig.title'), to: '/admin/aiconfig' },
@@ -99,6 +102,7 @@ onMounted(() => {
           <GroupsTab v-else-if="activeTab === 'groups'" ref="groupsTabRef" />
           <LogsTab v-else-if="activeTab === 'logs'" ref="logsTabRef" />
           <OperationLogsTab v-else-if="activeTab === 'operation_logs'" ref="operationLogsTabRef" />
+          <PurchaseOrdersTab v-else-if="activeTab === 'purchase_orders'" ref="purchaseOrdersTabRef" />
         </KeepAlive>
       </div>
 

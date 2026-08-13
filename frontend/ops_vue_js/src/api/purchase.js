@@ -51,6 +51,11 @@ export const purchaseApi = {
     return api.post('/purchase/unlock', { id })
   },
 
+  /** 一键锁定所有已完成订单（管理员） */
+  lockAllCompleted() {
+    return api.post('/purchase/lock_all_completed', {})
+  },
+
   /** 搜索工单（用于采购订单关联） */
   searchWorkOrders(search = '', limit = 5) {
     return api.post('/purchase/search_work_orders', { search, limit })

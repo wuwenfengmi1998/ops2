@@ -812,6 +812,39 @@ func ApiPurchase(r *gin.RouterGroup) {
 		ReturnJson(ctx, "apiOK", nil)
 	})
 
+	// 一键锁定所有已完成订单（已收件/丢件/退件）
+	r.POST("/lock_all_completed", func(ctx *gin.Context) {
+		isAuth, user, _ := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		if !canUnlockPurchase(user.ID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
+		result := models.DB.Model(&TabPurchaseOrder{}).
+			Where("order_status IN ? AND locked = ? AND deleted_at IS NULL",
+				[]string{"received", "lost", "returned"}, false).
+			Update("locked", true)
+
+		lockedCount := result.RowsAffected
+
+		tosqllog := TabPurchaseLog{
+			UserID:     user.ID,
+			ActionType: "lock_all",
+			IP:         ctx.ClientIP(),
+			Remark:     parsefmt.Sprintf("一键锁定所有已完成订单，共 %d 个", lockedCount),
+		}
+		models.DB.Create(&tosqllog)
+
+		ReturnJson(ctx, "apiOK", gin.H{
+			"locked_count": lockedCount,
+		})
+	})
+
 	r.POST("/getorders", func(ctx *gin.Context) {
 		isAuth, _, data := AuthenticationAuthority(ctx)
 		if isAuth {
