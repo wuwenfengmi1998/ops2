@@ -802,6 +802,7 @@
     "more_events": "还有 {count} 个",
     "loading_more": "加载更多...",
     "drag_hint": "拖动日程可改变日期",
-    "all_day": "全天"
+    "all_day": "全天",
+    "auto_scroll_today": "每日自动定位今天"
   }
 }

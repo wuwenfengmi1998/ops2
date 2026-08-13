@@ -801,6 +801,7 @@
     "more_events": "{count} more",
     "loading_more": "Loading more...",
     "drag_hint": "Drag event to change date",
-    "all_day": "All day"
+    "all_day": "All day",
+    "auto_scroll_today": "Auto-scroll to today daily"
   }
 }

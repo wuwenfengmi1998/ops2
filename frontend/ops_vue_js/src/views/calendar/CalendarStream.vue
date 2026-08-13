@@ -95,6 +95,12 @@ const contextMenu = ref({
   targetDate: '',
 })
 
+const autoScrollToday = ref(localStorage.getItem('calendarStreamAutoScrollToday') === '1')
+
+watch(autoScrollToday, v => {
+  localStorage.setItem('calendarStreamAutoScrollToday', v ? '1' : '0')
+})
+
 const clipboard = ref(null)
 
 const dragState = ref({ eventId: 0, originalStart: '', originalEnd: '', dragging: false })
@@ -810,6 +816,23 @@ function goToToday() {
   fetchEvents(start, end).then(() => scrollToToday())
 }
 
+function getMsUntilMidnight() {
+  const now = new Date()
+  const next = new Date(now)
+  next.setHours(24, 0, 0, 0)
+  return Math.max(1000, next - now)
+}
+
+function onMidnight() {
+  if (autoScrollToday.value) goToToday()
+  scheduleMidnightTimer()
+}
+
+function scheduleMidnightTimer() {
+  if (midnightTimer) clearTimeout(midnightTimer)
+  midnightTimer = setTimeout(onMidnight, getMsUntilMidnight())
+}
+
 let todayScrollAttempts = 0
 
 function scrollToToday() {
@@ -886,10 +909,12 @@ async function fetchCalendarInfo() {
 let intersectionObserver = null
 let refreshTimer = null
 let resizeObserver = null
+let midnightTimer = null
 
 onMounted(() => {
   fetchCalendarInfo()
   generateInitialWeeks()
+  scheduleMidnightTimer()
 
   const { start, end } = getLoadedRange()
   fetchEvents(start, end).then(() => scrollToToday())
@@ -932,6 +957,10 @@ onMounted(() => {
   }
 
   onBeforeUnmount(() => {
+    if (midnightTimer) {
+      clearTimeout(midnightTimer)
+      midnightTimer = null
+    }
     if (refreshTimer) {
       clearInterval(refreshTimer)
       refreshTimer = null
@@ -1168,7 +1197,16 @@ watch(locale, () => {
       <div class="text-center">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ calendarInfo?.Name || '' }}</h2>
       </div>
-      <div class="flex items-center justify-end"></div>
+      <div class="flex items-center justify-end">
+        <label class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+          <input
+            v-model="autoScrollToday"
+            type="checkbox"
+            class="rounded border-gray-300"
+          />
+          {{ t('calendar.auto_scroll_today') }}
+        </label>
+      </div>
     </div>
 
     <!-- Weekday Header -->
