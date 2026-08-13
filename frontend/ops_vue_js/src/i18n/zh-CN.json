@@ -37,6 +37,7 @@
     "warehouse_items": "物品总览",
     "work_order": "工单",
     "calendar": "日历",
+    "calendar_stream": "流式日历",
     "aichat": "AI 助手",
     "ae_proxy": "AE代理"
   },
@@ -795,6 +796,12 @@
     "copy_success": "日程已复制",
     "paste_success": "日程已粘贴",
     "no_event_to_paste": "没有可粘贴的日程",
-    "created_by": "{name} 创建"
+    "created_by": "{name} 创建",
+    "stream_view": "流式视图",
+    "classic_view": "经典视图",
+    "more_events": "还有 {count} 个",
+    "loading_more": "加载更多...",
+    "drag_hint": "拖动日程可改变日期",
+    "all_day": "全天"
   }
 }

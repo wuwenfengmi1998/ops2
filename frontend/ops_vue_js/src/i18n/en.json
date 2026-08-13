@@ -37,6 +37,7 @@
     "warehouse_items": "Items Overview",
     "work_order": "Work Order",
     "calendar": "Calendar",
+    "calendar_stream": "Stream Calendar",
     "aichat": "AI Assistant",
     "ae_proxy": "AE Proxy"
   },
@@ -794,6 +795,12 @@
     "copy_success": "Event copied",
     "paste_success": "Event pasted",
     "no_event_to_paste": "No event to paste",
-    "created_by": "Created by {name}"
+    "created_by": "Created by {name}",
+    "stream_view": "Stream View",
+    "classic_view": "Classic View",
+    "more_events": "{count} more",
+    "loading_more": "Loading more...",
+    "drag_hint": "Drag event to change date",
+    "all_day": "All day"
   }
 }
