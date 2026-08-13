@@ -21,6 +21,7 @@ import {
   IconFile,
   IconLock,
   IconLockOpen,
+  IconCopy,
 } from "@tabler/icons-vue";
 
 usePageTitle("purchase.order_detail");
@@ -438,6 +439,11 @@ function openNewWorkOrder() {
   router.push('/work_order/add')
 }
 
+function repurchaseOrder() {
+  if (!order.value) return
+  router.push(`/purchase/addorder?copy=${order.value.ID}`)
+}
+
 onMounted(() => {
   fetchOrder()
   document.addEventListener('click', onDocumentClick)
@@ -462,6 +468,14 @@ onUnmounted(() => {
       </button>
       <!-- 编辑 + 锁定/解锁按钮 -->
       <div class="flex items-center gap-2">
+        <button
+          v-if="order"
+          @click="repurchaseOrder"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+        >
+          <IconCopy :size="16" />
+          {{ t("purchase.repurchase") }}
+        </button>
         <RouterLink
           v-if="canModify"
           :to="`/purchase/editorder/${order.ID}`"

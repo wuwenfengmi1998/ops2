@@ -239,6 +239,7 @@
     "upload_photos": "上传图片",
     "commit_create": "订单创建",
     "edit_order": "编辑订单",
+    "repurchase": "再次采购",
     "submit_changes":"提交修改",
     "confirm_delete_commit": "确定要删除此进度吗？"
   },

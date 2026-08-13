@@ -22,13 +22,13 @@
  */
 
 // ==================== 依赖导入 ====================
-import { reactive, ref, computed, watch } from "vue";
+import { reactive, ref, computed, watch, onMounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useToastStore } from "@/stores/toast";
 import { usePageTitle } from "@/composables/usePageTitle";
 import { useValidation } from "@/composables";
 import { purchaseApi } from "@/api/purchase";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 // 组件导入
 import tagadder from "@/components/tagadder.vue"; // 标签添加组件
@@ -41,6 +41,7 @@ import { timeout } from "tom-select/utils";
 usePageTitle("purchase.add_part");
 
 const router = useRouter();
+const route = useRoute();
 
 // 获取国际化实例，用于多语言文本
 const { t, locale } = useI18n();
@@ -63,6 +64,7 @@ const textMaxLen = 256;
  * 用于获取已上传的图片列表
  */
 const photosRef = ref(null);
+const initialPhotos = ref([]);
 
 /**
  * 货币类型选项
@@ -199,6 +201,44 @@ watch(
  * 防止重复提交
  */
 const loading = ref(false);
+
+// ==================== 再次采购：预填数据 ====================
+onMounted(async () => {
+  const copyId = route.query.copy;
+  if (!copyId) return;
+
+  try {
+    const { errCode, data } = await purchaseApi.getOrder(parseInt(copyId));
+    if (errCode !== 0 || !data) return;
+
+    const { order, costs, photos } = data;
+
+    form.title = order.Title ?? "";
+    form.remark = order.Remark ?? "";
+    form.link = order.Link ?? "";
+    form.styles = order.Styles ?? "";
+
+    if (costs && costs.length > 0) {
+      costs.forEach((c) => {
+        costEntries.push({
+          type: c.CostType,
+          int: c.Quantity,
+          cost: parseFloat((c.Price / 100).toFixed(2)),
+          costt: parseFloat(((c.Price * c.Quantity) / 100).toFixed(2)),
+          currencytype: c.CurrencyType,
+        });
+      });
+    }
+
+    if (photos && photos.length > 0) {
+      initialPhotos.value = photos;
+      await nextTick();
+      photosRef.value?.loadInitialFiles();
+    }
+  } catch {
+    // 静默失败，用户仍可手动填写
+  }
+});
 
 // ==================== 表单提交 ====================
 /**
@@ -542,6 +582,7 @@ async function handleSubmit() {
             uploadURL="/api/files/upload/image"
             :maxFiles="10"
             ref="photosRef"
+            :initialFiles="initialPhotos"
           />
         </div>
       </div>
