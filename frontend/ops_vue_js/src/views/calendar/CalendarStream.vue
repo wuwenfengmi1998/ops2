@@ -812,7 +812,6 @@ function handleDragEnd() {
 function goToToday() {
   generateInitialWeeks()
   lastEventsSnapshot = null
-  if (scrollContainerRef.value) scrollContainerRef.value.scrollTop = 0
   const { start, end } = getLoadedRange()
   fetchEvents(start, end).then(() => scrollToToday())
 }
@@ -852,22 +851,16 @@ function applyTodayScroll() {
   const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
   if (!todayCell) return
 
-  const idx = weeks.value.findIndex(w => weekKey(w) === dateToStr(getWeekStart(new Date())))
-  let desiredTop = idx > 0
-    ? (weekLayouts.get(weekKey(weeks.value[idx - 1]))?.weekHeight ?? 90)
-    : 0
-
   const todayWeekEl = todayCell.closest('.week-row')
-  const prevSib = todayWeekEl?.previousElementSibling
-  if (prevSib?.classList.contains('month-separator')) {
-    desiredTop += prevSib.getBoundingClientRect().height
+  let targetEl = todayWeekEl?.previousElementSibling
+  if (targetEl && !targetEl.classList.contains('week-row')) {
+    targetEl = targetEl.previousElementSibling
   }
-
-  const contRect = container.getBoundingClientRect()
-  const cellRect = todayCell.getBoundingClientRect()
-  const currentTop = cellRect.top - contRect.top
-
-  container.scrollTop += (currentTop - desiredTop)
+  if (targetEl && targetEl.classList.contains('week-row')) {
+    targetEl.scrollIntoView({ block: 'start' })
+  } else {
+    todayCell.scrollIntoView({ block: 'start' })
+  }
 }
 
 function applyScrollToTitle(titleEl) {
