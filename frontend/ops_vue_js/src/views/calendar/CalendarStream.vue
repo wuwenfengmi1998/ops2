@@ -853,16 +853,21 @@ function applyTodayScroll() {
   if (!todayCell) return
 
   const idx = weeks.value.findIndex(w => weekKey(w) === dateToStr(getWeekStart(new Date())))
-  const prevWeekHeight = idx > 0
+  let desiredTop = idx > 0
     ? (weekLayouts.get(weekKey(weeks.value[idx - 1]))?.weekHeight ?? 90)
     : 0
+
+  const todayWeekEl = todayCell.closest('.week-row')
+  const prevSib = todayWeekEl?.previousElementSibling
+  if (prevSib?.classList.contains('month-separator')) {
+    desiredTop += prevSib.getBoundingClientRect().height
+  }
 
   const contRect = container.getBoundingClientRect()
   const cellRect = todayCell.getBoundingClientRect()
   const currentTop = cellRect.top - contRect.top
-  const desiredTop = prevWeekHeight
 
-  container.scrollTop += (desiredTop - currentTop)
+  container.scrollTop += (currentTop - desiredTop)
 }
 
 function applyScrollToTitle(titleEl) {
@@ -1240,7 +1245,7 @@ watch(locale, () => {
         <!-- Month Separator -->
         <div
           v-if="shouldShowMonthSeparator(i)"
-          class="sticky top-0 z-[5] py-1 px-4 text-base font-medium text-gray-500 bg-gray-100 border-b border-gray-200 dark:bg-dk-base dark:text-gray-400 dark:border-dk-muted"
+          class="month-separator sticky top-0 z-[5] py-1 px-4 text-base font-medium text-gray-500 bg-gray-100 border-b border-gray-200 dark:bg-dk-base dark:text-gray-400 dark:border-dk-muted"
         >
           {{ getMonthLabel(week) }}
         </div>
