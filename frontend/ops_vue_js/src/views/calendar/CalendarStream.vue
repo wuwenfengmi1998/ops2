@@ -858,8 +858,17 @@ function applyTodayScroll() {
   }
   if (targetEl && targetEl.classList.contains('week-row')) {
     targetEl.scrollIntoView({ block: 'start' })
+    adjustForStickySeparator(container, targetEl)
   } else {
     todayCell.scrollIntoView({ block: 'start' })
+    adjustForStickySeparator(container, todayWeekEl)
+  }
+}
+
+function adjustForStickySeparator(container, weekEl) {
+  const sep = weekEl?.previousElementSibling
+  if (sep?.classList.contains('month-separator')) {
+    container.scrollBy({ top: -sep.getBoundingClientRect().height })
   }
 }
 
