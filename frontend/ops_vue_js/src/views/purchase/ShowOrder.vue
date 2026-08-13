@@ -206,10 +206,32 @@ function openLink() {
 
 function copyLink() {
   if (!order.value?.Link) return;
-  navigator.clipboard.writeText(order.value.Link.trim()).then(() => {
-    const toast = useToastStore()
-    toast.success('链接已复制')
-  })
+  const text = order.value.Link.trim();
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => toast.success("链接已复制"))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand("copy");
+    toast.success("链接已复制");
+  } catch {
+    toast.error("复制失败");
+  }
+  document.body.removeChild(textarea);
 }
 
 function getStatusLabel(status) {
