@@ -1175,30 +1175,30 @@ watch(locale, () => {
       <div class="flex items-center gap-2 justify-start">
         <button
           @click="router.push('/calendars')"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-base"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-base"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           {{ t('calendar.calendars') }}
         </button>
         <button
           @click="goToToday"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-base font-medium text-white transition-colors hover:bg-blue-700"
         >
           {{ t('schedule.today') }}
         </button>
         <RouterLink
           :to="`/calendar/${calendarId}`"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-base"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:text-gray-300 dark:hover:bg-dk-base"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           {{ t('calendar.classic_view') }}
         </RouterLink>
       </div>
       <div class="text-center">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ calendarInfo?.Name || '' }}</h2>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ calendarInfo?.Name || '' }}</h2>
       </div>
       <div class="flex items-center justify-end">
-        <label class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+        <label class="flex items-center gap-1.5 text-base text-gray-600 dark:text-gray-300 cursor-pointer select-none">
           <input
             v-model="autoScrollToday"
             type="checkbox"
@@ -1214,7 +1214,7 @@ watch(locale, () => {
       <div
         v-for="(label, i) in weekdayShort"
         :key="i"
-        class="py-1.5 text-center text-xs font-bold text-gray-500 dark:text-gray-400"
+        class="py-1.5 text-center text-base font-bold text-gray-500 dark:text-gray-400"
       >
         {{ label }}
       </div>
@@ -1229,7 +1229,7 @@ watch(locale, () => {
       <div ref="topSentinelRef" class="h-px"></div>
 
       <!-- Loading indicator (top) -->
-      <div v-if="loadingTop" class="py-2 text-center text-sm text-gray-400">
+      <div v-if="loadingTop" class="py-2 text-center text-base text-gray-400">
         <svg class="inline animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -1242,7 +1242,7 @@ watch(locale, () => {
         <!-- Month Separator -->
         <div
           v-if="shouldShowMonthSeparator(i)"
-          class="sticky top-0 z-[5] py-1 px-4 text-sm font-medium text-gray-500 bg-gray-100 border-b border-gray-200 dark:bg-dk-base dark:text-gray-400 dark:border-dk-muted"
+          class="sticky top-0 z-[5] py-1 px-4 text-base font-medium text-gray-500 bg-gray-100 border-b border-gray-200 dark:bg-dk-base dark:text-gray-400 dark:border-dk-muted"
         >
           {{ getMonthLabel(week) }}
         </div>
@@ -1274,7 +1274,7 @@ watch(locale, () => {
                 <!-- Date number -->
                 <div class="flex justify-center mb-0.5">
                   <span
-                    class="inline-flex items-center justify-center text-sm leading-none w-6 h-6 rounded-full text-gray-600 dark:text-gray-300"
+                    class="inline-flex items-center justify-center text-base leading-none w-6 h-6 rounded-full text-gray-600 dark:text-gray-300"
                   >
                     {{ day.getDate() }}
                   </span>
@@ -1287,7 +1287,7 @@ watch(locale, () => {
               <div
                 v-for="seg in weekLayouts.get(weekKey(week)).segments"
                 :key="seg.event.id + '-' + seg.segStart"
-                class="event-chip absolute text-xs px-1.5 cursor-pointer select-none"
+                class="event-chip absolute text-sm px-1.5 cursor-pointer select-none"
                 :class="getEventBarClass(seg)"
                 :style="{
                   backgroundColor: seg.event.color,
@@ -1313,7 +1313,7 @@ watch(locale, () => {
       </template>
 
       <!-- Loading indicator (bottom) -->
-      <div v-if="loadingBottom" class="py-2 text-center text-sm text-gray-400">
+      <div v-if="loadingBottom" class="py-2 text-center text-base text-gray-400">
         <svg class="inline animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -1334,14 +1334,14 @@ watch(locale, () => {
       <button
         v-if="contextMenu.eventInfo"
         @click="copyEvent"
-        class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
+        class="flex w-full items-center gap-2 px-3 py-2 text-base text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
         {{ t('calendar.copy_event') }}
       </button>
       <button
         @click="pasteEvent"
-        class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
+        class="flex w-full items-center gap-2 px-3 py-2 text-base text-gray-700 hover:bg-gray-100 dark:text-dk-text dark:hover:bg-dk-base"
         :class="{ 'opacity-40 cursor-not-allowed': !clipboard }"
         :disabled="!clipboard"
       >
