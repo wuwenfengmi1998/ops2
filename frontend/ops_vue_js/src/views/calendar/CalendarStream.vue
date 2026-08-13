@@ -810,15 +810,37 @@ function goToToday() {
   fetchEvents(start, end).then(() => scrollToToday())
 }
 
+let todayScrollAttempts = 0
+
 function scrollToToday() {
   nextTick(() => {
-    const todayStr = dateToStr(new Date())
-    const container = scrollContainerRef.value
-    if (!container) return
-    const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
-    if (todayCell) {
-      todayCell.scrollIntoView({ block: 'center' })
-    }
+    requestAnimationFrame(() => {
+      const container = scrollContainerRef.value
+      if (!container) return
+      const todayStr = dateToStr(new Date())
+      const todayCell = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
+      if (!todayCell) return
+
+      const contRect = container.getBoundingClientRect()
+      const cellRect = todayCell.getBoundingClientRect()
+      const target = container.scrollTop + (cellRect.top - contRect.top) - (container.clientHeight - cellRect.height) / 2
+      container.scrollTo({ top: Math.max(0, target), behavior: 'instant' })
+
+      requestAnimationFrame(() => {
+        const cell2 = container.querySelector(`.day-cell[data-date="${todayStr}"]`)
+        const c2 = container.getBoundingClientRect()
+        const r2 = cell2?.getBoundingClientRect()
+        const delta = r2
+          ? Math.abs((r2.top + r2.height / 2) - (c2.top + c2.height / 2))
+          : Infinity
+        if (delta > 30 && todayScrollAttempts < 5) {
+          todayScrollAttempts++
+          scrollToToday()
+        } else {
+          todayScrollAttempts = 0
+        }
+      })
+    })
   })
 }
 
