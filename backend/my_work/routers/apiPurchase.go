@@ -44,6 +44,24 @@ func canModifyPurchase(userID, creatorUserID uint) bool {
 	return false
 }
 
+// lockedStatuses 触发自动锁定的状态
+var lockedStatuses = map[string]bool{
+	"received": true,
+	"lost":     true,
+	"returned": true,
+}
+
+// canUnlockPurchase 判断用户是否有权限锁定/解锁订单（采购管理员或系统管理员）
+func canUnlockPurchase(userID uint) bool {
+	if slices.Contains(purchaseAdmins, userID) {
+		return true
+	}
+	if SysAdminCheck(userID) {
+		return true
+	}
+	return false
+}
+
 // decodeJSON 将 map 通过 JSON 中转解码到目标结构体，绕过 mapstructure 的字段名匹配问题
 func decodeJSON(data map[string]interface{}, out interface{}) error {
 	jsonBytes, err := json.Marshal(data)
@@ -78,6 +96,7 @@ type TabPurchaseOrder struct {
 	Link        string         `gorm:"size:1000;comment:链接"`
 	Styles      string         `gorm:"type:text;comment:样式数组"`
 	OrderStatus string         `gorm:"size:50;default:pending;comment:订单状态: pending-待处理 ordered-已下单 arrived-已到达 received-已收件 lost-丢件 returned-退件"`
+	Locked      bool           `gorm:"default:false;comment:订单是否锁定"`
 	CreatedAt   *time.Time     `gorm:"type:datetime;autoCreateTime"`
 	UpdatedAt   *time.Time     `gorm:"type:datetime;autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
@@ -525,12 +544,15 @@ func ApiPurchase(r *gin.RouterGroup) {
 			linkedWorkOrders = []WorkOrderInfo{}
 		}
 
-		// 判断当前用户是否可以修改
-		canModify := canModifyPurchase(user.ID, order.UserID)
+		// 判断当前用户是否可以修改（锁定时不可修改）
+		canModify := canModifyPurchase(user.ID, order.UserID) && !order.Locked
+		// 判断当前用户是否可以锁定/解锁
+		canUnlock := canUnlockPurchase(user.ID)
 
 		ReturnJson(ctx, "apiOK", gin.H{
 			"order":      order,
 			"canModify":  canModify,
+			"canUnlock":  canUnlock,
 			"costs":      costs,
 			"photos":     files,
 			"commits":    commitResps,
@@ -586,11 +608,21 @@ func ApiPurchase(r *gin.RouterGroup) {
 			return
 		}
 
+		// 锁定检查
+		if order.Locked {
+			ReturnJson(ctx, "order_locked", nil)
+			return
+		}
+
 		oldStatus := order.OrderStatus
 
 		// 更新状态
 		updates := map[string]interface{}{
 			"order_status": from.Status,
+		}
+		// 状态变更为已收件/丢件/退件时自动锁定
+		if lockedStatuses[from.Status] {
+			updates["locked"] = true
 		}
 		if err := models.DB.Model(&order).Updates(updates).Error; err != nil {
 			ReturnJson(ctx, "apiErr", nil)
@@ -686,6 +718,96 @@ func ApiPurchase(r *gin.RouterGroup) {
 
 		// 删除进度
 		models.DB.Where("id = ?", from.CommitID).Delete(&TabPurchaseCommit{})
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
+	// 锁定订单（管理员手动锁定）
+	r.POST("/lock", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromLock struct {
+			ID uint `json:"id"`
+		}
+		var from FromLock
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+
+		var order TabPurchaseOrder
+		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		if !canUnlockPurchase(user.ID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
+		if err := models.DB.Model(&order).Update("locked", true).Error; err != nil {
+			ReturnJson(ctx, "apiErr", nil)
+			return
+		}
+
+		tosqllog := TabPurchaseLog{
+			UserID:     user.ID,
+			OrderID:    order.ID,
+			ActionType: "lock",
+			IP:         ctx.ClientIP(),
+			Remark:     "管理员锁定订单",
+		}
+		models.DB.Create(&tosqllog)
+
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
+	// 解锁订单（管理员手动解锁）
+	r.POST("/unlock", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+
+		type FromUnlock struct {
+			ID uint `json:"id"`
+		}
+		var from FromUnlock
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+
+		var order TabPurchaseOrder
+		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
+			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		if !canUnlockPurchase(user.ID) {
+			ReturnJson(ctx, "no_permission", nil)
+			return
+		}
+
+		if err := models.DB.Model(&order).Update("locked", false).Error; err != nil {
+			ReturnJson(ctx, "apiErr", nil)
+			return
+		}
+
+		tosqllog := TabPurchaseLog{
+			UserID:     user.ID,
+			OrderID:    order.ID,
+			ActionType: "unlock",
+			IP:         ctx.ClientIP(),
+			Remark:     "管理员解锁订单",
+		}
+		models.DB.Create(&tosqllog)
 
 		ReturnJson(ctx, "apiOK", nil)
 	})
@@ -946,6 +1068,12 @@ func ApiPurchase(r *gin.RouterGroup) {
 			return
 		}
 
+		// 锁定检查
+		if order.Locked {
+			ReturnJson(ctx, "order_locked", nil)
+			return
+		}
+
 		// 权限校验：只有创建者或管理员可以修改
 		if !canModifyPurchase(user.ID, order.UserID) {
 			ReturnJson(ctx, "no_permission", nil)
@@ -1033,6 +1161,12 @@ func ApiPurchase(r *gin.RouterGroup) {
 		var order TabPurchaseOrder
 		if err := models.DB.Where("id = ?", from.ID).First(&order).Error; err != nil {
 			ReturnJson(ctx, "order_not_found", nil)
+			return
+		}
+
+		// 锁定检查
+		if order.Locked {
+			ReturnJson(ctx, "order_locked", nil)
 			return
 		}
 

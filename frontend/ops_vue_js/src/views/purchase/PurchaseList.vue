@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useToastStore } from '@/stores/toast'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { purchaseApi } from '@/api/purchase'
-import { IconPlus, IconChevronLeftPipe, IconChevronRightPipe, IconChevronsLeft, IconChevronsRight } from '@tabler/icons-vue'
+import { IconPlus, IconChevronLeftPipe, IconChevronRightPipe, IconChevronsLeft, IconChevronsRight, IconLock } from '@tabler/icons-vue'
 
 usePageTitle('appname.purchase')
 const { t, locale } = useI18n()
@@ -190,7 +190,7 @@ onMounted(fetchOrders)
               <td class="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ formatDate(order.UpdatedAt) }}</td>
               <td class="px-6 py-3">
                 <span
-                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                  class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
                   :class="{
                     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400': order.OrderStatus === 'pending',
                     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400': order.OrderStatus === 'ordered',
@@ -201,6 +201,13 @@ onMounted(fetchOrders)
                   }"
                 >
                   {{ t('purchase.status_' + order.OrderStatus) }}
+                </span>
+                <span
+                  v-if="order.Locked"
+                  class="ml-1 inline-flex items-center text-red-500 dark:text-red-400"
+                  :title="t('purchase.locked')"
+                >
+                  <IconLock :size="14" />
                 </span>
               </td>
             </tr>

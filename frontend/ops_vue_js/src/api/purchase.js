@@ -41,6 +41,16 @@ export const purchaseApi = {
     return api.post('/purchase/delete_commit', { orderId, commitId })
   },
 
+  /** 锁定订单（管理员） */
+  lockOrder(id) {
+    return api.post('/purchase/lock', { id })
+  },
+
+  /** 解锁订单（管理员） */
+  unlockOrder(id) {
+    return api.post('/purchase/unlock', { id })
+  },
+
   /** 搜索工单（用于采购订单关联） */
   searchWorkOrders(search = '', limit = 5) {
     return api.post('/purchase/search_work_orders', { search, limit })

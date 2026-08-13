@@ -19,6 +19,8 @@ import {
   IconTrash,
   IconSearch,
   IconFile,
+  IconLock,
+  IconLockOpen,
 } from "@tabler/icons-vue";
 
 usePageTitle("purchase.order_detail");
@@ -37,6 +39,7 @@ const photos = ref([]);
 const commits = ref([]);
 const workOrders = ref([]);
 const canModify = ref(false);
+const canUnlock = ref(false);
 const loading = ref(true);
 const notFound = ref(false);
 const updatingStatus = ref(false);
@@ -65,6 +68,10 @@ const photoInputRef = ref(null);
 // 删除进度相关
 const showDeleteConfirm = ref(false);
 const pendingDeleteCommitId = ref(null);
+
+// 锁定/解锁相关
+const showLockConfirm = ref(false);
+const showUnlockConfirm = ref(false);
 
 // 判断是否可以删除进度
 function canDeleteCommit(commit, index) {
@@ -330,6 +337,38 @@ async function confirmStatusChange() {
   }
 }
 
+async function confirmLockOrder() {
+  try {
+    const { errCode } = await purchaseApi.lockOrder(orderId.value);
+    if (errCode === 0) {
+      toast.success(t("purchase.lock_success"));
+      await fetchOrder();
+    } else {
+      toast.error(t("message.server_error"));
+    }
+  } catch {
+    toast.error(t("message.server_error"));
+  } finally {
+    showLockConfirm.value = false;
+  }
+}
+
+async function confirmUnlockOrder() {
+  try {
+    const { errCode } = await purchaseApi.unlockOrder(orderId.value);
+    if (errCode === 0) {
+      toast.success(t("purchase.unlock_success"));
+      await fetchOrder();
+    } else {
+      toast.error(t("message.server_error"));
+    }
+  } catch {
+    toast.error(t("message.server_error"));
+  } finally {
+    showUnlockConfirm.value = false;
+  }
+}
+
 async function fetchOrder() {
   loading.value = true;
   try {
@@ -337,6 +376,7 @@ async function fetchOrder() {
     if (errCode === 0 && data) {
       order.value = data.order ?? null;
       canModify.value = data.canModify ?? false;
+      canUnlock.value = data.canUnlock ?? false;
       costs.value = data.costs ?? [];
       photos.value = data.photos ?? [];
       commits.value = data.commits ?? [];
@@ -420,17 +460,37 @@ onUnmounted(() => {
         <IconChevronLeft :size="16" />
         {{ t("purchase.back_to_list") }}
       </button>
-      <!-- 编辑按钮 -->
-      <RouterLink
-        v-if="canModify"
-        :to="`/purchase/editorder/${order.ID}`"
-        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-card dark:text-gray-300 dark:hover:bg-dk-base"
-      >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-        {{ t("purchase.edit_order") }}
-      </RouterLink>
+      <!-- 编辑 + 锁定/解锁按钮 -->
+      <div class="flex items-center gap-2">
+        <RouterLink
+          v-if="canModify"
+          :to="`/purchase/editorder/${order.ID}`"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-dk-muted dark:bg-dk-card dark:text-gray-300 dark:hover:bg-dk-base"
+        >
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          {{ t("purchase.edit_order") }}
+        </RouterLink>
+        <!-- 解锁按钮 -->
+        <button
+          v-if="canUnlock && order?.Locked"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 transition-colors hover:bg-green-100 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+          @click="showUnlockConfirm = true"
+        >
+          <IconLockOpen :size="16" />
+          {{ t("purchase.unlock_order") }}
+        </button>
+        <!-- 锁定按钮 -->
+        <button
+          v-if="canUnlock && !order?.Locked"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 transition-colors hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
+          @click="showLockConfirm = true"
+        >
+          <IconLock :size="16" />
+          {{ t("purchase.lock_order") }}
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -492,6 +552,14 @@ onUnmounted(() => {
               </span>
               {{ getStatusLabel(order.OrderStatus) }}
             </span>
+            <!-- 锁定标签 -->
+            <span
+              v-if="order?.Locked"
+              class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/40 dark:text-red-400"
+            >
+              <IconLock :size="10" />
+              {{ t("purchase.locked") }}
+            </span>
             <!-- 创建者 -->
             <span
               v-if="order?.UserID"
@@ -526,7 +594,7 @@ onUnmounted(() => {
                 ? [getStatusColorClass(opt.value), 'border-transparent']
                 : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-dk-muted dark:text-gray-400 dark:hover:bg-dk-base'
             "
-            :disabled="updatingStatus"
+            :disabled="updatingStatus || order?.Locked"
             @click="openStatusDialog(opt.value)"
           >
             <IconCheck v-if="order?.OrderStatus === opt.value" :size="12" />
@@ -543,12 +611,20 @@ onUnmounted(() => {
                 ? [getStatusColorClass(opt.value), 'border-transparent']
                 : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 dark:border-dk-muted dark:text-gray-400 dark:hover:bg-dk-base'
             "
-            :disabled="updatingStatus"
+            :disabled="updatingStatus || order?.Locked"
             @click="openStatusDialog(opt.value)"
           >
             <IconCheck v-if="order?.OrderStatus === opt.value" :size="12" />
             {{ t("purchase." + opt.labelKey) }}
           </button>
+          <!-- 锁定提示 -->
+          <span
+            v-if="order?.Locked"
+            class="ml-2 inline-flex items-center gap-1 text-xs text-red-500 dark:text-red-400"
+          >
+            <IconLock :size="12" />
+            {{ t("purchase.lock_hint") }}
+          </span>
         </div>
 
         <!-- Order Info -->
@@ -1064,6 +1140,21 @@ onUnmounted(() => {
     :message="t('purchase.confirm_delete_commit')"
     danger
     @confirm="confirmDeleteCommit"
+  />
+
+  <!-- 锁定确认弹窗 -->
+  <ConfirmDialog
+    v-model="showLockConfirm"
+    :message="t('purchase.lock_confirm')"
+    danger
+    @confirm="confirmLockOrder"
+  />
+
+  <!-- 解锁确认弹窗 -->
+  <ConfirmDialog
+    v-model="showUnlockConfirm"
+    :message="t('purchase.unlock_confirm')"
+    @confirm="confirmUnlockOrder"
   />
 </template>
 
