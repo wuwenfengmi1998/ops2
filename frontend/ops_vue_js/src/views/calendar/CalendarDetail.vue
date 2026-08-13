@@ -432,7 +432,7 @@ const calendarOptions = ref({
   },
 
   headerToolbar: {
-    left: "backToList,prevYear,prev,today,next,nextYear",
+    left: "backToList,prevYear,prev,today,next,nextYear,streamView",
     center: "myTitle",
     right: "title",
   },
@@ -469,6 +469,10 @@ const calendarOptions = ref({
     week: {
       text: t("schedule.week"),
       click() { calendarRef.value.getApi().changeView("timeGridWeek") },
+    },
+    streamView: {
+      text: t("calendar.stream_view"),
+      click() { router.push("/calendar/" + calendarId.value + "/stream") },
     },
   },
 
@@ -582,6 +586,7 @@ watch(locale, () => {
   calendarOptions.value.customButtons.next.text = t("schedule.next_month")
   calendarOptions.value.customButtons.today.text = t("schedule.today")
   calendarOptions.value.customButtons.week.text = t("schedule.week")
+  calendarOptions.value.customButtons.streamView.text = t("calendar.stream_view")
   colorOptions.value = [
     { value: "#3788d9", label: t("schedule.work"), name: t("schedule.work"), type: "work" },
     { value: "#06d6a0", label: t("schedule.duty"), name: t("schedule.duty"), type: "duty" },
