@@ -20,7 +20,10 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconReload,
+  IconTrash,
 } from '@tabler/icons-vue'
+
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 usePageTitle('appname.quiz_bank')
 const { t, locale } = useI18n()
@@ -174,6 +177,36 @@ function viewSession(id) {
 
 function redoWrong(s) {
   router.push(`/quiz/redo/${s.id}`)
+}
+
+// 删除本人成绩记录
+const delSessionTarget = ref(null)
+const confirmDelSession = ref(false)
+
+function askDeleteSession(s) {
+  delSessionTarget.value = s
+  confirmDelSession.value = true
+}
+
+async function doDeleteSession() {
+  if (!delSessionTarget.value) return
+  try {
+    const { errCode } = await quizApi.deleteSession(delSessionTarget.value.id)
+    if (errCode === 0) {
+      toast.success(t('message.delete_success'))
+      confirmDelSession.value = false
+      delSessionTarget.value = null
+      if (sessions.value.length === 1 && historyPage.value > 1) {
+        historyPage.value -= 1
+      }
+      fetchSessions()
+      fetchBoard()
+    } else {
+      toast.error(t('message.server_error'))
+    }
+  } catch {
+    // 拦截器已处理
+  }
 }
 
 // ── 排行榜 ──
@@ -372,14 +405,23 @@ onMounted(() => {
               <td class="px-6 py-3 text-gray-500 dark:text-gray-400">{{ s.durationSec }} {{ t('quiz.seconds') }}</td>
               <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ formatDate(s.createdAt) }}</td>
               <td class="px-6 py-3">
-                <button
-                  v-if="s.wrongCount > 0"
-                  class="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-blue-300 px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
-                  @click.stop="redoWrong(s)"
-                >
-                  <IconReload :size="13" />
-                  {{ t('quiz.redo') }}
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="s.wrongCount > 0"
+                    class="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-blue-300 px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                    @click.stop="redoWrong(s)"
+                  >
+                    <IconReload :size="13" />
+                    {{ t('quiz.redo') }}
+                  </button>
+                  <button
+                    class="rounded-lg border border-red-300 p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                    :title="t('quiz.delete_record')"
+                    @click.stop="askDeleteSession(s)"
+                  >
+                    <IconTrash :size="14" />
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="!loadingHistory && sessions.length === 0">
@@ -470,5 +512,13 @@ onMounted(() => {
         </table>
       </div>
     </div>
+
+    <ConfirmDialog
+      v-model="confirmDelSession"
+      :title="t('quiz.delete_record_title')"
+      :message="t('quiz.delete_record_confirm')"
+      danger
+      @confirm="doDeleteSession"
+    />
   </div>
 </template>

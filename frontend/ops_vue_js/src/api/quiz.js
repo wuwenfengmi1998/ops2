@@ -53,6 +53,10 @@ export const quizApi = {
   mySessions(params = {}) {
     return api.post('/quiz/sessions', params)
   },
+  /** 删除自己的成绩记录 */
+  deleteSession(id) {
+    return api.post('/quiz/session/delete', { id })
+  },
   /** 答题回顾详情 */
   getSession(id) {
     return api.post('/quiz/session', { id })

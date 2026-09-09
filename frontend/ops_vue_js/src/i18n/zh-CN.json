@@ -884,7 +884,10 @@
     "learn_title": "学习模式",
     "learn_empty": "该题库暂无题目",
     "loading_more": "加载中…",
-    "all_loaded": "已加载全部"
+    "all_loaded": "已加载全部",
+    "delete_record": "删除",
+    "delete_record_title": "删除成绩记录",
+    "delete_record_confirm": "确认删除该次成绩记录？删除后不可恢复。"
   },
   "questions": {
     "title": "题库管理",

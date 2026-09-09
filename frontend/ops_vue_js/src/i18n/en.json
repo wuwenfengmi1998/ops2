@@ -883,7 +883,10 @@
     "learn_title": "Study Mode",
     "learn_empty": "No questions in this bank yet",
     "loading_more": "Loading...",
-    "all_loaded": "All questions loaded"
+    "all_loaded": "All questions loaded",
+    "delete_record": "Delete",
+    "delete_record_title": "Delete Score Record",
+    "delete_record_confirm": "Delete this score record? This cannot be undone."
   },
   "questions": {
     "title": "Question Bank",

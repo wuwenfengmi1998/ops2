@@ -1431,6 +1431,31 @@ func ApiQuiz(r *gin.RouterGroup) {
 		})
 	})
 
+	// 删除本人的成绩记录（连带答题明细）
+	r.POST("/session/delete", func(ctx *gin.Context) {
+		isAuth, user, data := AuthenticationAuthority(ctx)
+		if !isAuth {
+			ReturnJson(ctx, "userCookieError", nil)
+			return
+		}
+		type FromDelete struct {
+			ID uint `json:"id"`
+		}
+		var from FromDelete
+		if err := decodeJSON(data, &from); err != nil || from.ID == 0 {
+			ReturnJson(ctx, "jsonErr", nil)
+			return
+		}
+		var session TabQuizSession
+		if err := models.DB.First(&session, from.ID).Error; err != nil || session.UserID != user.ID {
+			ReturnJson(ctx, "quiz_session_not_found", nil)
+			return
+		}
+		models.DB.Delete(&TabQuizAnswer{}, "session_id = ?", session.ID)
+		models.DB.Delete(&TabQuizSession{}, session.ID)
+		ReturnJson(ctx, "apiOK", nil)
+	})
+
 	// 错题重做：仅判分，不写入任何数据
 	r.POST("/redo", func(ctx *gin.Context) {
 		isAuth, user, data := AuthenticationAuthority(ctx)
