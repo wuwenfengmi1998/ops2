@@ -149,7 +149,7 @@ const form = reactive({
   countMultiple: 10,
   countJudge: 20,
   countBlank: 10,
-  durationSec: 300,
+  durationMin: 0,
 })
 
 function openAdd() {
@@ -160,7 +160,7 @@ function openAdd() {
   form.countMultiple = 10
   form.countJudge = 20
   form.countBlank = 10
-  form.durationSec = 300
+  form.durationMin = 0
   showModal.value = true
 }
 
@@ -173,7 +173,7 @@ function openEdit(row, event) {
   form.countMultiple = row.countMultiple || 10
   form.countJudge = row.countJudge || 20
   form.countBlank = row.countBlank || 10
-  form.durationSec = row.durationSec
+  form.durationMin = Math.round((row.durationSec || 0) / 60)
   showModal.value = true
 }
 
@@ -192,7 +192,7 @@ async function handleSave() {
       countMultiple: form.countMultiple,
       countJudge: form.countJudge,
       countBlank: form.countBlank,
-      durationSec: form.durationSec,
+      durationSec: (form.durationMin || 0) * 60,
     }
     const { errCode } = editingId.value
       ? await quizApi.updateBank({ id: editingId.value, ...payload })
@@ -478,13 +478,13 @@ onMounted(fetchBanks)
             <div class="flex items-center gap-3">
               <label class="w-24 shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('quiz.time_limit') }}</label>
               <input
-                v-model.number="form.durationSec"
+                v-model.number="form.durationMin"
                 type="number"
                 min="0"
-                max="7200"
+                max="120"
                 class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
               />
-              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('banks.duration_seconds_hint') }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('banks.duration_minutes_hint') }}</span>
             </div>
           </div>
 
