@@ -945,7 +945,7 @@
     "delete_title": "Delete Bank",
     "delete_msg": "Deleting \"{name}\" will also delete all its questions. Continue?",
     "err_name_required": "Please enter the bank name",
-    "draw_count_hint": "Random draw count per type; draws all of that type if fewer are available",
+    "draw_count_hint": "Random draw count per type; 0 = do not draw this type; draws all of that type if fewer are available",
     "back": "Back to banks",
     "manage_questions": "Manage Questions",
     "single_short": "S",

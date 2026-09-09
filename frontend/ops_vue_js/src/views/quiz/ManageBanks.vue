@@ -169,10 +169,10 @@ function openEdit(row, event) {
   editingId.value = row.id
   form.name = row.name
   form.description = row.description || ''
-  form.countSingle = row.countSingle || 20
-  form.countMultiple = row.countMultiple || 10
-  form.countJudge = row.countJudge || 20
-  form.countBlank = row.countBlank || 10
+  form.countSingle = row.countSingle ?? 20
+  form.countMultiple = row.countMultiple ?? 10
+  form.countJudge = row.countJudge ?? 20
+  form.countBlank = row.countBlank ?? 10
   form.durationMin = Math.round((row.durationSec || 0) / 60)
   showModal.value = true
 }
@@ -437,7 +437,7 @@ onMounted(fetchBanks)
                   <input
                     v-model.number="form.countSingle"
                     type="number"
-                    min="1"
+                    min="0"
                     max="100"
                     class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
                   />
@@ -447,7 +447,7 @@ onMounted(fetchBanks)
                   <input
                     v-model.number="form.countMultiple"
                     type="number"
-                    min="1"
+                    min="0"
                     max="100"
                     class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
                   />
@@ -457,7 +457,7 @@ onMounted(fetchBanks)
                   <input
                     v-model.number="form.countJudge"
                     type="number"
-                    min="1"
+                    min="0"
                     max="100"
                     class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
                   />
@@ -467,7 +467,7 @@ onMounted(fetchBanks)
                   <input
                     v-model.number="form.countBlank"
                     type="number"
-                    min="1"
+                    min="0"
                     max="100"
                     class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:border-blue-500 dark:border-dk-muted dark:bg-dk-base dark:text-white"
                   />

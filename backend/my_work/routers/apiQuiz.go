@@ -434,21 +434,6 @@ func quizBankNameMap(sessions []TabQuizSession) map[uint]string {	ids := []uint{
 	return m
 }
 
-// quizDefaultCount 各题型默认抽题数
-func quizDefaultCount(qType string) int {
-	switch qType {
-	case QuizTypeSingle:
-		return 20
-	case QuizTypeMultiple:
-		return 10
-	case QuizTypeJudge:
-		return 20
-	case QuizTypeBlank:
-		return 10
-	}
-	return 10
-}
-
 // ApiQuizInit 初始化答题模块
 func ApiQuizInit() {
 	models.DB.AutoMigrate(&TabQuizBank{})
@@ -503,17 +488,17 @@ func ApiQuiz(r *gin.RouterGroup) {
 			ReturnJson(ctx, "jsonErr", nil)
 			return
 		}
-		if from.CountSingle <= 0 {
-			from.CountSingle = quizDefaultCount(QuizTypeSingle)
+		if from.CountSingle < 0 {
+			from.CountSingle = 0
 		}
-		if from.CountMultiple <= 0 {
-			from.CountMultiple = quizDefaultCount(QuizTypeMultiple)
+		if from.CountMultiple < 0 {
+			from.CountMultiple = 0
 		}
-		if from.CountJudge <= 0 {
-			from.CountJudge = quizDefaultCount(QuizTypeJudge)
+		if from.CountJudge < 0 {
+			from.CountJudge = 0
 		}
-		if from.CountBlank <= 0 {
-			from.CountBlank = quizDefaultCount(QuizTypeBlank)
+		if from.CountBlank < 0 {
+			from.CountBlank = 0
 		}
 		if from.DurationSec < 0 {
 			from.DurationSec = 0
@@ -550,10 +535,10 @@ func ApiQuiz(r *gin.RouterGroup) {
 			ID            uint   `json:"id"`
 			Name          string `json:"name"`
 			Description   string `json:"description"`
-			CountSingle   int    `json:"countSingle"`
-			CountMultiple int    `json:"countMultiple"`
-			CountJudge    int    `json:"countJudge"`
-			CountBlank    int    `json:"countBlank"`
+			CountSingle   *int   `json:"countSingle"`
+			CountMultiple *int   `json:"countMultiple"`
+			CountJudge    *int   `json:"countJudge"`
+			CountBlank    *int   `json:"countBlank"`
 			DurationSec   int    `json:"durationSec"`
 			Active        *bool  `json:"active"`
 		}
@@ -573,17 +558,29 @@ func ApiQuiz(r *gin.RouterGroup) {
 		if from.Description != "" {
 			bank.Description = from.Description
 		}
-		if from.CountSingle > 0 {
-			bank.CountSingle = from.CountSingle
+		if from.CountSingle != nil {
+			bank.CountSingle = *from.CountSingle
+			if bank.CountSingle < 0 {
+				bank.CountSingle = 0
+			}
 		}
-		if from.CountMultiple > 0 {
-			bank.CountMultiple = from.CountMultiple
+		if from.CountMultiple != nil {
+			bank.CountMultiple = *from.CountMultiple
+			if bank.CountMultiple < 0 {
+				bank.CountMultiple = 0
+			}
 		}
-		if from.CountJudge > 0 {
-			bank.CountJudge = from.CountJudge
+		if from.CountJudge != nil {
+			bank.CountJudge = *from.CountJudge
+			if bank.CountJudge < 0 {
+				bank.CountJudge = 0
+			}
 		}
-		if from.CountBlank > 0 {
-			bank.CountBlank = from.CountBlank
+		if from.CountBlank != nil {
+			bank.CountBlank = *from.CountBlank
+			if bank.CountBlank < 0 {
+				bank.CountBlank = 0
+			}
 		}
 		if from.DurationSec >= 0 {
 			bank.DurationSec = from.DurationSec
@@ -1096,7 +1093,7 @@ func ApiQuiz(r *gin.RouterGroup) {
 		questions := []TabQuizQuestion{}
 		for _, d := range typeDraws {
 			if d.count <= 0 {
-				d.count = quizDefaultCount(d.qType)
+				continue
 			}
 			var pool []TabQuizQuestion
 			models.DB.Where("bank_id = ? AND active = ? AND type = ?", bank.ID, true, d.qType).Find(&pool)

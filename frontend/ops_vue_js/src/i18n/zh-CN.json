@@ -946,7 +946,7 @@
     "delete_title": "删除题库",
     "delete_msg": "删除题库\"{name}\"将同时删除其下所有题目，确认继续？",
     "err_name_required": "请填写题库名称",
-    "draw_count_hint": "每种题型随机抽取数量，题目不足则该题型全部抽取",
+    "draw_count_hint": "每种题型随机抽取数量，填 0 表示该题型不抽取；题目不足则全部抽取",
     "back": "返回题库列表",
     "manage_questions": "管理题目",
     "single_short": "单",
