@@ -20,7 +20,14 @@
     "file_not_found":-57,
     "file_part_err":-58,
     "schedule_event_not_find":-61,
-    "schedule_permission_denied":-62
+    "schedule_permission_denied":-62,
+    "quiz_no_questions":-71,
+    "quiz_question_not_found":-72,
+    "quiz_session_not_found":-73,
+    "quiz_permission_denied":-74,
+    "quiz_session_finished":-75,
+    "quiz_answer_format_err":-76,
+    "quiz_bank_not_found":-77
 
 
 }

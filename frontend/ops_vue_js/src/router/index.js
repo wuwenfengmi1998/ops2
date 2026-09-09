@@ -166,6 +166,47 @@ const router = createRouter({
           name: 'aichat',    
           component: () => import('@/views/aichat/AiChatView.vue'),
         },
+        {
+          path: 'quiz',
+          redirect: '/questions',
+        },
+        {
+          path: 'quiz/play',
+          name: 'quiz-play',
+          component: () => import('@/views/quiz/QuizPlay.vue'),
+        },
+        {
+          path: 'quiz/learn',
+          name: 'quiz-learn',
+          component: () => import('@/views/quiz/QuizLearn.vue'),
+        },
+        {
+          path: 'quiz/result/:id',
+          name: 'quiz-result',
+          component: () => import('@/views/quiz/QuizResult.vue'),
+        },
+        {
+          path: 'quiz/redo/:id',
+          name: 'quiz-redo',
+          component: () => import('@/views/quiz/QuizRedo.vue'),
+        },
+        {
+          path: 'questions',
+          name: 'quiz-questions',
+          component: () => import('@/views/quiz/QuestionList.vue'),
+        },
+        {
+          path: 'questions/manage',
+          name: 'quiz-banks-manage',
+          component: () => import('@/views/quiz/ManageBanks.vue'),
+          meta: { requireQuizAdmin: true },
+        },
+        {
+          path: 'questions/bank/:id',
+          name: 'quiz-bank-questions',
+          component: () => import('@/views/quiz/BankQuestions.vue'),
+          meta: { requireQuizAdmin: true },
+        },
       ],
     },
 
@@ -233,6 +274,11 @@ router.beforeEach((to) => {
 
   // 需要系统管理员权限
   if (to.meta.requireSysAdmin && !userStore.isSysAdmin) {
+    return { name: 'home' }
+  }
+
+  // 需要题库管理员权限
+  if (to.meta.requireQuizAdmin && !userStore.isQuizAdmin) {
     return { name: 'home' }
   }
 

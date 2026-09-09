@@ -59,6 +59,7 @@ const navItems = computed(() => [
   { label: t("appname.purchase"), to: "/purchase" },
   { label: t("appname.work_order"), to: "/work_order" },
   { label: t("appname.warehouse"), to: "/warehouse" },
+  { label: t("appname.quiz_bank"), to: "/questions" },
   { label: t("appname.ae_proxy"), href: "http://192.168.3.116:8187/asteamobile/", external: true },
 ]);
 </script>

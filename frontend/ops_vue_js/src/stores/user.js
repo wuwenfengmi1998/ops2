@@ -69,6 +69,11 @@ export const useUserStore = defineStore('user', () => {
     groups.value.some(g => g.name === 'calendar_admin')
   )
 
+  // 是否为题库管理员（在 quiz_admin 群组中或系统管理员）
+  const isQuizAdmin = computed(() =>
+    isSysAdmin.value || groups.value.some(g => g.name === 'quiz_admin')
+  )
+
   // 用户加入的群组名称列表（计算属性）
   const groupNames = computed(() => groups.value.map(g => g.name))
 
@@ -136,6 +141,7 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     isSysAdmin,
     isCalendarAdmin,
+    isQuizAdmin,
     groups,
     groupNames,
     cookieValue,
